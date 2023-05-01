@@ -1,0 +1,15 @@
+boto3
+encodec
+funcy
+numpy
+scipy
+tokenizers
+torch
+tqdm
+transformers
+soundfile
+ipython
+huggingface_hub>0.14
+rich
+pathvalidate
+gradio
