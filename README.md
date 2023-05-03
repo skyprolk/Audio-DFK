@@ -1,7 +1,5 @@
 # 🚀 BARK INFINITY 🎶 🌈✨🚀 Updates Might be Here...
 
-_(This is no longer just a command line wrapper...)_ Now it's BARK INFINITY! 🎉
-
 # 🌠 The Past: 🌠
 
 Bark Infinity started as a humble 💻 command line wrapper, a CLI 💬. Built from simple keyword commands, it was a proof of concept 🧪, a glimmer of potential 💡.
@@ -18,23 +16,9 @@ But for some people, the time-tested command line interface was not a good fit. 
 
 *Or do we?* 
 
-## This week find out how Bark Infinity is bringing the _command line_ to _GRADIO_ instead. 
+## This week find out how Bark Infinity is bringing the _command line_ to the GUI world. 
 
-
-![bark_update](https://user-images.githubusercontent.com/163408/235445467-fcceba82-a057-4eb0-9b5a-d8d6f782892b.PNG)
-
-
-Is it solution an abomination? It this actually a neat compromise between ease of use and power when you need it? Is this just a horrible shortcut because programmer had never Gradio before and didn't want add menus for a billion parameters that rarely get used? FIND OUT THIS WEEK. At the very leask the Bark loaded model stays in memory so the lag time is great. (Sorry I ran out of emojis for the last few paragraphs.)
-
-For real though, I tested a One Click installer. It successfully installed ONE TIME on my other computer. And as we all know 1 is infinitely more than 0. So 
-
-## May 3
-1. Ramshackle Gradio App
-2. One Click installer with a 100% success rate so far. 
-
-I'll probably post to a dev branch TUE night and try to find a few brave volunteers can test the click installer and confirm it doesn't eat all their files.
-
-I did take a quick look at the 'voice cloning' to see if it worth bulding that in because a lot of people ask, and maybe I'm missing something, but I couldn't get a single good example better than what I could get in a few mintues in Tortoise TTS.
+![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
 
 ## 🌟 Main Features 🌟
 
