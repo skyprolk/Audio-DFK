@@ -1,5 +1,7 @@
 # 🚀 BARK INFINITY 🎶 🌈✨🚀 Updates Might be Here...
 
+⚡⚡⚡ Trying to iron out installation issues, immediateback is appreciated, I am here and in Bark Discord ⚡⚡⚡
+
 # 🌠 The Past: 🌠
 
 Bark Infinity started as a humble 💻 command line wrapper, a CLI 💬. Built from simple keyword commands, it was a proof of concept 🧪, a glimmer of potential 💡.
