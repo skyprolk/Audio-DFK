@@ -32,7 +32,7 @@ IMPORTANT: Make sure you start something that 'Miniforge Prompt', not the regula
 
 Answer 'Y' to questions about installing:
 ```
-git clone -b bark-infinity-gradio https://github.com/JonathanFly/bark.git
+git clone -b https://github.com/JonathanFly/bark.git
 (If that fails maybe try "mamba install git")
 cd bark
 mamba env create -f environment-cuda.yml 
