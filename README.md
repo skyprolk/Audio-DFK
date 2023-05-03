@@ -41,6 +41,19 @@ pip install encodec
 pip install rich-argparse
 ```
 
+TO START (Always making sure you start 'Miniforge Prompt') and make sure you are the /bark directory that has thet bark_webgui.py file
+```
+python bark_webui.py
+```
+
+If you shut down mamba/conca you may have to do this:
+
+```
+mamba activate bark-infinity-oneclick
+cd bark
+python bark_webui.py
+```
+
 I dipped my toes back into a bit [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
 
 ## 🌟 (OLD NOT UPDATED) Main Features 🌟 __ 
