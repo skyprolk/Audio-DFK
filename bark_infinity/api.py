@@ -23,7 +23,7 @@ from rich.table import Table
 from collections import defaultdict
 from tqdm import tqdm
 
-from .text_processing import *
+from bark_infinity import text_processing
 
 def text_to_semantic(
     text: str,
@@ -225,8 +225,9 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
     if output_filename:
         base_output_filename = f"{output_filename}"
     else:
+        # didn't seem to add value, ripped out
         """
-        extra_stats = ''
+        extra_stats = '' 
         extra_stats = kwargs.get('extra_stats', False)
         if extra_stats:
             token_probs_history = kwargs['token_probs_history']
@@ -507,10 +508,14 @@ def generate_audio_long(
     if single_starting_seed is not None:
         set_seed(single_starting_seed)
 
+    # the old way of doing this
+    split_each_text_prompt_by = kwargs.get("split_each_text_prompt_by",None)
+    split_each_text_prompt_by_value = kwargs.get("split_each_text_prompt_by_value",None)
 
-    #audio_segments = chunk_up_text_alt(**kwargs)
-    audio_segments = chunk_up_text(**kwargs)
-
+    if split_each_text_prompt_by is not None and split_each_text_prompt_by_value is not None:
+        audio_segments = chunk_up_text_prev(**kwargs)
+    else:
+        audio_segments = chunk_up_text(**kwargs)
 
     history_prompt_for_next_segment = None
     base_history = None
@@ -787,7 +792,7 @@ def chunk_up_text(**kwargs):
     split_character_max_length = kwargs['split_character_max_length']
     silent = kwargs.get('silent')
 
-    audio_segments = split_general_purpose(text_prompt, split_character_goal_length=split_character_goal_length, split_character_max_length=split_character_max_length)
+    audio_segments = text_processing.split_general_purpose(text_prompt, split_character_goal_length=split_character_goal_length, split_character_max_length=split_character_max_length)
 
 
     split_desc = f"Splitting long text aiming for {split_character_goal_length} chars max {split_character_max_length}"
@@ -799,14 +804,14 @@ def chunk_up_text(**kwargs):
 
 
 
-def chunk_up_text_meh(**kwargs):
+def chunk_up_text_prev(**kwargs):
 
     text_prompt = kwargs['text_prompt']
     split_by = kwargs['split_each_text_prompt_by']
     split_by_value = kwargs['split_each_text_prompt_by_value']
     silent = kwargs.get('silent')
 
-    audio_segments = split_text(text_prompt, split_by, split_by_value)
+    audio_segments = text_processing.split_text(text_prompt, split_by, split_by_value)
 
     if split_by == 'phrase':
         split_desc = f"Splitting long text by *{split_by}* (min_duration=8, max_duration=18, words_per_second=2.3)"

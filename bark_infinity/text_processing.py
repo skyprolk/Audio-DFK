@@ -161,6 +161,7 @@ def load_text(file_path: str) -> Union[str, None]:
     return None
 
 
+# Good for just exploring random voices
 def split_by_random(text: str, n: int) -> List[str]:
     words = text.split()
     chunks = []

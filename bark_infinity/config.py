@@ -51,6 +51,12 @@ DEFAULTS = {
         ('fine_use_small', {'value': False, 'type': bool, 'help': "Use a smaller/faster fine model."}),
         ('codec_use_gpu', {'value': True, 'type': bool, 'help': "Load the codec model on the GPU."}),
         ('force_reload', {'value': False, 'type': bool, 'help': "Force the models to be downloaded again."}),
+
+        ('GLOBAL_ENABLE_MPS', {'value': None, 'type': bool, 'help': "Apple M1 Hardware Acceleration."}),
+
+        ('USE_SMALL_MODELS', {'value': None, 'type': bool, 'help': "Set OS env for small models."}),
+
+        ('OFFLOAD_CPU', {'value': None, 'type': bool, 'help': "Offload models when not in use, saves a ton of GPU memory and almost as fast."}),
     ],
     'bark_model_parameters': [
         ('text_temp', {'value': 0.7, 'type': float, 'help': "Text temperature. "}),
@@ -69,8 +75,8 @@ DEFAULTS = {
 
         ('add_silence_between_segments', {'value': 0.25, 'type': float, 'help':  "Add a bit of silence between joined audio segments. Works good if you splitting your text on copmlete sentences or phrases, or if you are using the same prompt every segment (stable_mode_interval = 1). If you are using stable_mode_interval = 0 it might be worse."}),
 
-          ('split_each_text_prompt_by', {'value': 'phrase', 'type': str, 'help': "Bark only generates 14s at a time, so the text_prompt needs to be split into chunks smaller than that.",'choices': CHOICES['split_options']}),
-        ('split_each_text_prompt_by_value', {'value': 4, 'type': int, 'help': "The number of words, lines, sentences, rhymes, alliterations, or the value of the specific string to split your text_prompt into < 14s chunks."}),
+          ('split_each_text_prompt_by', {'value': None, 'type': str, 'help': "Bark only generates 14s at a time, so the text_prompt needs to be split into chunks smaller than that.",'choices': CHOICES['split_options']}),
+        ('split_each_text_prompt_by_value', {'value': None, 'type': int, 'help': "The number of words, lines, sentences, rhymes, alliterations, or the value of the specific string to split your text_prompt into < 14s chunks."}),
         ('extra_confused_travolta_mode', {'value': None, 'type': int, 'help': "Like the name says... 1 for more, 2 for way more, the level of confusion now goes to infinity."}),
 
 
@@ -88,7 +94,7 @@ DEFAULTS = {
   
     ],
     'convenience': [
-        ('use_smaller_models', {'value': False, 'type': bool, 'help': "Use all small models. Overrides --text_use_small, --coarse_use_small, --fine_use_small."}),
+        ('use_smaller_models', {'value': False, 'type': bool, 'help': "Use all small models. Overrides --text_use_small, --coarse_use_small, --fine_use_small. You can probably use big models just fine by default in the latest version though!"}),
     ],
     'advanced': [
 
