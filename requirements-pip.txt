@@ -1,5 +1,4 @@
 boto3
-encodec
 funcy
 numpy
 scipy
@@ -13,3 +12,5 @@ huggingface_hub>0.14
 rich
 pathvalidate
 gradio
+rich-argparse
+encodec
