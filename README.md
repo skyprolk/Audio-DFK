@@ -22,7 +22,14 @@ But for some people, the time-tested command line interface was not a good fit. 
 
 ![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
 
-## 🎉 How To Install, One Way For Now 🎉 I realize there is a joke that I called this OneClick, but these are the same steps in the installer I was trying to get going. 
+pip
+```
+!git clone https://github.com/JonathanFly/bark.git
+%cd bark
+!pip install -r requirements-pip.txt
+!pip install encodec rich-argparse
+```
+## 🎉 Mamba/Conda Install 🎉  
 
 (I created a requirements-pip.txt file as well, but haven't tested a full pip route. However you should be able to install with that too.)
 
