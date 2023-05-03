@@ -28,7 +28,7 @@ But for some people, the time-tested command line interface was not a good fit. 
 2. Download this: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
 3. Install Mambaforge-Windows-x86_64.exe with all default options. Then start the miniforge 'Miniforge Prompt'.
 
-IMPORTANT: Make sure you start something that 'Miniforge Prompt', not the regular Windows CMD or terminal program. If you do not have an NVIDIA GPU use environment-cpu.yml instead of environment-cuda.yml 
+IMPORTANT: Make sure you start something that 'Miniforge Prompt', not the regular Windows CMD or terminal program. If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml` 
 
 Answer 'Y' to questions about installing:
 ```
@@ -46,7 +46,7 @@ TO START (Always making sure you start 'Miniforge Prompt') and make sure you are
 python bark_webui.py
 ```
 
-If you shut down mamba/conca you may have to do this:
+If you shut down miniforge prompt then do this to statrt.
 
 ```
 mamba activate bark-infinity-oneclick
