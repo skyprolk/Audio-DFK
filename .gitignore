@@ -7,3 +7,4 @@ custom_speakers/
 .vscode
 bark_infinity.egg-info/
 .history/
+*.log

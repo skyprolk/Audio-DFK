@@ -8,7 +8,7 @@ import sys
 from collections import defaultdict
 from tqdm import tqdm
 os.environ["TERM"] = "dumb"
-
+import io
 from bark_infinity import config
 
 logger = config.logger
@@ -229,22 +229,24 @@ outputs_dirs = ["bark_samples/"]
 class Logger:
     def __init__(self, filename):
         self.terminal = sys.stdout
-        self.log = open(filename, "w")
+        self.log = open(filename, "w", encoding="utf-8")
 
     def write(self, message):
         self.terminal.write(message)
         self.log.write(message)
-        
+
     def flush(self):
         self.terminal.flush()
         self.log.flush()
-        
+
     def isatty(self):
-        return False  
+        return False
 
-# This is a nightmare but I just wantted to 
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', newline='', line_buffering=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', newline='', line_buffering=True)
+
 sys.stdout = Logger("gradio_terminal_ouput.log")
-
 def test(x):
 
     #print("This is a test")
@@ -254,7 +256,7 @@ def test(x):
 
 def read_logs():
     sys.stdout.flush()
-    with open("gradio_terminal_ouput.log", "r") as f:
+    with open("gradio_terminal_ouput.log", "r", encoding="utf-8") as f:
         return f.read()
     
 

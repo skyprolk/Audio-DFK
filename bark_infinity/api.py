@@ -3,6 +3,7 @@ from typing import Dict, Optional, Union
 import numpy as np
 from .generation import codec_decode, generate_coarse, generate_fine, generate_text_semantic, SAMPLE_RATE
 from .config import logger, console, console_file, get_default_values, load_all_defaults, VALID_HISTORY_PROMPT_DIRS
+from scipy.io.wavfile import write as write_wav
 
 
 ## ADDED
@@ -18,8 +19,6 @@ from pathvalidate import sanitize_filename, sanitize_filepath
 
 from rich.pretty import pprint
 from rich.table import Table
-
-import soundfile
 
 from collections import defaultdict
 from tqdm import tqdm
@@ -319,11 +318,11 @@ def write_seg_wav(filepath, audio_arr, **kwargs):
 
 
 def write_audiofile(output_filepath, audio_arr):
-    #output_filepath = generate_unique_filepath(output_filepath)
-    #write_wav(output_filepath, SAMPLE_RATE, audio_arr)
+    output_filepath = generate_unique_filepath(output_filepath)
+    write_wav(output_filepath, SAMPLE_RATE, audio_arr)
 
-    sample_rate = 24000
-    soundfile.write(output_filepath, audio_arr, sample_rate,format='WAV', subtype='PCM_16')
+    #sample_rate = 24000
+    #soundfile.write(output_filepath, audio_arr, sample_rate,format='WAV', subtype='PCM_16')
     # print(f"[green]  <Wrote {output_filepath}>")
 
 

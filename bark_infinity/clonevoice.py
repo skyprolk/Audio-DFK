@@ -1,6 +1,3 @@
-
-
-
 from bark_infinity import generation
 from bark_infinity import api
 from bark_infinity import SAMPLE_RATE
