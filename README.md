@@ -20,7 +20,28 @@ But for some people, the time-tested command line interface was not a good fit. 
 
 ![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
 
-## 🌟 Main Features 🌟
+## 🎉 How To Install, One Way For Now 🎉
+
+1. Go here: https://github.com/conda-forge/miniforge#mambaforge
+2. Download this: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
+3. Install Mambaforge-Windows-x86_64.exe with all default options. Then start the miniforge 'Miniforge Prompt'.
+
+IMPORTANT: Make sure you start something that 'Miniforge Prompt', not the regular Windows CMD or terminal program. If you do not have an NVIDIA GPU use environment-cpu.yml instead of environment-cuda.yml 
+
+Answer 'Y' to questions about installing:
+```
+git clone -b bark-infinity-gradio https://github.com/JonathanFly/bark.git
+(If that fails maybe try "mamba install git")
+cd bark
+mamba env create -f environment-cuda.yml 
+mamba activate bark-infinity-oneclick
+pip install encodec
+pip install rich-argparse
+```
+
+I dipped my toes back into a bit [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
+
+## 🌟 (OLD NOT UPDATED) Main Features 🌟 __ 
 
 ### 1. INFINITY VOICES 🔊🌈
 Discover cool new voices and reuse them. Performers, musicians, sound effects, two party dialog scenes. Save and share them. Every audio clip saves a speaker.npz file with the voice. To reuse a voice, move the generated speaker.npz file (named the same as the .wav file) to the "prompts" directory inside "bark" where all the other .npz files are.
@@ -30,7 +51,6 @@ Discover cool new voices and reuse them. Performers, musicians, sound effects, t
 (I accidently left a bunch of voices in the repo, some of them are pretty good. Use --history_prompt 'en_fiery' for the same voice as the audio sample right after this sentence.)
 
 https://user-images.githubusercontent.com/163408/233747981-173b5f03-654e-4a0e-b71b-5d220601fcc7.mp4
-
 
 
 ### 2. INFINITY LENGTH 🎵🔄
@@ -112,19 +132,7 @@ Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SP
 
 
 ```
-## 🎉 Get Started 🎉
 
-1. Clone the Bark repository: `git clone https://github.com/JonathanFly/bark.git`
-2. Install the required package: `pip install soundfile`
-3. Run the example command:
-
-```
-python bark_perform.py --text_prompt "It is a mistake to think you can solve any major problems just with potatoes... or can you? (and the next page, and the next page...)" --split_by_words 35
-```
-
-_If you can't get Bark installed, you might try this one-click installer: [https://github.com/Fictiverse/bark/releases](https://github.com/Fictiverse/bark/releases) - but you'll still need to clone or copy all the files in this specific bark repo into the bark directory because I don't know what I'm doing._
-
-I haven't posted much lately I dipped my toes back into a bit [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
 
 
 # 🐶 Bark
