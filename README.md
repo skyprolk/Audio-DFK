@@ -1,6 +1,6 @@
 # 🚀 BARK INFINITY 🎶 🌈✨🚀 Updates Might be Here...
 
-⚡⚡⚡ Trying to iron out installation issues, immediateback is appreciated, I am here and in Bark Discord ⚡⚡⚡
+# ⚡⚡⚡ Trying to iron out installation issues, immediate feedback on problems is appreciated, I am here and in Bark Discord ⚡⚡⚡
 
 # 🌠 The Past: 🌠
 
