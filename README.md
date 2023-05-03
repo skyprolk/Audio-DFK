@@ -1,3 +1,148 @@
+# 🚀 BARK INFINITY 🎶 🌈✨🚀 Updates Might be Here...
+
+_(This is no longer just a command line wrapper...)_ Now it's BARK INFINITY! 🎉
+
+# 🌠 The Past: 🌠
+
+Bark Infinity started as a humble 💻 command line wrapper, a CLI 💬. Built from simple keyword commands, it was a proof of concept 🧪, a glimmer of potential 💡.
+
+# 🌟 The Present: 🌟
+
+Bark Infinity _evolved_ 🧬, expanding across dimensions 🌐. Infinite Length 🎵🔄, Infinite Voices 🔊🌈, and a true high point in human history: [🌍 Infinite Awkwardness 🕺](https://twitter.com/jonathanfly/status/1650001584485552130).
+
+But for some people, the time-tested command line interface was not a good fit. Many couldn't even try Bark 😞, struggling with CUDA gods 🌩 and being left with cryptic error messages 🧐 and a chaotic computer 💾. Many people felt very… UN INFINITE. 
+
+# 🔜🚀 The Future: 🚀
+
+🚀 Bark Infinity 🐾 was born in the command line, and Bark Infinity grew within the command line. We live in the era where old fashioned command line applications are wrapped in ✨fancy Gradio Uis🌈 and 🖱️One Click Installers. We all must adapt to a changing world, right?
+
+*Or do we?* 
+
+## This week find out how Bark Infinity is bringing the _command line_ to _GRADIO_ instead. 
+
+
+![bark_update](https://user-images.githubusercontent.com/163408/235445467-fcceba82-a057-4eb0-9b5a-d8d6f782892b.PNG)
+
+
+Is it solution an abomination? It this actually a neat compromise between ease of use and power when you need it? Is this just a horrible shortcut because programmer had never Gradio before and didn't want add menus for a billion parameters that rarely get used? FIND OUT THIS WEEK. At the very leask the Bark loaded model stays in memory so the lag time is great. (Sorry I ran out of emojis for the last few paragraphs.)
+
+For real though, I tested a One Click installer. It successfully installed ONE TIME on my other computer. And as we all know 1 is infinitely more than 0. So 
+
+## May 3
+1. Ramshackle Gradio App
+2. One Click installer with a 100% success rate so far. 
+
+I'll probably post to a dev branch TUE night and try to find a few brave volunteers can test the click installer and confirm it doesn't eat all their files.
+
+I did take a quick look at the 'voice cloning' to see if it worth bulding that in because a lot of people ask, and maybe I'm missing something, but I couldn't get a single good example better than what I could get in a few mintues in Tortoise TTS.
+
+## 🌟 Main Features 🌟
+
+### 1. INFINITY VOICES 🔊🌈
+Discover cool new voices and reuse them. Performers, musicians, sound effects, two party dialog scenes. Save and share them. Every audio clip saves a speaker.npz file with the voice. To reuse a voice, move the generated speaker.npz file (named the same as the .wav file) to the "prompts" directory inside "bark" where all the other .npz files are.
+
+🔊 With random celebrity appearances!
+
+(I accidently left a bunch of voices in the repo, some of them are pretty good. Use --history_prompt 'en_fiery' for the same voice as the audio sample right after this sentence.)
+
+https://user-images.githubusercontent.com/163408/233747981-173b5f03-654e-4a0e-b71b-5d220601fcc7.mp4
+
+
+
+### 2. INFINITY LENGTH 🎵🔄
+Any length prompt and audio clips. Sometimes the final result is seamless, sometimes it's stable (but usually not both!).
+
+🎵 Now with Slowly Morphing Rick Rolls! Can you even spot the seams in the most earnest Rick Rolls you've ever heard in your life?
+
+https://user-images.githubusercontent.com/163408/233747400-b18411f8-afcb-437d-9288-c54cc2c95e62.mp4
+
+### 🕺 Confused Travolta Mode 🕺
+Confused Travolta GIF
+![confused_travolta](https://user-images.githubusercontent.com/163408/233747428-c6bf03e2-b3ce-4ce3-a29d-836bf73a4ec2.gif)
+
+Can your text-to-speech model stammer and stall like a student answering a question about a book they didn't read? Bark can. That's the human touch. The *semantic* touch. You can almost feel the awkward silence through the screen.
+
+## 💡 But Wait, There's More: Travolta Mode Isn't Just A Joke 💡
+
+Are you tired of telling your TTS model what to say? Why not take a break and let your TTS model do the work for you. With enough patience and Confused Travolta Mode, Bark can finish your jokes for you. 
+
+https://user-images.githubusercontent.com/163408/233746957-f3bbe25f-c8f0-4570-97b1-1005e1b40cbe.mp4
+
+Truly we live in the future. It might take 50 tries to get a joke and it's probabably an accident, but all 49 failures are also *very* amusing so it's a win/win. (That's right, I set a single function flag to False in a Bark and raved about the amazing new feature. Everything here is small potatoes really.)
+
+https://user-images.githubusercontent.com/163408/233746872-cac78447-8e87-49e7-b79b-28ec51264019.mp4
+
+
+
+_**BARK INFINITY** is possible because Bark is such an amazingly simple and powerful model that even I could poke around easily._
+
+_For music, I recommend using the --split_by_lines and making sure you use a multiline string as input. You'll generally get better results if you manually split your text, which I neglected to provide an easy way to do because I stayed too late listening to 100 different Bark versions of a scene an Andor and failed Why was 6 afraid of 7 jokes._
+
+## 📝 Command Line Options 📝 (Some of these parameters are not implemented.)
+
+Type --help or use the GUI
+```bash
+Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SPEAKERS] [--dry_run DRY_RUN]
+                       [--history_prompt HISTORY_PROMPT] [--prompt_file PROMPT_FILE]
+                       [--split_input_into_separate_prompts_by {word,line,sentence,string,random,rhyme,pos,regex}]
+                       [--split_input_into_separate_prompts_by_value SPLIT_INPUT_INTO_SEPARATE_PROMPTS_BY_VALUE]
+                       [--always_save_speaker ALWAYS_SAVE_SPEAKER] [--output_iterations OUTPUT_ITERATIONS]
+                       [--output_filename OUTPUT_FILENAME] [--output_dir OUTPUT_DIR] [--hoarder_mode HOARDER_MODE]
+                       [--extra_stats EXTRA_STATS] [--text_use_gpu TEXT_USE_GPU] [--text_use_small TEXT_USE_SMALL]
+                       [--coarse_use_gpu COARSE_USE_GPU] [--coarse_use_small COARSE_USE_SMALL]
+                       [--fine_use_gpu FINE_USE_GPU] [--fine_use_small FINE_USE_SMALL]
+                       [--codec_use_gpu CODEC_USE_GPU] [--force_reload FORCE_RELOAD] [--text_temp TEXT_TEMP]
+                       [--waveform_temp WAVEFORM_TEMP] [--confused_travolta_mode CONFUSED_TRAVOLTA_MODE]
+                       [--silent SILENT] [--seed SEED] [--stable_mode_interval STABLE_MODE_INTERVAL]
+                       [--single_starting_seed SINGLE_STARTING_SEED]
+                       [--split_character_goal_length SPLIT_CHARACTER_GOAL_LENGTH]
+                       [--split_character_max_length SPLIT_CHARACTER_MAX_LENGTH]
+                       [--add_silence_between_segments ADD_SILENCE_BETWEEN_SEGMENTS]
+                       [--split_each_text_prompt_by {word,line,sentence,string,random,rhyme,pos,regex}]
+                       [--split_each_text_prompt_by_value SPLIT_EACH_TEXT_PROMPT_BY_VALUE]
+                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE]
+                       [--semantic_history_starting_weight SEMANTIC_HISTORY_STARTING_WEIGHT]
+                       [--semantic_history_future_weight SEMANTIC_HISTORY_FUTURE_WEIGHT]
+                       [--semantic_prev_segment_weight SEMANTIC_PREV_SEGMENT_WEIGHT]
+                       [--coarse_history_starting_weight COARSE_HISTORY_STARTING_WEIGHT]
+                       [--coarse_history_future_weight COARSE_HISTORY_FUTURE_WEIGHT]
+                       [--coarse_prev_segment_weight COARSE_PREV_SEGMENT_WEIGHT]
+                       [--fine_history_starting_weight FINE_HISTORY_STARTING_WEIGHT]
+                       [--fine_history_future_weight FINE_HISTORY_FUTURE_WEIGHT]
+                       [--fine_prev_segment_weight FINE_PREV_SEGMENT_WEIGHT]
+                       [--custom_audio_processing_function CUSTOM_AUDIO_PROCESSING_FUNCTION]
+                       [--use_smaller_models USE_SMALLER_MODELS] [--semantic_temp SEMANTIC_TEMP]
+                       [--semantic_top_k SEMANTIC_TOP_K] [--semantic_top_p SEMANTIC_TOP_P]
+                       [--semantic_min_eos_p SEMANTIC_MIN_EOS_P]
+                       [--semantic_max_gen_duration_s SEMANTIC_MAX_GEN_DURATION_S]
+                       [--semantic_allow_early_stop SEMANTIC_ALLOW_EARLY_STOP]
+                       [--semantic_use_kv_caching SEMANTIC_USE_KV_CACHING] [--semantic_seed SEMANTIC_SEED]
+                       [--semantic_history_oversize_limit SEMANTIC_HISTORY_OVERSIZE_LIMIT]
+                       [--coarse_temp COARSE_TEMP] [--coarse_top_k COARSE_TOP_K] [--coarse_top_p COARSE_TOP_P]
+                       [--coarse_max_coarse_history COARSE_MAX_COARSE_HISTORY]
+                       [--coarse_sliding_window_len COARSE_SLIDING_WINDOW_LEN]
+                       [--coarse_kv_caching COARSE_KV_CACHING] [--coarse_seed COARSE_SEED]
+                       [--coarse_history_time_alignment_hack COARSE_HISTORY_TIME_ALIGNMENT_HACK]
+                       [--fine_temp FINE_TEMP] [--fine_seed FINE_SEED] [--render_npz_samples RENDER_NPZ_SAMPLES]
+                       [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+
+
+```
+## 🎉 Get Started 🎉
+
+1. Clone the Bark repository: `git clone https://github.com/JonathanFly/bark.git`
+2. Install the required package: `pip install soundfile`
+3. Run the example command:
+
+```
+python bark_perform.py --text_prompt "It is a mistake to think you can solve any major problems just with potatoes... or can you? (and the next page, and the next page...)" --split_by_words 35
+```
+
+_If you can't get Bark installed, you might try this one-click installer: [https://github.com/Fictiverse/bark/releases](https://github.com/Fictiverse/bark/releases) - but you'll still need to clone or copy all the files in this specific bark repo into the bark directory because I don't know what I'm doing._
+
+I haven't posted much lately I dipped my toes back into a bit [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
+
+
 # 🐶 Bark
 
 [![](https://dcbadge.vercel.app/api/server/J2B2vsjKuE?style=flat&compact=True)](https://discord.gg/J2B2vsjKuE)
@@ -29,16 +174,16 @@ Bark was developed for research purposes. It is not a conventional text-to-speec
 **2023.05.01**
 - ©️ Bark is now licensed under the MIT License, meaning it's now available for commercial use!  
 - ⚡ 2x speed-up on GPU. 10x speed-up on CPU. We also added an option for a smaller version of Bark, which offers additional speed-up with the trade-off of slightly lower quality. 
-- 💾 You can now use Bark with GPUs that have low VRAM (<4GB). 
-- 👥 We created a prompt library, which you can find [here](https://suno-ai.notion.site/8b8e8749ed514b0cbf3f699013548683?v=bc67cff786b04b50b3ceb756fd05f68c). We hope this resource helps you find useful prompts for your use cases! You can also join us on [Discord](https://discord.gg/J2B2vsjKuE), where the community actively shares useful prompts in the **#audio-prompts** channel.  
-- 📕 We created tutorials folders - including guides for long-form generation, removing background noise and voice consistency enhancements.  
+- 📕 [Long-form generation](notebooks/long_form_generation.ipynb), voice consistency enhancements and other examples are now documented in a new [notebooks](./notebooks) section.
+- 👥 We created a [voice prompt library](https://suno-ai.notion.site/8b8e8749ed514b0cbf3f699013548683?v=bc67cff786b04b50b3ceb756fd05f68c). We hope this resource helps you find useful prompts for your use cases! You can also join us on [Discord](https://discord.gg/J2B2vsjKuE), where the community actively shares useful prompts in the **#audio-prompts** channel.  
+- 💬 Growing community support and access to new features here: 
+
+     [![](https://dcbadge.vercel.app/api/server/J2B2vsjKuE)](https://discord.gg/J2B2vsjKuE)
+
+- 💾 You can now use Bark with GPUs that have low VRAM (<4GB).
 
 **2023.04.20**
 - 🐶 Bark release!
-
-To preview new features and get help, join our community here:
-
-[![](https://dcbadge.vercel.app/api/server/J2B2vsjKuE)](https://discord.gg/J2B2vsjKuE)
 
 ## 🐍 Usage in Python
 
@@ -125,6 +270,24 @@ audio_array = generate_audio(text_prompt, history_prompt="v2/en_speaker_1")
 
 [sloth.webm](https://user-images.githubusercontent.com/5068315/230684883-a344c619-a560-4ff5-8b99-b4463a34487b.webm)
 </details>
+
+### Generating Longer Audio
+  
+By default, `generate_audio` works well with around 13 seconds of spoken text. For an example of how to do long-form generation, see this [example notebook](notebooks/long_form_generation.ipynb).
+
+<details>
+<summary>Click to toggle example long-form generations (from the example notebook)</summary>
+
+[dialog.webm](https://user-images.githubusercontent.com/2565833/235463539-f57608da-e4cb-4062-8771-148e29512b01.webm)
+
+[longform_advanced.webm](https://user-images.githubusercontent.com/2565833/235463547-1c0d8744-269b-43fe-9630-897ea5731652.webm)
+
+[longform_basic.webm](https://user-images.githubusercontent.com/2565833/235463559-87efe9f8-a2db-4d59-b764-57db83f95270.webm)
+
+</details>
+
+
+
 
 ## 💻 Installation
 
@@ -216,7 +379,7 @@ If you are interested, you can sign up for early access [here](https://3os84zs17
 ## ❓ FAQ
 
 #### How do I specify where models are downloaded and cached?
-* Bark uses Hugging face to download and store models. You can see find more info [here](https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables#hfhome). 
+* Bark uses Hugging Face to download and store models. You can see find more info [here](https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables#hfhome). 
 
 
 #### Bark's generations sometimes differ from my prompts. What's happening?

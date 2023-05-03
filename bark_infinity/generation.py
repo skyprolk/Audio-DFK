@@ -3,9 +3,9 @@ import gc
 import os
 import re
 
+import random
 from encodec import EncodecModel
 import funcy
-import logging
 import numpy as np
 from scipy.special import softmax
 import torch
@@ -16,6 +16,13 @@ from huggingface_hub import hf_hub_download
 
 from .model import GPTConfig, GPT
 from .model_fine import FineGPT, FineGPTConfig
+
+
+from rich.pretty import pprint
+
+from .config import logger
+
+from huggingface_hub import hf_hub_url
 
 if (
     torch.cuda.is_available() and
@@ -75,7 +82,6 @@ for _, lang in SUPPORTED_LANGS:
             ALLOWED_PROMPTS.add(f"{prefix}{lang}_speaker_{n}")
 
 
-logger = logging.getLogger(__name__)
 
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -188,61 +194,8 @@ def clean_models(model_key=None):
     gc.collect()
 
 
-def _load_model(ckpt_path, device, use_small=False, model_type="text"):
-    if model_type == "text":
-        ConfigClass = GPTConfig
-        ModelClass = GPT
-    elif model_type == "coarse":
-        ConfigClass = GPTConfig
-        ModelClass = GPT
-    elif model_type == "fine":
-        ConfigClass = FineGPTConfig
-        ModelClass = FineGPT
-    else:
-        raise NotImplementedError()
-    model_key = f"{model_type}_small" if use_small or USE_SMALL_MODELS else model_type
-    model_info = REMOTE_MODEL_PATHS[model_key]
-    if not os.path.exists(ckpt_path):
-        logger.info(f"{model_type} model not found, downloading into `{CACHE_DIR}`.")
-        _download(model_info["repo_id"], model_info["file_name"])
-    checkpoint = torch.load(ckpt_path, map_location=device)
-    # this is a hack
-    model_args = checkpoint["model_args"]
-    if "input_vocab_size" not in model_args:
-        model_args["input_vocab_size"] = model_args["vocab_size"]
-        model_args["output_vocab_size"] = model_args["vocab_size"]
-        del model_args["vocab_size"]
-    gptconf = ConfigClass(**checkpoint["model_args"])
-    model = ModelClass(gptconf)
-    state_dict = checkpoint["model"]
-    # fixup checkpoint
-    unwanted_prefix = "_orig_mod."
-    for k, v in list(state_dict.items()):
-        if k.startswith(unwanted_prefix):
-            state_dict[k[len(unwanted_prefix) :]] = state_dict.pop(k)
-    extra_keys = set(state_dict.keys()) - set(model.state_dict().keys())
-    extra_keys = set([k for k in extra_keys if not k.endswith(".attn.bias")])
-    missing_keys = set(model.state_dict().keys()) - set(state_dict.keys())
-    missing_keys = set([k for k in missing_keys if not k.endswith(".attn.bias")])
-    if len(extra_keys) != 0:
-        raise ValueError(f"extra keys found: {extra_keys}")
-    if len(missing_keys) != 0:
-        raise ValueError(f"missing keys: {missing_keys}")
-    model.load_state_dict(state_dict, strict=False)
-    n_params = model.get_num_params()
-    val_loss = checkpoint["best_val_loss"].item()
-    logger.info(f"model loaded: {round(n_params/1e6,1)}M params, {round(val_loss,3)} loss")
-    model.eval()
-    model.to(device)
-    del checkpoint, state_dict
-    _clear_cuda_cache()
-    if model_type == "text":
-        tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
-        return {
-            "model": model,
-            "tokenizer": tokenizer,
-        }
-    return model
+# def _load_model(ckpt_path, device, use_small=False, model_type="text"):
+    
 
 
 def _load_codec_model(device):
@@ -254,27 +207,7 @@ def _load_codec_model(device):
     return model
 
 
-def load_model(use_gpu=True, use_small=False, force_reload=False, model_type="text"):
-    _load_model_f = funcy.partial(_load_model, model_type=model_type, use_small=use_small)
-    if model_type not in ("text", "coarse", "fine"):
-        raise NotImplementedError()
-    global models
-    global models_devices
-    device = _grab_best_device(use_gpu=use_gpu)
-    model_key = f"{model_type}"
-    if OFFLOAD_CPU:
-        models_devices[model_key] = device
-        device = "cpu"
-    if model_key not in models or force_reload:
-        ckpt_path = _get_ckpt_path(model_type, use_small=use_small)
-        clean_models(model_key=model_key)
-        model = _load_model_f(ckpt_path, device)
-        models[model_key] = model
-    if model_type == "text":
-        models[model_key]["model"].to(device)
-    else:
-        models[model_key].to(device)
-    return models[model_key]
+
 
 
 def load_codec_model(use_gpu=True, force_reload=False):
@@ -295,7 +228,7 @@ def load_codec_model(use_gpu=True, force_reload=False):
     models[model_key].to(device)
     return models[model_key]
 
-
+"""
 def preload_models(
     text_use_gpu=True,
     text_use_small=False,
@@ -306,25 +239,7 @@ def preload_models(
     codec_use_gpu=True,
     force_reload=False,
 ):
-    """Load all the necessary models for the pipeline."""
-    if _grab_best_device() == "cpu" and (
-        text_use_gpu or coarse_use_gpu or fine_use_gpu or codec_use_gpu
-    ):
-        logger.warning("No GPU being used. Careful, inference might be very slow!")
-    _ = load_model(
-        model_type="text", use_gpu=text_use_gpu, use_small=text_use_small, force_reload=force_reload
-    )
-    _ = load_model(
-        model_type="coarse",
-        use_gpu=coarse_use_gpu,
-        use_small=coarse_use_small,
-        force_reload=force_reload,
-    )
-    _ = load_model(
-        model_type="fine", use_gpu=fine_use_gpu, use_small=fine_use_small, force_reload=force_reload
-    )
-    _ = load_codec_model(use_gpu=codec_use_gpu, force_reload=force_reload)
-
+"""
 
 ####
 # Generation Functionality
@@ -353,6 +268,8 @@ def _load_history_prompt(history_prompt_input):
     if isinstance(history_prompt_input, str) and history_prompt_input.endswith(".npz"):
         history_prompt = np.load(history_prompt_input)
     elif isinstance(history_prompt_input, str):
+        # make sure this works on non-ubuntu
+        history_prompt_input = os.path.join(*history_prompt_input.split("/"))
         if history_prompt_input not in ALLOWED_PROMPTS:
             raise ValueError("history prompt not found")
         history_prompt = np.load(
@@ -366,7 +283,7 @@ def _load_history_prompt(history_prompt_input):
     else:
         raise ValueError("history prompt format unrecognized")
     return history_prompt
-
+# removed semantic_history_oversize_limit because merging
 
 def generate_text_semantic(
     text,
@@ -381,6 +298,9 @@ def generate_text_semantic(
     use_kv_caching=False,
 ):
     """Generate semantic tokens from text."""
+
+    logger.debug(locals())
+                 
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
     assert len(text.strip()) > 0
@@ -536,6 +456,9 @@ def generate_coarse(
     sliding_window_len=60,
     use_kv_caching=False,
 ):
+    
+    logger.debug(locals())
+
     """Generate coarse audio codes from semantic tokens."""
     assert (
         isinstance(x_semantic, np.ndarray)
@@ -552,6 +475,7 @@ def generate_coarse(
         history_prompt = _load_history_prompt(history_prompt)
         x_semantic_history = history_prompt["semantic_prompt"]
         x_coarse_history = history_prompt["coarse_prompt"]
+        
         assert (
             isinstance(x_semantic_history, np.ndarray)
             and len(x_semantic_history.shape) == 1
@@ -570,6 +494,7 @@ def generate_coarse(
             )
         )
         x_coarse_history = _flatten_codebooks(x_coarse_history) + SEMANTIC_VOCAB_SIZE
+
         # trim histories correctly
         n_semantic_hist_provided = np.min(
             [
@@ -698,6 +623,9 @@ def generate_fine(
     temp=0.5,
     silent=True,
 ):
+    logger.debug(locals())
+
+
     """Generate full audio codes from coarse audio codes."""
     assert (
         isinstance(x_coarse_gen, np.ndarray)
@@ -828,3 +756,193 @@ def codec_decode(fine_tokens):
     if OFFLOAD_CPU:
         model.to("cpu")
     return audio_arr
+
+
+## Added:
+
+# Just overriding this because somehow I keep loading the wrong models?
+def load_model(use_gpu=True, use_small=False, force_reload=False, model_type="text"):
+
+    logger.debug(locals())
+
+    _load_model_f = funcy.partial(_load_model, model_type=model_type, use_small=use_small)
+    if model_type not in ("text", "coarse", "fine"):
+        raise NotImplementedError()
+    global models
+    global models_devices
+    device = _grab_best_device(use_gpu=use_gpu)
+    model_key = f"{model_type}"
+    if OFFLOAD_CPU:
+        models_devices[model_key] = device
+        device = "cpu"
+    if model_key not in models or force_reload:
+        ckpt_path = _get_ckpt_path(model_type, use_small=use_small)
+        clean_models(model_key=model_key)
+        model = _load_model_f(ckpt_path, device)
+        models[model_key] = model
+    if model_type == "text":
+        models[model_key]["model"].to(device)
+    else:
+        models[model_key].to(device)
+    logger.debug(f"Loaded {model_key} onto {device}.")
+    return models[model_key]
+
+
+def _load_model(ckpt_path, device, use_small=False, model_type="text"):
+    if model_type == "text":
+        ConfigClass = GPTConfig
+        ModelClass = GPT
+    elif model_type == "coarse":
+        ConfigClass = GPTConfig
+        ModelClass = GPT
+    elif model_type == "fine":
+        ConfigClass = FineGPTConfig
+        ModelClass = FineGPT
+    else:
+        raise NotImplementedError()
+    model_key = f"{model_type}_small" if use_small or USE_SMALL_MODELS else model_type
+    model_info = REMOTE_MODEL_PATHS[model_key]
+    if not os.path.exists(ckpt_path):
+        logger.info(f"{model_type} model not found, downloading into `{CACHE_DIR}`.")
+        remote_filename = hf_hub_url(model_info["repo_id"], model_info["file_name"])
+        ## added, actually screw logging, just print, rest easy always knowing which model is loaded
+        print(f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")  # added
+        _download(model_info["repo_id"], model_info["file_name"])
+    ## added
+    print(f"Loading {model_key} model from {ckpt_path} to {device}") # added
+    checkpoint = torch.load(ckpt_path, map_location=device)
+
+    # this is a hack
+    model_args = checkpoint["model_args"]
+    if "input_vocab_size" not in model_args:
+        model_args["input_vocab_size"] = model_args["vocab_size"]
+        model_args["output_vocab_size"] = model_args["vocab_size"]
+        del model_args["vocab_size"]
+    gptconf = ConfigClass(**checkpoint["model_args"])
+    model = ModelClass(gptconf)
+    state_dict = checkpoint["model"]
+    # fixup checkpoint
+    unwanted_prefix = "_orig_mod."
+    for k, v in list(state_dict.items()):
+        if k.startswith(unwanted_prefix):
+            state_dict[k[len(unwanted_prefix) :]] = state_dict.pop(k)
+    extra_keys = set(state_dict.keys()) - set(model.state_dict().keys())
+    extra_keys = set([k for k in extra_keys if not k.endswith(".attn.bias")])
+    missing_keys = set(model.state_dict().keys()) - set(state_dict.keys())
+    missing_keys = set([k for k in missing_keys if not k.endswith(".attn.bias")])
+    if len(extra_keys) != 0:
+        raise ValueError(f"extra keys found: {extra_keys}")
+    if len(missing_keys) != 0:
+        raise ValueError(f"missing keys: {missing_keys}")
+    model.load_state_dict(state_dict, strict=False)
+    n_params = model.get_num_params()
+    val_loss = checkpoint["best_val_loss"].item()
+    logger.info(f"model loaded: {round(n_params/1e6,1)}M params, {round(val_loss,3)} loss")
+    model.eval()
+    model.to(device)
+    del checkpoint, state_dict
+    _clear_cuda_cache()
+    if model_type == "text":
+        tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
+        return {
+            "model": model,
+            "tokenizer": tokenizer,
+        }
+    return model
+
+
+def preload_models(
+    text_use_gpu=True,
+    text_use_small=False,
+    coarse_use_gpu=True,
+    coarse_use_small=False,
+    fine_use_gpu=True,
+    fine_use_small=False,
+    codec_use_gpu=True,
+    force_reload=False,
+):
+    """Load all the necessary models for the pipeline."""
+
+
+
+    # What is going on here
+    logger.debug(f"USE_SMALL_MODELS = {USE_SMALL_MODELS} GLOBAL_ENABLE_MPS = {GLOBAL_ENABLE_MPS}, OFFLOAD_CPU = {OFFLOAD_CPU}")
+    logger.debug(f"text_use_gpu = {text_use_gpu}, text_use_small = {text_use_small}, coarse_use_gpu = {coarse_use_gpu}, coarse_use_small = {coarse_use_small}, fine_use_gpu = {fine_use_gpu}, fine_use_small = {fine_use_small}, codec_use_gpu = {codec_use_gpu}, force_reload = {force_reload}") 
+
+    # Is this actually bugged in Bark main, not my fault? This is checked further down the stack, but the chkpt_path is not updated in places
+
+    # So we should also set this here, right, otherwise when not preloading, it tries to load a model which may not exist yet.
+
+    if USE_SMALL_MODELS:
+        text_use_small = True
+        coarse_use_small = True
+        fine_use_small = True
+    
+    if _grab_best_device() == "cpu" and (
+        text_use_gpu or coarse_use_gpu or fine_use_gpu or codec_use_gpu
+    ):
+        logger.warning("No GPU being used. Careful, inference might be very slow!")
+    _ = load_model(
+        model_type="text", use_gpu=text_use_gpu, use_small=text_use_small, force_reload=force_reload
+    )
+    _ = load_model(
+        model_type="coarse",
+        use_gpu=coarse_use_gpu,
+        use_small=coarse_use_small,
+        force_reload=force_reload,
+    )
+    _ = load_model(
+        model_type="fine", use_gpu=fine_use_gpu, use_small=fine_use_small, force_reload=force_reload
+    )
+    _ = load_codec_model(use_gpu=codec_use_gpu, force_reload=force_reload)
+
+
+def set_seed(seed: int = 0):
+    """Set the seed
+    seed = 0         Generate a random seed
+    seed = -1        Disable deterministic algorithms
+    0 < seed < 2**32 Set the seed
+    Args:
+        seed: integer to use as seed
+    Returns:
+        integer used as seed
+    """
+
+    original_seed = seed
+
+    # See for more informations: https://pytorch.org/docs/stable/notes/randomness.html
+    if seed == -1:
+        # Disable deterministic
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = True
+
+        logger.debug("Disabling deterministic algorithms")
+        # torch.use_deterministic_algorithms(False) # not sure if needed
+    else:
+        # not sure if this is needed
+        # os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+        # Enable deterministic
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+        logger.debug("Enabling deterministic algorithms")
+        # torch.use_deterministic_algorithms(True)  # not sure if needed
+    if seed <= 0:
+        # Generate random seed
+        # Use default_rng() because it is independent of np.random.seed()
+        seed = np.random.default_rng().integers(1, 2**32 - 1)
+
+    assert(0 < seed and seed < 2**32)
+
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+
+    logger.info(f"Set seed to {seed}")
+
+    return original_seed if original_seed != 0 else seed
+
+
