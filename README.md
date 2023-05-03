@@ -28,33 +28,65 @@ But for some people, the time-tested command line interface was not a good fit. 
 
 1. Go here: https://github.com/conda-forge/miniforge#mambaforge
 2. Download this: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
-3. Install Mambaforge-Windows-x86_64.exe with all default options. Then start the miniforge 'Miniforge Prompt'. (Install the file for your OS, don't install Windows on OSX, etc.)
-
-IMPORTANT: Make sure you start something that 'Miniforge Prompt', not the regular Windows CMD or terminal program. If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml` 
-
-Answer 'Y' to questions about installing:
+  a. Install the Mambaforge for your OS, not specifically Windows. OSX for OSX etc.
+  b. Don't install Mambaforge-pypy3. (It might work but not what I tested.) Install the one above that, just plain Mambaforge.
+3. Install. Then start the miniforge 'Miniforge Prompt' Terminal which is a new program it installed. You will always use this program for Bark.
+4. You should see a terminal that says "(base)". Do not move forward until you see that.
+5. Type this:
+```
+mamba update mamba
+mamba install git
+```
+Your terminal still says (base).
+6. This step is most of the installation time, the "mamba env create -f environment-cuda.yml" line. TType:
 ```
 git clone https://github.com/JonathanFly/bark.git
-(If that fails maybe try "mamba install git")
 cd bark
 mamba env create -f environment-cuda.yml 
+```
+Okay stop here and see if something went wrong. When it's done it should say somewhere:
+"To activate this environment, use conda activate bark-infinity-oneclick" Then type.
+```
 mamba activate bark-infinity-oneclick
+```
+Note I typed "mamba" not "conda", even though the message said the word conda.
+
+7. Okay now instead of (base) you should see (bark-infinity-oneclick). Do not move on if you still see (base) on your screen.
+8. Type:
+```
 pip install encodec
 pip install rich-argparse
 ```
-
+Now if type 'dir' should see 'bark_webui.py' in the list tof files. 
+If you don't, something might have gone wrong bin step 6 where you type 'cd bark'
+9. Start Bark like this. (Always making sure you start 'Miniforge Prompt') not (base)
 TO START (Always making sure you start 'Miniforge Prompt') and make sure you are the /bark directory that has thet bark_webgui.py file
+
+Are you done? Maybe not. You can try skipping this step but something in the libararies are bugged, so you porbably need a step 10.
+
+10. (you can try skipping this if you want)
+```
+mamba uninstall pysoundfile
+pip install soundfile
+```
+
+Okay you are done. Just type:
+```
+python bark_perform.py
+```
+or 
 ```
 python bark_webui.py
 ```
 
-If you shut down miniforge prompt then do this to statrt.
-
+To restart later, start Miniforge Prompt. Then activate bark-infinity-oneclick (you can set it up to actiate automatically as well), and then:
 ```
 mamba activate bark-infinity-oneclick
 cd bark
 python bark_webui.py
 ```
+
+(If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml`)
 
 I dipped my toes back into a bit [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
 
