@@ -26,7 +26,7 @@ But for some people, the time-tested command line interface was not a good fit. 
 
 1. Go here: https://github.com/conda-forge/miniforge#mambaforge
 2. Download this: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
-3. Install Mambaforge-Windows-x86_64.exe with all default options. Then start the miniforge 'Miniforge Prompt'.
+3. Install Mambaforge-Windows-x86_64.exe with all default options. Then start the miniforge 'Miniforge Prompt'. (Install the file for your OS, don't install Windows on OSX, etc.)
 
 IMPORTANT: Make sure you start something that 'Miniforge Prompt', not the regular Windows CMD or terminal program. If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml` 
 
