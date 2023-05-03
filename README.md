@@ -22,6 +22,8 @@ But for some people, the time-tested command line interface was not a good fit. 
 
 ## 🎉 How To Install, One Way For Now 🎉
 
+(I created a requirements-pip.txt file as well, but haven't tested a full pip route. However you should be able to install with that too.)
+
 1. Go here: https://github.com/conda-forge/miniforge#mambaforge
 2. Download this: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
 3. Install Mambaforge-Windows-x86_64.exe with all default options. Then start the miniforge 'Miniforge Prompt'.
