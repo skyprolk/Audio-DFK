@@ -87,11 +87,15 @@ python bark_webui.py
 ```
 
 To restart later, start Miniforge Prompt. Then activate bark-infinity-oneclick (you can set it up to actiate automatically as well), and then:
+
+Option 1: Using commands
 ```
 mamba activate bark-infinity-oneclick
 cd bark
 python bark_webui.py
 ```
+
+Option 2: Run `bark-webui.bat` from Windows Explorer as normal, non-administrator, user.
 
 (If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml`)
 
