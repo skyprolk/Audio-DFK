@@ -1,6 +1,8 @@
-# 🚀 BARK INFINITY 🎶 🌈✨🚀 Updates Might be Here...
+# 🚀 BARK INFINITY 🎶 🌈✨🚀 
 
-# ⚡⚡⚡ Trying to iron out installation issues, immediate feedback on problems is appreciated, I am here and in Bark Discord ⚡⚡⚡
+⚡ Low GPU memory? No problem. CPU offloading. ⚡
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Lebdbbq7xOvl9Q430ly6sYrmYoDvlglM?usp=sharing) Basic Colab Notebook
 
 # 🌠 The Past: 🌠
 
@@ -8,17 +10,11 @@ Bark Infinity started as a humble 💻 command line wrapper, a CLI 💬. Built f
 
 # 🌟 The Present: 🌟
 
-Bark Infinity _evolved_ 🧬, expanding across dimensions 🌐. Infinite Length 🎵🔄, Infinite Voices 🔊🌈, and a true high point in human history: [🌍 Infinite Awkwardness 🕺](https://twitter.com/jonathanfly/status/1650001584485552130).
-
-But for some people, the time-tested command line interface was not a good fit. Many couldn't even try Bark 😞, struggling with CUDA gods 🌩 and being left with cryptic error messages 🧐 and a chaotic computer 💾. Many people felt very… UN INFINITE. 
+Bark Infinity _evolved_ 🧬, expanding across dimensions 🌐. Infinite Length 🎵🔄, Infinite Voices 🔊🌈, and a true high point in human history: [🌍 Infinite Awkwardness 🕺](https://twitter.com/jonathanfly/status/1650001584485552130). But for some people, the time-tested command line interface was not a good fit. Many couldn't even try Bark 😞, struggling with CUDA gods 🌩 and being left with cryptic error messages 🧐 and a chaotic computer 💾. Many people felt very… UN INFINITE. 
 
 # 🔜🚀 The Future: 🚀
 
-🚀 Bark Infinity 🐾 was born in the command line, and Bark Infinity grew within the command line. We live in the era where old fashioned command line applications are wrapped in ✨fancy Gradio Uis🌈 and 🖱️One Click Installers. We all must adapt to a changing world, right?
-
-*Or do we?* 
-
-## This week find out how Bark Infinity is bringing the _command line_ to the GUI world. 
+🚀 Bark Infinity 🐾 was born in the command line, and Bark Infinity grew within the command line. We live in the era where old fashioned command line applications are wrapped in ✨fancy Gradio Uis🌈 and 🖱️One Click Installers. We all must adapt to a changing world, right? *Or do we?* 
 
 ![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
 
@@ -87,11 +83,15 @@ python bark_webui.py
 ```
 
 To restart later, start Miniforge Prompt. Then activate bark-infinity-oneclick (you can set it up to actiate automatically as well), and then:
+
+Option 1: Using commands
 ```
 mamba activate bark-infinity-oneclick
 cd bark
 python bark_webui.py
 ```
+
+Option 2: Run `bark-webui.bat` from Windows Explorer as normal, non-administrator, user.
 
 (If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml`)
 
