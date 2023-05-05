@@ -2,6 +2,8 @@
 
 ⚡ Low GPU memory? No problem. CPU offloading. ⚡
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Lebdbbq7xOvl9Q430ly6sYrmYoDvlglM?usp=sharing) Basic Colab Notebook
+
 # 🌠 The Past: 🌠
 
 Bark Infinity started as a humble 💻 command line wrapper, a CLI 💬. Built from simple keyword commands, it was a proof of concept 🧪, a glimmer of potential 💡.
@@ -13,9 +15,6 @@ Bark Infinity _evolved_ 🧬, expanding across dimensions 🌐. Infinite Length 
 # 🔜🚀 The Future: 🚀
 
 🚀 Bark Infinity 🐾 was born in the command line, and Bark Infinity grew within the command line. We live in the era where old fashioned command line applications are wrapped in ✨fancy Gradio Uis🌈 and 🖱️One Click Installers. We all must adapt to a changing world, right? *Or do we?* 
-
-
-## This week find out how Bark Infinity is bringing the _command line_ to the GUI world. 
 
 ![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
 
