@@ -488,6 +488,8 @@ def generate_audio_long(
 
     
     stable_mode_interval = kwargs.get('stable_mode_interval', None)
+    if stable_mode_interval is None:
+        stable_mode_interval = 1
 
     if stable_mode_interval < 0: 
         stable_mode_interval = 0
@@ -533,7 +535,7 @@ def generate_audio_long(
 
     # way too many files, for hoarder_mode every sample is in own dir
     if hoarder_mode and len(audio_segments) > 1:
-        output_dir = kwargs.get('output_dir', None)
+        output_dir = kwargs.get('output_dir', "bark_samples")
         output_filename_will_be = determine_output_filename(**kwargs)
         output_dir_sub = os.path.basename(output_filename_will_be)
         output_dir = os.path.join(output_dir, output_dir_sub)

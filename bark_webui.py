@@ -36,9 +36,10 @@ import threading
 import time
 cancel_process = False
 
-
 autolaunch = False
 
+if len(sys.argv) > 1:
+    autolaunch = "-autolaunch" in sys.argv
 
 scroll_style = """
 <style>
@@ -98,8 +99,8 @@ def cancel():
     cancel_process = True
 
 
-if len(sys.argv) > 1:
-    autolaunch = "-autolaunch" in sys.argv
+#if len(sys.argv) > 1:
+#    autolaunch = "-autolaunch" in sys.argv
 
 def start_long_running_function_thread(*args, **kwargs):
     thread = threading.Thread(target=cancellable_generate_audio_long_gradio, args=args, kwargs=kwargs)
@@ -128,7 +129,7 @@ def parse_extra_args(extra_args_str):
         parsed_args[key] = value
     return parsed_args
 
-def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_travolta_mode, stable_mode_interval, split_character_goal_length, split_character_max_length, seed, dry_run,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, add_silence_between_segments, extra_args_str, progress=gr.Progress(track_tqdm=True)):
+def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_travolta_mode, stable_mode_interval, split_character_goal_length, split_character_max_length, seed, dry_run,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, add_silence_between_segments, extra_args_str, progress=gr.Progress(track_tqdm=True)):
     print("\n")
     if input == None or len(input) < 4:
         print("\nLooks like you forgot to enter a text prompt.")
@@ -171,6 +172,9 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
 
     if output_dir is not None and output_dir != '':
         kwargs["output_dir"] = output_dir
+
+    if output_filename is not None and output_filename != '':
+        kwargs["output_filename"] = output_filename
 
     #this is obviously got to be the wrong way to do this
 
@@ -223,7 +227,8 @@ def create_npz_dropdown(directories, label):
     npz_dropdown = gr.Dropdown(sorted_npz_files, label=label)
     return npz_dropdown
 
-directories = ["custom_speakers/", "bark/assets/prompts/"]
+directories = config.VALID_HISTORY_PROMPT_DIRS
+
 outputs_dirs = ["bark_samples/"]
 
 class Logger:
@@ -421,6 +426,7 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
             with gr.Column(variant="panel", scale=0.25):
                 output_dir = gr.Textbox(label="Output directory", value="bark_samples/")
+                output_filename = gr.Textbox(label="Output filename", value="")
                 seed = gr.Textbox(label="Random SEED", value="", info="Set one time, at start.")
                 output_iterations = gr.Textbox(label="Repeat This many Times", value="")
 
@@ -570,7 +576,7 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
 
 
-    btn.click(generate_audio_long_gradio,inputs=[input, npz_dropdown, generated_voices,confused_travolta_mode,stable_mode_interval,split_character_goal_length,split_character_max_length, seed, dry_run, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, add_silence_between_segments, extra_args_input], outputs=[audio_output])
+    btn.click(generate_audio_long_gradio,inputs=[input, npz_dropdown, generated_voices,confused_travolta_mode,stable_mode_interval,split_character_goal_length,split_character_max_length, seed, dry_run, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, add_silence_between_segments, extra_args_input], outputs=[audio_output])
 
 
 
@@ -581,5 +587,5 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
  
 
-demo.queue().launch()
+demo.queue().launch(inbrowser=autolaunch)
 
