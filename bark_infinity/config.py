@@ -27,7 +27,8 @@ DEFAULTS = {
     'input': [
         ('text_prompt', {'value': None, 'type': str, 'help': "Text prompt to generate audio from."}),
         ('list_speakers', {'value': None, 'type': bool, 'help': "List available speakers."}),
-        ('dry_run', {'value': False, 'type': bool, 'help': "Don't generate audio. Useful for testing."}),
+        ('dry_run', {'value': False, 'type': bool, 'help': "Don't generate audio, but show output like you would have. Useful for testing."}),
+        ('text_splits_only', {'value': False, 'type': bool, 'help': "Just show how the text will be split into each segment."}),
         ('history_prompt', {'value': None, 'type': str, 'help': "Text prompt to generate audio from."}),
         ('prompt_file', {'value': None, 'type': str, 'help': "Text prompt to generate audio from."}),
         ('split_input_into_separate_prompts_by', {'value': None, 'type': str, 'help': "Split input into separate prompts, each with it's own wav file.", 'choices': CHOICES['split_options']}),
@@ -72,6 +73,8 @@ DEFAULTS = {
 
         ('split_character_goal_length', {'value': 110, 'type': int, 'help': "Split your text_prompt into < 14s chunks of about many characters, general splitter."}),
         ('split_character_max_length', {'value': 170, 'type': int, 'help': "Split your text_prompt into < 14s, ceiling value."}),
+
+        ('split_character_jitter', {'value': 0, 'type': int, 'help': "Add or subtract the split_chararacter values by the jitter value every iteration. Useful for running a lot of samples to get some variety."}),
 
         ('add_silence_between_segments', {'value': 0.25, 'type': float, 'help':  "Add a bit of silence between joined audio segments. Works good if you splitting your text on copmlete sentences or phrases, or if you are using the same prompt every segment (stable_mode_interval = 1). If you are using stable_mode_interval = 0 it might be worse."}),
 

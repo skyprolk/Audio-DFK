@@ -5,15 +5,15 @@ from .generation import codec_decode, generate_coarse, generate_fine, generate_t
 from .config import logger, console, console_file, get_default_values, load_all_defaults, VALID_HISTORY_PROMPT_DIRS
 from scipy.io.wavfile import write as write_wav
 
-
+import copy
 ## ADDED
 import os
 import re
 import datetime
 import random
-from typing import List
 
-from .generation import set_seed, SUPPORTED_LANGS
+import time
+from bark_infinity import generation
 
 from pathvalidate import sanitize_filename, sanitize_filepath
 
@@ -24,6 +24,15 @@ from collections import defaultdict
 from tqdm import tqdm
 
 from bark_infinity import text_processing
+
+global gradio_try_to_cancel
+global done_cancelling
+
+
+
+
+gradio_try_to_cancel = False
+done_cancelling = False
 
 def text_to_semantic(
     text: str,
@@ -42,6 +51,8 @@ def text_to_semantic(
     Returns:
         numpy semantic array to be fed into `semantic_to_waveform`
     """
+
+
     x_semantic = generate_text_semantic(
         text,
         history_prompt=history_prompt,
@@ -49,6 +60,7 @@ def text_to_semantic(
         silent=silent,
         use_kv_caching=True
     )
+
     return x_semantic
 
 
@@ -71,6 +83,7 @@ def semantic_to_waveform(
     Returns:
         numpy audio array at sample frequency 24khz
     """
+
     coarse_tokens = generate_coarse(
         semantic_tokens,
         history_prompt=history_prompt,
@@ -78,11 +91,15 @@ def semantic_to_waveform(
         silent=silent,
         use_kv_caching=True
     )
+    bark_coarse_tokens = coarse_tokens
+
     fine_tokens = generate_fine(
         coarse_tokens,
         history_prompt=history_prompt,
         temp=0.5,
     )
+    bark_fine_tokens = fine_tokens
+    
     audio_arr = codec_decode(fine_tokens)
     if output_full:
         full_generation = {
@@ -146,8 +163,8 @@ def generate_audio(
 
 ## ADDED BELOW
 
-def process_history_prompt(**kwargs):
-    user_history_prompt = kwargs.get('history_prompt', None)
+def process_history_prompt(user_history_prompt):
+
     valid_directories_to_check = VALID_HISTORY_PROMPT_DIRS
     
     if user_history_prompt is None:
@@ -239,7 +256,7 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
         """
         date_str = datetime.datetime.now().strftime("%y-%m%d-%H%M-%S")       
 
-        truncated_text = text_prompt[:20].strip()
+        truncated_text = text_prompt[:15].strip()
         base_output_filename = f"{truncated_text}-SPK-{history_prompt}"
 
     if segment_number_text is not None:
@@ -252,6 +269,8 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
         os.path.join(output_dir, base_output_filename))
 
     os.makedirs(output_dir, exist_ok=True)
+
+    output_filepath = generate_unique_filepath(output_filepath)
 
     return output_filepath
 
@@ -268,9 +287,6 @@ def write_one_segment(audio_arr = None, full_generation = None, **kwargs):
     dry_run = kwargs.get('dry_run', False)
     if hoarder_mode and not dry_run:
         log_params(f"{filepath}_info.txt",**kwargs)
-
-
-
 
 
 def generate_unique_dirpath(dirpath):
@@ -351,9 +367,8 @@ def generate_audio_barki(
     Returns:
         numpy audio array at sample frequency 24khz
     """
-    kwargs = load_all_defaults(**kwargs)
-
     logger.debug(locals())
+    kwargs = load_all_defaults(**kwargs)
 
     history_prompt = kwargs.get("history_prompt", None)
     text_temp = kwargs.get("text_temp", None)
@@ -361,12 +376,13 @@ def generate_audio_barki(
     silent = kwargs.get("silent", None)
     output_full = kwargs.get("output_full", None)
 
+    global gradio_try_to_cancel
+    global done_cancelling
 
     seed = kwargs.get("seed",None)
     if seed is not None:
-        set_seed(seed)
+        generation.set_seed(seed)
 
-    ## TODO seperate stage seeds
 
     ## Semantic Options
     semantic_temp = text_temp
@@ -375,8 +391,16 @@ def generate_audio_barki(
 
     semantic_seed = kwargs.get("semantic_seed",None)
     if semantic_seed is not None:
-        set_seed(semantic_seed)
+        generation.set_seed(semantic_seed)
 
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    
+
+    # this has to be bugged? But when I logged generate_text_semantic inputs they were exacttly the same as raw generate audio...
+
+    # i must be messning up some values somewhere
 
     semantic_tokens = call_with_non_none_params(
         generate_text_semantic,
@@ -393,6 +417,10 @@ def generate_audio_barki(
     )
 
 
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+
     ## Coarse Options
     coarse_temp = waveform_temp
     if kwargs.get("coarse_temp", None):
@@ -400,8 +428,13 @@ def generate_audio_barki(
 
     coarse_seed = kwargs.get("coarse_seed",None)
     if coarse_seed is not None:
-        set_seed(coarse_seed)
+        generation.set_seed(coarse_seed)
         
+    
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    
     coarse_tokens = call_with_non_none_params(
         generate_coarse,
         x_semantic=semantic_tokens,
@@ -419,8 +452,11 @@ def generate_audio_barki(
 
     fine_seed = kwargs.get("fine_seed",None)
     if fine_seed is not None:
-        set_seed(fine_seed)
+        generation.set_seed(fine_seed)
 
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
     fine_tokens = call_with_non_none_params(
         generate_fine,
         x_coarse_gen=coarse_tokens,
@@ -429,8 +465,9 @@ def generate_audio_barki(
         silent=silent,
     )
 
-    # do we ever care about setting this seed? Probably not? You can always just decode it again
-
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
     audio_arr = codec_decode(fine_tokens)
     full_generation = {
         "semantic_prompt": semantic_tokens,
@@ -438,6 +475,10 @@ def generate_audio_barki(
         "fine_prompt": fine_tokens,
     }
 
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    
     hoarder_mode = kwargs.get("hoarder_mode", None)
     total_segments = kwargs.get("total_segments", 1)
     if hoarder_mode and (total_segments > 1):
@@ -454,17 +495,11 @@ def generate_audio_barki(
 
 def generate_audio_long_from_gradio(**kwargs):
 
-        output_iterations = kwargs.get("output_iterations", 1)
-        text_prompt = kwargs.get("text_prompt")
-        full_generation_segments, audio_arr_segments, final_filename_will_be = [], [], None
-        for iteration in range(1,output_iterations + 1):
-            if output_iterations > 1:
-                print(f"\nIteration {iteration} of {output_iterations}.")
-                if iteration == 1:
-                    print("  ", text_prompt)
+       
 
-            kwargs["current_iteration"] = iteration
-            full_generation_segments, audio_arr_segments, final_filename_will_be = generate_audio_long(**kwargs)
+        full_generation_segments, audio_arr_segments, final_filename_will_be = [],[],None
+        
+        full_generation_segments, audio_arr_segments, final_filename_will_be = generate_audio_long(**kwargs)
 
         return full_generation_segments, audio_arr_segments, final_filename_will_be
 
@@ -473,12 +508,16 @@ def generate_audio_long(
     **kwargs,
 ):
 
+    global gradio_try_to_cancel
+    global done_cancelling
 
     kwargs = load_all_defaults(**kwargs)
     logger.debug(locals())
 
 
+    history_prompt = None
     history_prompt = kwargs.get("history_prompt", None)
+    kwargs["history_prompt"] = None
 
     silent = kwargs.get("silent", None)
    
@@ -499,7 +538,15 @@ def generate_audio_long(
     if stable_mode_interval >= 2:
         stable_mode_interval_counter = stable_mode_interval
 
-    dry_run = kwargs.get('dry_run', None)
+    dry_run = kwargs.get('dry_run', False)
+
+    text_splits_only = kwargs.get('text_splits_only', False)
+
+    if text_splits_only:
+        dry_run = True
+
+
+
 
     # yanked for now, required too many mods to core Bark code
     extra_confused_travolta_mode = kwargs.get('extra_confused_travolta_mode', None)
@@ -508,7 +555,7 @@ def generate_audio_long(
 
     single_starting_seed = kwargs.get("single_starting_seed",None)
     if single_starting_seed is not None:
-        set_seed(single_starting_seed)
+        kwargs["seed_return_value"] = generation.set_seed(single_starting_seed)
 
     # the old way of doing this
     split_each_text_prompt_by = kwargs.get("split_each_text_prompt_by",None)
@@ -519,26 +566,36 @@ def generate_audio_long(
     else:
         audio_segments = chunk_up_text(**kwargs)
 
+    if text_splits_only:
+        print("Nothing was generated, this is just text the splits!")
+        return None, None, None
+
     history_prompt_for_next_segment = None
     base_history = None
     if history_prompt is not None:
         history_prompt_string = history_prompt
-        history_prompt = process_history_prompt(**kwargs)
+        history_prompt = process_history_prompt(history_prompt)
         if history_prompt is not None:
             base_history = np.load(history_prompt)
             base_history = {key: base_history[key] for key in base_history.keys()}
             kwargs['history_prompt_string'] = history_prompt_string
-            history_prompt_for_next_segment = base_history # just start from a dict for consistency
+            history_prompt_for_next_segment = copy.deepcopy(base_history) # just start from a dict for consistency
         else:            
             logger.error(f"Speaker {history_prompt} could not be found, looking in{VALID_HISTORY_PROMPT_DIRS}")
+
+            gradio_try_to_cancel = False
+            done_cancelling = True
+
             return None, None, None
 
     # way too many files, for hoarder_mode every sample is in own dir
     if hoarder_mode and len(audio_segments) > 1:
         output_dir = kwargs.get('output_dir', "bark_samples")
         output_filename_will_be = determine_output_filename(**kwargs)
-        output_dir_sub = os.path.basename(output_filename_will_be)
+        file_name, file_extension = os.path.splitext(output_filename_will_be)
+        output_dir_sub = os.path.basename(file_name)
         output_dir = os.path.join(output_dir, output_dir_sub)
+        output_dir = generate_unique_dirpath(output_dir)
         kwargs['output_dir'] = output_dir
 
 
@@ -556,13 +613,22 @@ def generate_audio_long(
 
     for i, segment_text in enumerate(audio_segments):
         estimated_time = estimate_spoken_time(segment_text)
+        print(f"segment_text: {segment_text}")
         kwargs["text_prompt"] = segment_text
         timeest = f"{estimated_time:.2f}"
         if estimated_time > 14 or estimated_time < 3:
             timeest = f"[bold red]{estimated_time:.2f}[/bold red]"
 
+        current_iteration = str(
+            kwargs['current_iteration']) if 'current_iteration' in kwargs else ''
+        
+        output_iterations = kwargs.get('output_iterations', '')
+        iteration_text = ''
+        if len(audio_segments) == 1:
+            iteration_text = f"{current_iteration} of {output_iterations} iterations"
+
         segment_number = i + 1
-        console.print(f"--Segment {segment_number}/{len(audio_segments)}: est. {timeest}s")
+        console.print(f"--Segment {segment_number}/{len(audio_segments)}: est. {timeest}s ({iteration_text})")
         #tqdm.write(f"--Segment {segment_number}/{len(audio_segments)}: est. {timeest}s")  
         #tqdm.set_postfix_str(f"--Segment {segment_number}/{len(audio_segments)}: est. {timeest}s")
 
@@ -575,43 +641,64 @@ def generate_audio_long(
         if dry_run is True:
             full_generation, audio_arr = [], []
         else:
+
             kwargs['history_prompt'] = history_prompt_for_next_segment
+
+
+            if gradio_try_to_cancel:
+                done_cancelling = True
+                print("<<<<Cancelled.>>>>")
+                return None, None, None
+            
             full_generation, audio_arr = generate_audio_barki(text=segment_text, **kwargs)
             
             # if we weren't given a history prompt, save first segment instead
 
+
+
+            if gradio_try_to_cancel or full_generation is None or audio_arr is None:
+                # Hmn, cancelling and restarting seems to be a bit buggy
+                # let's try clearing out stuff
+                kwargs = {}
+                history_prompt_for_next_segment = None
+                base_history = None
+                full_generation = None
+                done_cancelling = True
+                print("<<<<Cancelled.>>>>")
+                return None, None, None      
+            
+            # we shouldn't need deepcopy but i'm just throwing darts at the bug
             if base_history is None:
-                base_history = full_generation
+                #print(f"Saving base history for {segment_text}")
+                base_history = copy.deepcopy(full_generation)
 
             logger.debug(f"stable_mode_interval: {stable_mode_interval_counter} of {stable_mode_interval}")
 
 
-            #history_prompt_for_next_segment["semantic_prompt"] = np.hstack([base_history#["semantic_prompt"], full_generation["semantic_prompt"]]).astype(np.int64)
 
+     
 
             if stable_mode_interval == 0:
-                history_prompt_for_next_segment = full_generation
-            
+                history_prompt_for_next_segment = copy.deepcopy(full_generation)
+                
                 
             elif stable_mode_interval == 1:
-                history_prompt_for_next_segment = base_history
+                
+                history_prompt_for_next_segment = copy.deepcopy(base_history)
 
             elif stable_mode_interval >= 2:
                 if stable_mode_interval_counter == 1:
                     # reset to base history
                     stable_mode_interval_counter = stable_mode_interval
-                    history_prompt_for_next_segment = base_history
+                    history_prompt_for_next_segment = copy.deepcopy(base_history)
                     logger.info(f"resetting to base history_prompt, again in {stable_mode_interval} chunks")
                 else:
                     stable_mode_interval_counter -= 1
-                    history_prompt_for_next_segment = full_generation  
+                    history_prompt_for_next_segment = copy.deepcopy(full_generation)
             else:
                 logger.error(f"stable_mode_interval is {stable_mode_interval} and something has gone wrong.")
 
-                return None, None
-            
-
-            # TODO coarse ratio adjust fix
+                return None, None, None
             
 
 
@@ -621,19 +708,21 @@ def generate_audio_long(
             add_silence_between_segments = kwargs.get("add_silence_between_segments", 0.0)
             if add_silence_between_segments > 0.0:
                 silence = np.zeros(int(add_silence_between_segments * SAMPLE_RATE)) 
-                audio_arr_segments.append(silence.copy())
+                audio_arr_segments.append(silence)
 
 
-
-                
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        print("< Cancelled >")
+        return None, None, None        
 
     kwargs['segment_number'] = "final"
     final_filename_will_be = determine_output_filename(**kwargs)
     dry_run = kwargs.get('dry_run', None)
-    if not dry_run: write_one_segment(audio_arr = np.concatenate(audio_arr_segments), full_generation = full_generation_segments[0], **kwargs)
+    if not dry_run: 
+        write_one_segment(audio_arr = np.concatenate(audio_arr_segments), full_generation = full_generation_segments[0], **kwargs)
     print(f"Saved to {final_filename_will_be}")
     
-    # TODO remember you used as a filename
     return full_generation_segments, audio_arr_segments, final_filename_will_be
 
 
@@ -652,6 +741,70 @@ def play_superpack_track(superpack_filepath = None, one_random=True):
         return audio_arr
     except:
         return None
+
+
+        ## TODO Port over the good magic. 
+
+def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
+
+
+    # get directory and filename from npz_filepath
+    npz_file_directory, npz_filename = os.path.split(npz_filepath)
+
+    original_history_prompt = np.load(npz_filepath)
+    semantic_prompt = original_history_prompt["semantic_prompt"]
+    original_semantic_prompt  = copy.deepcopy(semantic_prompt)
+
+    starting_point = 64 
+    ending_point = len(original_semantic_prompt) - starting_point
+
+    points = np.linspace(starting_point, ending_point, gen_minor_variants)
+
+    i = 0
+    for starting_point in points:
+        starting_point = int(starting_point)
+        i += 1
+        
+        #is it worth doing something fancier here? nah this will be superceded anyway
+
+        new_semantic_from_beginning = copy.deepcopy(original_semantic_prompt[:starting_point].astype(np.int32))
+        new_semantic_from_ending = copy.deepcopy(original_semantic_prompt[starting_point:].astype(np.int32))
+
+
+        
+        for semantic_prompt in [new_semantic_from_beginning, new_semantic_from_ending]:
+
+            print(f"len(semantic_prompt): {len(semantic_prompt)}")
+            print(f"starting_point: {starting_point}, ending_poinst: {ending_point}") 
+
+
+            temp_coarse = random.uniform(0.50, 0.90)
+            top_k_coarse = None if random.random() < 1/3 else random.randint(50, 150)
+            top_p_coarse = None if random.random() < 1/3 else random.uniform(0.90, 0.97)
+
+            max_coarse_history_options = [630, random.randint(500, 630), random.randint(60, 500)]
+            max_coarse_history = random.choice(max_coarse_history_options)
+
+            coarse_tokens = generation.generate_coarse(semantic_prompt, temp=temp_coarse, top_k=top_k_coarse, top_p=top_p_coarse, max_coarse_history=max_coarse_history)
+
+            temp_fine = random.uniform(0.4, 0.6)
+            fine_tokens = generation.generate_fine(coarse_tokens, temp=temp_fine)
+
+            history_prompt_render_variant = {"semantic_prompt": semantic_prompt, "coarse_prompt": coarse_tokens, "fine_prompt": fine_tokens}
+
+            try:
+                audio_arr = generation.codec_decode(fine_tokens)
+                base_output_filename = os.path.splitext(npz_filename)[0] + f"_var_{i}.wav"
+                output_filepath = os.path.join(npz_file_directory, base_output_filename)
+                output_filepath = generate_unique_filepath(output_filepath)
+                print(f"output_filepath {output_filepath}")
+                print(f"  Rendering minor variant voice audio for {npz_filepath} to {output_filepath}")
+                write_seg_wav(output_filepath, audio_arr)
+
+                write_seg_npz(output_filepath, history_prompt_render_variant)
+            except:
+                print(f"  <Error rendering audio for {npz_filepath}>")
+
 
 
 def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from=None, double_up_history=False, save_npz=False, compression_mode=False, gen_minor_variants=None):
@@ -794,12 +947,22 @@ def chunk_up_text(**kwargs):
     split_character_max_length = kwargs['split_character_max_length']
     silent = kwargs.get('silent')
 
+
+    split_character_jitter = kwargs.get('split_character_jitter') or 0
+
+    if split_character_jitter > 0:
+        split_character_goal_length = random.randint(split_character_goal_length - split_character_jitter, split_character_goal_length + split_character_jitter)
+        split_character_max_length = random.randint(split_character_max_length - split_character_jitter, split_character_max_length + split_character_jitter)
+
+
+
+
     audio_segments = text_processing.split_general_purpose(text_prompt, split_character_goal_length=split_character_goal_length, split_character_max_length=split_character_max_length)
 
 
     split_desc = f"Splitting long text aiming for {split_character_goal_length} chars max {split_character_max_length}"
 
-    if (len(audio_segments) > 1):
+    if (len(audio_segments) > 0):
         print_chunks_table(audio_segments, left_column_header="Words",
                            right_column_header=split_desc, **kwargs) if not silent else None
     return audio_segments
@@ -811,16 +974,17 @@ def chunk_up_text_prev(**kwargs):
     text_prompt = kwargs['text_prompt']
     split_by = kwargs['split_each_text_prompt_by']
     split_by_value = kwargs['split_each_text_prompt_by_value']
+    split_by_value_type = kwargs['split_each_text_prompt_by_value_type']
     silent = kwargs.get('silent')
 
-    audio_segments = text_processing.split_text(text_prompt, split_by, split_by_value)
+    audio_segments = text_processing.split_text(text_prompt, split_by, split_by_value, split_by_value_type)
 
     if split_by == 'phrase':
         split_desc = f"Splitting long text by *{split_by}* (min_duration=8, max_duration=18, words_per_second=2.3)"
     else:
         split_desc = f"Splitting long text by '{split_by}' in groups of {split_by_value}"
 
-    if (len(audio_segments) > 1):
+    if (len(audio_segments) > 0):
         print_chunks_table(audio_segments, left_column_header="Words",
                            right_column_header=split_desc, **kwargs) if not silent else None
     return audio_segments
@@ -829,25 +993,39 @@ def chunk_up_text_prev(**kwargs):
 
 def print_chunks_table(chunks: list, left_column_header: str = "Words", right_column_header: str = "Segment Text", **kwargs):
 
+    output_iterations = kwargs.get('output_iterations', '')
+
     current_iteration = str(
         kwargs['current_iteration']) if 'current_iteration' in kwargs else ''
+    
+    iteration_text = ''
+    if output_iterations and current_iteration:
+        
+        iteration_text = f"{current_iteration} of {output_iterations} iterations"
+    
     table = Table(
-        title=f"({current_iteration}) Segment Breakdown", show_lines=True)
+        title=f"    ({iteration_text}) Segment Breakdown", show_lines=True, title_justify = "left")
     table.add_column('#', justify="right", style="magenta", no_wrap=True)
     table.add_column(left_column_header, style="green")
     table.add_column("Time Est", style="green")
     table.add_column(right_column_header)
     i = 1
+
+
     for chunk in chunks:
-        timeest = f"{estimate_spoken_time(chunk):.2f} secs"
-        table.add_row(str(i), f"{str(len(chunk.split()))}", f"{timeest}", chunk)
+        timeest = f"{estimate_spoken_time(chunk):.2f} s"
+        if estimate_spoken_time(chunk) > 14:
+            timeest = f"!{timeest}!"
+        wordcount = f"{str(len(chunk.split()))}"
+        charcount = f"{str(len(chunk))}"
+        table.add_row(str(i), f"{str(len(chunk.split()))}", f"{timeest}\n{charcount} chars", chunk)
         i += 1
     console.print(table)
 
 
 
 
-LANG_CODE_DICT = {code: lang for lang, code in SUPPORTED_LANGS}
+LANG_CODE_DICT = {code: lang for lang, code in generation.SUPPORTED_LANGS}
 
 
 def gather_speakers(directory):

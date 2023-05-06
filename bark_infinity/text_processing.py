@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Union
 
 from .config import logger, console
-
+from typing import List
 import os
 import re
 import datetime
@@ -18,14 +18,103 @@ from rich.table import Table
 
 from collections import defaultdict
 
+from typing import List
+import re
+import random 
+from typing import Dict, Optional, Union
+import logging
+logger = logging.getLogger(__name__)
+
+import re
+
+
+#Let's keep comptability for now in case people are used to this
+# Chunked generation originally from https://github.com/serp-ai/bark-with-voice-clone
+def split_general_purpose(text, split_character_goal_length=150, split_character_max_length=200):
+    # return nltk.sent_tokenize(text)
+
+    # from https://github.com/neonbjb/tortoise-tts
+    """Split text it into chunks of a desired length trying to keep sentences intact."""
+    # normalize text, remove redundant whitespace and convert non-ascii quotes to ascii
+    text = re.sub(r"\n\n+", "\n", text)
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"[“”]", '"', text)
+
+    rv = []
+    in_quote = False
+    current = ""
+    split_pos = []
+    pos = -1
+    end_pos = len(text) - 1
+
+    def seek(delta):
+        nonlocal pos, in_quote, current
+        is_neg = delta < 0
+        for _ in range(abs(delta)):
+            if is_neg:
+                pos -= 1
+                current = current[:-1]
+            else:
+                pos += 1
+                current += text[pos]
+            if text[pos] == '"':
+                in_quote = not in_quote
+        return text[pos]
+
+    def peek(delta):
+        p = pos + delta
+        return text[p] if p < end_pos and p >= 0 else ""
+
+    def commit():
+        nonlocal rv, current, split_pos
+        rv.append(current)
+        current = ""
+        split_pos = []
+
+    while pos < end_pos:
+        c = seek(1)
+        # do we need to force a split?
+        if len(current) >= split_character_max_length:
+            if len(split_pos) > 0 and len(current) > (split_character_goal_length / 2):
+                # we have at least one sentence and we are over half the desired length, seek back to the last split
+                d = pos - split_pos[-1]
+                seek(-d)
+            else:
+                # should split on semicolon too
+                # no full sentences, seek back until we are not in the middle of a word and split there
+                while c not in ";!?.\n " and pos > 0 and len(current) > split_character_goal_length:
+                    c = seek(-1)
+            commit()
+        # check for sentence boundaries
+        elif not in_quote and (c in ";!?\n" or (c == "." and peek(1) in "\n ")):
+            # seek forward if we have consecutive boundary markers but still within the max length
+            while (
+                pos < len(text) - 1 and len(current) < split_character_max_length and peek(1) in "!?."
+            ):
+                c = seek(1)
+            split_pos.append(pos)
+            if len(current) >= split_character_goal_length:
+                commit()
+        # treat end of quote as a boundary if its followed by a space or newline
+        elif in_quote and peek(1) == '"' and peek(2) in "\n ":
+            seek(2)
+            split_pos.append(pos)
+    rv.append(current)
+
+    # clean up, remove lines with only whitespace or punctuation
+    rv = [s.strip() for s in rv]
+    rv = [s for s in rv if len(s) > 0 and not re.match(r"^[\s\.,;:!?]*$", s)]
+
+    return rv
+
 def is_sentence_ending(s):
-    return s in {"!", "?", "."}
+    return s in {"!", "?", ".", ";"}
 
 def is_boundary_marker(s):
     return s in {"!", "?", ".", "\n"}
 
-# I started with this function from tortoise, I integrated Spacy and a bunch of other stuff, but it was a headache and it was especially bad with other languages, so I went back to this simple version and cleaned it up a bit
-def split_general_purpose(text, split_character_goal_length=110, split_character_max_length=160):
+
+def split_general_purpose_hm(text, split_character_goal_length=110, split_character_max_length=160):
     def clean_text(text):
         text = re.sub(r"\n\n+", "\n", text)
         text = re.sub(r"\s+", " ", text)
@@ -71,10 +160,15 @@ def split_general_purpose(text, split_character_goal_length=110, split_character
     return combined_chunks
 
 
-# This is just a big ol mess of code, remove later
-def split_text(text: str = "", split_type: str = None, n='') -> List[str]:
-    if n is None or split_type is None:
+
+def split_text(text: str, split_type: Optional[str] = None, split_type_quantity = 1, split_type_string: Optional[str] = None, split_type_value_type: Optional[str] = None) -> List[str]:
+    if text == '':
         return [text]
+
+    # the old syntax still works if you don't use this parameter, ie
+    # split_type line, split_type_value 4, splits into groups of 4 lines
+    if split_type_value_type == '':
+        split_type_value_type = split_type
 
     """
     if split_type == 'phrase':
@@ -85,30 +179,58 @@ def split_text(text: str = "", split_type: str = None, n='') -> List[str]:
         # print(chunks)
         return chunks
     """
-    if split_type != 'string' and split_type != 'regex' and split_type != 'pos':
-        n = int(n)
+    if split_type == 'string' or split_type == 'regex':
+
+        if split_type_string is None:
+            logger.warning(
+                f"Splitting by {split_type} requires a string to split by. Returning original text.")
+            return [text]
+
     split_type_to_function = {
         'word': split_by_words,
         'line': split_by_lines,
         # 'sentence': split_by_sentences,
         'string': split_by_string,
-        'random': split_by_random,
+        #'random': split_by_random,
         # 'rhyme': split_by_rhymes,
         # 'pos': split_by_part_of_speech,
         'regex': split_by_regex,
     }
 
     if split_type in split_type_to_function:
-        return split_type_to_function[split_type](text, n)
+        # split into groups of 1 by the desired type
+        # this is so terrible even I'm embarassed, destroy all this code later, but I guess it does something useful atm
+        segmented_text = split_type_to_function[split_type](text, split_type = split_type, split_type_quantity=1, split_type_string=split_type_string, split_type_value_type=split_type_value_type)
+        final_segmented_text = []
+        current_segment = ''
+        split_type_quantity_found = 0
+        for seg in segmented_text: # for each line, for example, we can now split by 'words' or whatever, as a counter for when to break the group
+            current_segment += seg
+
+            #print(split_type_to_function[split_type](current_segment, split_type=split_type_value_type, split_type_quantity=1, split_type_string=split_type_string))
+            split_type_quantity_found = len(split_type_to_function[split_type](current_segment, split_type=split_type_value_type, split_type_quantity=1, split_type_string=split_type_string))
+            #print(f"I see {split_type_quantity_found} {split_type_value_type} in {current_segment}")
+            if split_type_quantity_found >= split_type_quantity:
+                final_segmented_text.append(current_segment)
+                split_type_quantity_found = 0
+                current_segment = ''
+            
+        return final_segmented_text
 
     logger.warning(
         f"Splitting by {split_type} not a supported option. Returning original text.")
     return [text]
 
-
-def split_by_string(text: str, separator: str) -> List[str]:
-    return text.split(separator)
-
+def split_by_string(text: str, split_type: Optional[str] = None, split_type_quantity: Optional[int] = 1, split_type_string: Optional[str] = None, split_type_value_type: Optional[str] = None) -> List[str]:
+    if split_type_string is not None:
+        split_pattern = f"({split_type_string})"
+        split_list = re.split(split_pattern, text)
+        result = [split_list[0]]
+        for i in range(1, len(split_list), 2):
+            result.append(split_list[i] + split_list[i+1])
+        return result
+    else:
+        return text.split()
 
 def split_by_regex(text: str, pattern: str) -> List[str]:
     chunks = []
@@ -123,20 +245,17 @@ def split_by_regex(text: str, pattern: str) -> List[str]:
     return chunks
 
 
-def split_by_words(text: str, n: int) -> List[str]:
+def split_by_words(text: str, split_type: Optional[str] = None, split_type_quantity = 1, split_type_string: Optional[str] = None, split_type_value_type: Optional[str] = None) -> List[str]:
     words = text.split()
-    return [' '.join(words[i:i + n]) for i in range(0, len(words), n)]
+    return [' '.join(word for word in words)]
+    #return [' '.join(words[i:i + split_type_quantity]) for i in range(0, len(words), split_type_quantity)]
 
 
+def split_by_lines(text: str, split_type: Optional[str] = None, split_type_quantity = 1, split_type_string: Optional[str] = None, split_type_value_type: Optional[str] = None) -> List[str]:
+    lines = [line + '\n' for line in text.split('\n') if line.strip()]
+    return lines
+    #return ['\n'.join(lines[i:i + split_type_quantity]) for i in range(0, len(lines), split_type_quantity)]
 
-
-
-
-
-
-def split_by_lines(text: str, n: int) -> List[str]:
-    lines = [line for line in text.split('\n') if line.strip()]
-    return ['\n'.join(lines[i:i + n]) for i in range(0, len(lines), n)]
 
 """
 def split_by_sentences(text: str, n: int, language="en") -> List[str]:
@@ -162,6 +281,7 @@ def load_text(file_path: str) -> Union[str, None]:
 
 
 # Good for just exploring random voices
+"""
 def split_by_random(text: str, n: int) -> List[str]:
     words = text.split()
     chunks = []
@@ -173,8 +293,8 @@ def split_by_random(text: str, n: int) -> List[str]:
         chunks.append(chunk)
         words = words[chunk_len:]
     return chunks
-
-# too many libraries, removing for public release
+"""
+# too many libraries, removing
 """
 def split_by_phrase(text: str, nlp, min_duration=8, max_duration=18, words_per_second=2.3) -> list:
 

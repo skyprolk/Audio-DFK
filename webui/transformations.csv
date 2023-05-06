@@ -1,0 +1,3 @@
+﻿name,regex,replacement,flags,long_description
+Add ♪'s to Beginning and End of Each Line,^(.*)$,♪ \1 ♪,MULTILINE,Add a music note to the front and back of each line
+Remove Periods To Look Like Song Lyrics,[\.?,], ,MULTILINE,"Strip out periods, question marks, and commas. May help the text look more like a song lyrics."

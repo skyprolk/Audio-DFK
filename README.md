@@ -189,6 +189,28 @@ Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SP
 
 ```
 
+### prompt_file input text file example
+```myprompts.txt 
+This is the first prompt.
+Lots of text here maybe. 
+As long as you want.
+
+AAAAA
+
+This is the second prompt.
+
+AAAAA
+
+This is the third prompt.
+
+AAAAA
+
+This is the fourth prompt.
+```
+
+```
+python bark_perform.py --prompt_file myprompts.txt --split_input_into_separate_prompts_by string --split_input_into_separate_prompts_by_value AAAAA --output_dir myprompts_samples
+```
 
 
 # 🐶 Bark
