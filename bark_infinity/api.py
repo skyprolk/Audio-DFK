@@ -743,7 +743,7 @@ def play_superpack_track(superpack_filepath = None, one_random=True):
         return None
 
 
-        ## TODO Port over the good magic. 
+## TODO Port over the good magic when you get time. 
 
 def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
 
@@ -764,7 +764,7 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
     for starting_point in points:
         starting_point = int(starting_point)
         i += 1
-        
+
         #is it worth doing something fancier here? nah this will be superceded anyway
 
         new_semantic_from_beginning = copy.deepcopy(original_semantic_prompt[:starting_point].astype(np.int32))
