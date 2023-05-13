@@ -96,6 +96,7 @@ GLOBAL_ENABLE_MPS = os.environ.get("SUNO_ENABLE_MPS", False)
 OFFLOAD_CPU = os.environ.get("SUNO_OFFLOAD_CPU", False)
 
 
+
 REMOTE_MODEL_PATHS = {
     "text_small": {
         "repo_id": "suno/bark",
@@ -285,6 +286,8 @@ def _load_history_prompt(history_prompt_input):
     return history_prompt
 # removed semantic_history_oversize_limit because merging
 
+
+
 def generate_text_semantic(
     text,
     history_prompt=None,
@@ -296,11 +299,14 @@ def generate_text_semantic(
     max_gen_duration_s=None,
     allow_early_stop=True,
     use_kv_caching=False,
+    history_prompt_magic=None,
+    history_prompt_magic_text=None,
+
 ):
     """Generate semantic tokens from text."""
 
+
     logger.debug(locals())
-                 
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
     assert len(text.strip()) > 0
@@ -316,6 +322,17 @@ def generate_text_semantic(
         )
     else:
         semantic_history = None
+
+    if history_prompt_magic is not None:
+        assert (
+            isinstance(history_prompt_magic, np.ndarray)
+            and len(history_prompt_magic.shape) == 1
+            and len(history_prompt_magic) > 0
+            and history_prompt_magic.min() >= 0
+            and history_prompt_magic.max() <= SEMANTIC_VOCAB_SIZE - 1
+        )
+    else:
+        history_prompt_magic = None
     # load models if not yet exist
     global models
     global models_devices
@@ -348,8 +365,13 @@ def generate_text_semantic(
             constant_values=SEMANTIC_PAD_TOKEN,
             mode="constant",
         )
+        print(f"Actual length of semantic history: {len(semantic_history)}")
     else:
+        print(f"No semantic history provided.")
         semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
+
+
+
     x = torch.from_numpy(
         np.hstack([
             encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])
@@ -431,18 +453,6 @@ def generate_text_semantic(
     return out
 
 
-def _flatten_codebooks(arr, offset_size=CODEBOOK_SIZE):
-    assert len(arr.shape) == 2
-    arr = arr.copy()
-    if offset_size is not None:
-        for n in range(1, arr.shape[0]):
-            arr[n, :] += offset_size * n
-    flat_arr = arr.ravel("F")
-    return flat_arr
-
-
-COARSE_SEMANTIC_PAD_TOKEN = 12_048
-COARSE_INFER_TOKEN = 12_050
 
 
 def generate_coarse(
@@ -455,11 +465,11 @@ def generate_coarse(
     max_coarse_history=630,  # min 60 (faster), max 630 (more context)
     sliding_window_len=60,
     use_kv_caching=False,
+    x_coarse_history_alignment_hack = -2,
 ):
-    
-    logger.debug(locals())
-
     """Generate coarse audio codes from semantic tokens."""
+
+    logger.debug(locals())
     assert (
         isinstance(x_semantic, np.ndarray)
         and len(x_semantic.shape) == 1
@@ -470,12 +480,12 @@ def generate_coarse(
     assert 60 <= max_coarse_history <= 630
     assert max_coarse_history + sliding_window_len <= 1024 - 256
     semantic_to_coarse_ratio = COARSE_RATE_HZ / SEMANTIC_RATE_HZ * N_COARSE_CODEBOOKS
+
     max_semantic_history = int(np.floor(max_coarse_history / semantic_to_coarse_ratio))
     if history_prompt is not None:
         history_prompt = _load_history_prompt(history_prompt)
         x_semantic_history = history_prompt["semantic_prompt"]
         x_coarse_history = history_prompt["coarse_prompt"]
-        
         assert (
             isinstance(x_semantic_history, np.ndarray)
             and len(x_semantic_history.shape) == 1
@@ -494,7 +504,6 @@ def generate_coarse(
             )
         )
         x_coarse_history = _flatten_codebooks(x_coarse_history) + SEMANTIC_VOCAB_SIZE
-
         # trim histories correctly
         n_semantic_hist_provided = np.min(
             [
@@ -507,10 +516,16 @@ def generate_coarse(
         x_semantic_history = x_semantic_history[-n_semantic_hist_provided:].astype(np.int32)
         x_coarse_history = x_coarse_history[-n_coarse_hist_provided:].astype(np.int32)
         # TODO: bit of a hack for time alignment (sounds better)
-        x_coarse_history = x_coarse_history[:-2]
+        #x_coarse_history = x_coarse_history[:-2]
+        x_coarse_history = x_coarse_history[:x_coarse_history_alignment_hack]
+        
     else:
         x_semantic_history = np.array([], dtype=np.int32)
         x_coarse_history = np.array([], dtype=np.int32)
+
+
+    print(f"actual lengths we're using, x_semantic_history: {len(x_semantic_history)} x_coarse_history: {len(x_coarse_history)}")
+
     # load models if not yet exist
     global models
     global models_devices
@@ -528,6 +543,8 @@ def generate_coarse(
         )
     )
     assert n_steps > 0 and n_steps % N_COARSE_CODEBOOKS == 0
+
+    # reminder to try filling up some of the COARSE_INFER_TOKEN with history to get better short clips
     x_semantic = np.hstack([x_semantic_history, x_semantic]).astype(np.int32)
     x_coarse = x_coarse_history.astype(np.int32)
     base_semantic_idx = len(x_semantic_history)
@@ -623,10 +640,9 @@ def generate_fine(
     temp=0.5,
     silent=True,
 ):
-    logger.debug(locals())
-
-
     """Generate full audio codes from coarse audio codes."""
+
+    logger.debug(locals())
     assert (
         isinstance(x_coarse_gen, np.ndarray)
         and len(x_coarse_gen.shape) == 2
@@ -735,6 +751,23 @@ def generate_fine(
     return gen_fine_arr
 
 
+
+def _flatten_codebooks(arr, offset_size=CODEBOOK_SIZE):
+    assert len(arr.shape) == 2
+    arr = arr.copy()
+    if offset_size is not None:
+        for n in range(1, arr.shape[0]):
+            arr[n, :] += offset_size * n
+    flat_arr = arr.ravel("F")
+    return flat_arr
+
+
+COARSE_SEMANTIC_PAD_TOKEN = 12_048
+COARSE_INFER_TOKEN = 12_050
+
+
+
+
 def codec_decode(fine_tokens):
     """Turn quantized audio codes into audio array using encodec."""
     # load models if not yet exist
@@ -804,8 +837,9 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
     model_info = REMOTE_MODEL_PATHS[model_key]
     if not os.path.exists(ckpt_path):
         logger.info(f"{model_type} model not found, downloading into `{CACHE_DIR}`.")
-        remote_filename = hf_hub_url(model_info["repo_id"], model_info["file_name"])
+
         ## added, actually screw logging, just print, rest easy always knowing which model is loaded
+        remote_filename = hf_hub_url(model_info["repo_id"], model_info["file_name"])
         print(f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")  # added
         _download(model_info["repo_id"], model_info["file_name"])
     ## added
@@ -896,53 +930,5 @@ def preload_models(
     )
     _ = load_codec_model(use_gpu=codec_use_gpu, force_reload=force_reload)
 
-
-def set_seed(seed: int = 0):
-    """Set the seed
-    seed = 0         Generate a random seed
-    seed = -1        Disable deterministic algorithms
-    0 < seed < 2**32 Set the seed
-    Args:
-        seed: integer to use as seed
-    Returns:
-        integer used as seed
-    """
-
-    original_seed = seed
-
-    # See for more informations: https://pytorch.org/docs/stable/notes/randomness.html
-    if seed == -1:
-        # Disable deterministic
-        torch.backends.cudnn.deterministic = False
-        torch.backends.cudnn.benchmark = True
-
-        logger.debug("Disabling deterministic algorithms")
-        # torch.use_deterministic_algorithms(False) # not sure if needed
-    else:
-        # not sure if this is needed
-        # os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-
-        # Enable deterministic
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
-        logger.debug("Enabling deterministic algorithms")
-        # torch.use_deterministic_algorithms(True)  # not sure if needed
-    if seed <= 0:
-        # Generate random seed
-        # Use default_rng() because it is independent of np.random.seed()
-        seed = np.random.default_rng().integers(1, 2**32 - 1)
-
-    assert(0 < seed and seed < 2**32)
-
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-
-    logger.info(f"Set seed to {seed}")
-
-    return original_seed if original_seed != 0 else seed
 
 

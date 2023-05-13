@@ -155,7 +155,7 @@ def parse_extra_args(extra_args_str):
         parsed_args[key] = value
     return parsed_args
 
-def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_travolta_mode, stable_mode_interval, split_character_goal_length, split_character_max_length, split_each_text_prompt_by, split_each_text_prompt_by_value, split_each_text_prompt_by_value_type, seed, text_splits_only,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, add_silence_between_segments,  semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file,split_character_jitter, extra_args_str, progress=gr.Progress(track_tqdm=True)):
+def generate_audio_long_gradio(input, npz_dropdown, generated_voices, bark_infinity_voices, confused_travolta_mode, stable_mode_interval, seperate_prompts, split_character_goal_length, split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments,  semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_str, progress=gr.Progress(track_tqdm=True)):
     print("\n")
     if input == None or len(input) < 4:
         print("\nLooks like you forgot to enter a text prompt.")
@@ -169,9 +169,9 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
     waiting = 0
     while api.gradio_try_to_cancel and not api.done_cancelling:
         waiting += 1
-        print("Waiting up to 30s current generation to finish before starting another...")
-        progress(waiting, desc="Waiting up to 30s current generation to finish before starting another...")
-        if waiting > 30:
+        print("Waiting up to 10s current generation to finish before starting another...")
+        progress(waiting, desc="Waiting up to 10s current generation to finish before starting another...")
+        if waiting > 10:
             print("Everything might be okay, but something didn't quite cancel properly so restart if things are weird.")
             break
         time.sleep(1)
@@ -194,13 +194,23 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
     # I must have screwed up why are these values so messed up
     if npz_dropdown != '' and npz_dropdown is not None:
         if len(npz_dropdown.strip()) > 6: kwargs["history_prompt"] = npz_dropdown
+
+
+    if bark_infinity_voices != '' and bark_infinity_voices is not None:
+        if len(bark_infinity_voices.strip()) > 6: kwargs["bark_infinity_voices"] = bark_infinity_voices
+
     if generated_voices != '' and generated_voices is not None:
         if len(generated_voices.strip()) > 6: kwargs["history_prompt"] = generated_voices
 
 
 
+
     if specific_npz_file != '' and specific_npz_file is not None:
         kwargs["history_prompt"] = specific_npz_file
+
+
+    if specific_npz_folder != '' and specific_npz_folder is not None:
+        kwargs["specific_npz_folder"] = specific_npz_folder
 
     kwargs["confused_travolta_mode"] = confused_travolta_mode
     kwargs["split_character_goal_length"] = int(split_character_goal_length)
@@ -212,14 +222,21 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
 
 
 
-    if split_each_text_prompt_by is not None and split_each_text_prompt_by != '':
-        kwargs["split_each_text_prompt_by"] = split_each_text_prompt_by
+    if process_text_by_each is not None and process_text_by_each != '':
+        kwargs["process_text_by_each"] = process_text_by_each
 
-    if split_each_text_prompt_by_value is not None:
-        kwargs["split_each_text_prompt_by_value"] = int(split_each_text_prompt_by_value)
+    if in_groups_of_size is not None:
+        kwargs["in_groups_of_size"] = int(in_groups_of_size)
     
-    if split_each_text_prompt_by_value_type is not None and split_each_text_prompt_by_value_type != '':
-        kwargs["split_each_text_prompt_by_value_type"] = split_each_text_prompt_by_value_type
+    if group_text_by_counting is not None and group_text_by_counting != '':
+        kwargs["group_text_by_counting"] = group_text_by_counting
+
+    if split_type_string is not None and split_type_string != '':
+        kwargs["split_type_string"] = split_type_string
+
+    if prompt_text_prefix is not None and prompt_text_prefix != '':
+        kwargs["prompt_text_prefix"] = prompt_text_prefix
+
 
     
     if seed != '' and seed is not None and seed > 0 or seed < 0:
@@ -228,7 +245,7 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
         # for now, let's set it manually
         #kwargs["single_starting_seed"] = int(seed)
         custom_seed = int(seed)
-        generation.set_seed(custom_seed) # will also let them renable with -1
+        api.set_seed(custom_seed) # will also let them renable with -1
 
     if stable_mode_interval != '' and stable_mode_interval is not None:
         if stable_mode_interval == 'Continuous':
@@ -248,6 +265,10 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
 
     if text_splits_only != '' and text_splits_only is not None:
         kwargs["text_splits_only"] = text_splits_only
+
+
+    if seperate_prompts != '' and seperate_prompts is not None:
+        kwargs["seperate_prompts"] = seperate_prompts
 
     if hoarder_mode != '' and hoarder_mode is not None:
         kwargs["hoarder_mode"] = hoarder_mode
@@ -272,6 +293,9 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
 
     if output_filename is not None and output_filename != '':
         kwargs["output_filename"] = output_filename
+
+    if output_format is not None and output_format != '':
+        kwargs["output_format"] = output_format
 
     #this is obviously got to be the wrong way to do this
 
@@ -315,22 +339,57 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, confused_t
    
 
     kwargs["output_iterations"] = output_iterations
-    
-    for iteration in range(1,output_iterations + 1):
-        text_prompt = kwargs.get("text_prompt")
-        if output_iterations > 1:
-            if iteration == 1:
-                print("  ", text_prompt)
 
-        kwargs["current_iteration"] = iteration
-        progress(iteration, desc=f"Iteration: {iteration}/{output_iterations}...", total=output_iterations)
-        full_generation_segments, audio_arr_segments, final_filename_will_be = api.generate_audio_long_from_gradio(**kwargs)
+    npz_files = None
+    if specific_npz_folder is not None and specific_npz_folder != '':
+        npz_files = [f for f in os.listdir(specific_npz_folder) if f.endswith(".npz")]
+        npz_files.sort()
+        if len(npz_files) == 0:
+            print(f"Found no npz files in {specific_npz_folder}")
+        else:
+            total_iterations = kwargs["output_iterations"] * len(npz_files)
+ 
+            print(f"Found {len(npz_files)} npz files in {specific_npz_folder} so will generate {total_iterations} total outputs")
+        
+    if npz_files is not None and len(npz_files) > 0:
 
-        if cancel_process:
-            return final_filename_will_be
-    if kwargs.get('text_splits_only', False):
-        final_filename_will_be = "bark_infinity/assets/split_the_text.wav"
-    return final_filename_will_be
+        for i, npz_file in enumerate(npz_files):
+            print(f"Using npz file {i+1} of {len(npz_files)}: {npz_file}")
+            kwargs["history_prompt"] = os.path.join(specific_npz_folder, npz_file)
+            
+            for iteration in range(1,output_iterations + 1):
+                text_prompt = kwargs.get("text_prompt")
+                if output_iterations > 1:
+                    if iteration == 1:
+                        print("  ", text_prompt)
+
+                kwargs["current_iteration"] = iteration
+                progress(iteration, desc=f"Iteration: {iteration}/{output_iterations}...", total=output_iterations)
+
+                full_generation_segments, audio_arr_segments, final_filename_will_be = api.generate_audio_long_from_gradio(**kwargs)
+
+                if cancel_process:
+                    return final_filename_will_be
+            if kwargs.get('text_splits_only', False):
+                final_filename_will_be = "bark_infinity/assets/split_the_text.wav"
+        return final_filename_will_be
+    else:
+        for iteration in range(1,output_iterations + 1):
+            text_prompt = kwargs.get("text_prompt")
+            if output_iterations > 1:
+                if iteration == 1:
+                    print("  ", text_prompt)
+
+            kwargs["current_iteration"] = iteration
+            progress(iteration, desc=f"Iteration: {iteration}/{output_iterations}...", total=output_iterations)
+
+            full_generation_segments, audio_arr_segments, final_filename_will_be = api.generate_audio_long_from_gradio(**kwargs)
+
+            if cancel_process:
+                return final_filename_will_be
+        if kwargs.get('text_splits_only', False):
+            final_filename_will_be = "bark_infinity/assets/split_the_text.wav"
+        return final_filename_will_be
 
 def create_npz_dropdown_dir(directories, label):
     npz_files_by_subfolder = defaultdict(list)
@@ -344,7 +403,7 @@ def create_npz_dropdown_dir(directories, label):
     for subfolder in sorted(npz_files_by_subfolder.keys()):
         sorted_npz_files.extend(sorted(npz_files_by_subfolder[subfolder]))
     
-    npz_dropdown = gr.Dropdown(sorted_npz_files, label=label)
+    npz_dropdown = gr.Dropdown(sorted_npz_files, label=label, allow_custom_value=True)
     return npz_dropdown
 
 def create_npz_dropdown(directory, label, info="", allow_custom_value=False):
@@ -360,9 +419,10 @@ def create_npz_dropdown(directory, label, info="", allow_custom_value=False):
         sorted_npz_files.extend(sorted(npz_files_by_subfolder[subfolder]))
     
     #npz_dropdown = gr.Dropdown(sorted_npz_files, label=label, info=info, allow_custom_value=allow_custom_value)
-    npz_dropdown = gr.Dropdown(sorted_npz_files, label=label, info=info)
+    npz_dropdown = gr.Dropdown(sorted_npz_files, label=label, info=info, allow_custom_value=True)
 
     return npz_dropdown
+
 
 
 directories = config.VALID_HISTORY_PROMPT_DIRS
@@ -467,29 +527,36 @@ def generate_sample_audio(sample_gen_path):
     api.render_npz_samples(npz_directory=sample_gen_path)
     return
 
-def sent_bark_envs(env_config_group):
-
-    OFFLOAD_CPU = "OFFLOAD_CPU" in env_config_group
-    USE_SMALL_MODELS = "USE_SMALL_MODELS" in env_config_group
-    GLOBAL_ENABLE_MPS = "GLOBAL_ENABLE_MPS" in env_config_group
+def sent_bark_envs(env_config_group,loglevel, save_log_lines_number, text_use_gpu, text_use_small, coarse_use_gpu, coarse_use_small, fine_use_gpu, fine_use_small, codec_use_gpu, force_reload):
 
 
+
+    generation.OFFLOAD_CPU = "OFFLOAD_CPU" in env_config_group
+    generation.USE_SMALL_MODELS = "USE_SMALL_MODELS" in env_config_group
+    generation.GLOBAL_ENABLE_MPS = "GLOBAL_ENABLE_MPS" in env_config_group
+
+    print(f"Setting these envs: OFFLOAD_CPU={generation.OFFLOAD_CPU}, USE_SMALL_MODELS={generation.USE_SMALL_MODELS}, GLOBAL_ENABLE_MPS={generation.GLOBAL_ENABLE_MPS}")
+
+    if loglevel is not None and loglevel != '':
+        print(f"Setting log level to {loglevel}")
+        logger.setLevel(loglevel)
+
+    global save_log_lines
+    save_log_lines = save_log_lines_number
+
+    preload_models_gradio(text_use_gpu, text_use_small, coarse_use_gpu, coarse_use_small, fine_use_gpu, fine_use_small, codec_use_gpu, force_reload)
 
 def set_gradio_options(save_log_lines_number):
     global save_log_lines
     save_log_lines = save_log_lines_number
 
 
-    print(f"Setting these envs: OFFLOAD_CPU={OFFLOAD_CPU}, USE_SMALL_MODELS={USE_SMALL_MODELS}, GLOBAL_ENABLE_MPS={GLOBAL_ENABLE_MPS}")
     generation.OFFLOAD_CPU = OFFLOAD_CPU
     generation.USE_SMALL_MODELS = USE_SMALL_MODELS
     generation.GLOBAL_ENABLE_MPS = GLOBAL_ENABLE_MPS
 
-def set_loglevel(loglevel):
 
-    if loglevel is not None and loglevel != '':
-        print(f"Setting log level to {loglevel}")
-        logger.setLevel(loglevel)
+
 
 
 
@@ -661,15 +728,22 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                 with gr.Tab("🌱🎙️ Create New Speaker"):
                     m("This will create a new speaker speaker.npz file. The voice is random but the text matters. Like GPT, <a href='https://twitter.com/jonathanfly/status/1649637372949155840'>try to imagine a context</a> where the thing or voice you’re looking for would naturally follow. If you're exploring, consider checking the 💎💎 'Save Everything' checkbox so long audio clips can produce multiple speakers.")
                     m("If you want a random speaker make sure to clear out all the dropdown menus. UI is work in progress.")
-                with gr.Tab("🧑‍🎤 Bark Default Speaker"):
-                    npz_dropdown = create_npz_dropdown("bark/assets/prompts/", label="Default Speaker", info="These are speakers provided by Suno-ai, in many languages. The v2 ones are good for a basic clear voice.")
-                with gr.Tab("🌌🧙 Bark Infinity Speaker"):
-                    gr.Markdown("""These are speakers I accidentally left in my github repo. There are some good ones but check back later for more. Feel free to <a href='https://github.com/JonathanFly/bark/discussions/47'>contribute</a> for future updates.""")
-                    #npz_dropdown = create_npz_dropdown("bark_infinity/assets/prompts/", label="Speaker")
-                with gr.Tab("👩‍🎤🎙️ Your Created Speaker"):
-                    gr.Markdown("""These are new voices you create when you use a random voice. This just picks from the default in your output directory""")
-                    generated_voices = create_npz_dropdown("bark_samples/", label="Generated Speaker", allow_custom_value = True)
-                    specific_npz_file = gr.Textbox(label="Link a speaker .npz file directly (the Gradio dropdown is supposed to allow this, but I think it's bugged)", value="")
+                with gr.Tab("🧑‍🎤 Build In Speakers"):
+                    npz_dropdown = create_npz_dropdown("bark/assets/prompts/", label="Speaker", info="These are speakers provided by Suno-ai, in many languages. The v2 ones are good for a basic clear voice.")
+                    gr.Markdown("🌌🧙 Bark Infinity Speaker")
+                    gr.Markdown("""Speakers I accidentally left in in when I first made this. They will get better <a href='https://github.com/JonathanFly/bark/discussions/47'>contribute</a> to contribute.""")
+                    bark_infinity_voices = create_npz_dropdown("bark_infinity/assets/prompts/", label="Speaker")
+                with gr.Tab("👩‍🎤🎙️ Your Custom Speaker"):
+
+                    gr.Markdown("""Use your own Speaker .npz file. This looks in directory "custom_speakers/" but you can type in a custom full path to a speaker.npz file as well.""")
+
+                    generated_voices = create_npz_dropdown("custom_speakers/", label="Speaker", allow_custom_value = True, info="You can enter a custom file path here as well.")
+
+                with gr.Tab("👩‍🎤🎙️ Folder Processing"):
+                    gr.Markdown("""For each file""")
+                    specific_npz_file = gr.Textbox(label="direct path to .npz", value="")
+                    specific_npz_folder = gr.Textbox(label="folder of npz files", value="")
+   
 
             with gr.Column(variant="panel",scale=0.25):
                 m("## ...")
@@ -691,12 +765,15 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                     split_character_max_length = gr.Slider(label="But never go higher than this many", value=205, maximum=500, step=1)
                 
                 with gr.Tab("Fancy"):
+                    prompt_text_prefix = gr.Textbox(label="Put this text in front of every prompt, after splitting.", value="")
                     split_character_jitter = gr.Slider(label="Randomize character splits by this much", info="If you're generating a lot of iterations you might try randomizing the splits a bit with this.", value=0, maximum=500, step=1)
                     m("Below is mostly placeholder. But these old functions still sort of work:")
                     m("For example for song lyrics, in the below 3 boxes pick: `line` then `4` then `line` this will split the text in groups of 4 lines each.")
-                    split_each_text_prompt_by = gr.Dropdown(["line", "word", "random"], label="Split prompt text by:", value=None)
-                    split_each_text_prompt_by_value = gr.Slider(label="Then start a new audio clip every:", minimum=1, maximum=50, step=1, value=None)
-                    split_each_text_prompt_by_value_type = gr.Dropdown(["line", "word", "random"], label="of this", value=None)
+                    process_text_by_each = gr.Dropdown(['word', 'line', 'sentence', 'char', 'string', 'random', 'regex'], label="Process the text in chunks of:", value=None)
+                    group_text_by_counting = gr.Dropdown(['word', 'line', 'sentence', 'char', 'string', 'random', 'regex'], label="Group the text by counting:", value=None)
+                    in_groups_of_size = gr.Slider(label="And start a new audio clip with you have this many:", minimum=1, maximum=50, step=1, value=None)
+                    
+                    split_type_string = gr.Textbox(label="(Optional String for string or regex.)", value="")
 
                 text_splits_only = gr.Checkbox(label="🗺️✂️ No audio, just show me text splits.", value=False)
 
@@ -711,7 +788,8 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
                     m(""" - *Stable* for reliable long clips.
                     - *Continuous* for voices that keep evolving.
-                    - *Stable-2* through *Stable-5* will reset back after that many segments.""")
+                    - *Stable-2* through *Stable-5* will reset back after that many segments.
+                    - (coming soon, *Magic* where it just works...)""")
 
 
 
@@ -735,10 +813,10 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                     prev_fine_weight = gr.Slider(label="Prev Fine Weight", minimum=0.0, maximum=2.0, value = 1.0, interactive = True)
 
 
-                with gr.Tab("Don't Connect It"):
+                with gr.Tab("Don't Connect Them"):
                     m("### Split the text, but treat each segment like it's own prompt.")
                     m("Good for discovering speakers.")
-                    seperate_prompts_checkbox= gr.CheckboxGroup(choices=["seperate_prompts"], label="Seperate Prompts", type="value", interactive=True, visible=True)
+                    seperate_prompts = gr.Checkbox(label="Seperate Prompts", value=False, interactive=True, visible=True)
 
 
             with gr.Column(variant="panel", scale=0.25):
@@ -747,41 +825,43 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
                 with gr.Tab("Simple"):
   
-                    m("# Hardcoding these higher while testing top_k and top_p...")
-                    text_temp = gr.Slider(label="text_temp: higher = more diversity, lower more conservative", minimum=0.0, maximum=1.0, value = 0.8, interactive = True)
-                    waveform_temp = gr.Slider(label="waveform_temp: higher = more diversity, lower more conservative", minimum=0.0, maximum=1.0, value=0.8, interactive=True)
+                    m("### higher = more diversity, lower more conservative")
+                    text_temp = gr.Slider(label="text temperature: ", minimum=0.0, maximum=1.0, value = 0.70, interactive = True)
+                    waveform_temp = gr.Slider(label="wave temperature: ", minimum=0.0, maximum=1.0, value=0.70, interactive = True)
 
-                    seed = gr.Number(label="Random SEED: 0 for no seed. Set -1 to undo.", info="", value=0)
+       
 
-                    confused_travolta_mode = gr.Checkbox(label="🕺🕺 Confused Mode (for fun)", value=False)
                 with gr.Tab("Fancy"):
+                    seed = gr.Number(label="Random SEED: 0 for no seed. Set -1 to undo.", info="(Bark runs a lot slower when using a seed.)", value=0)
                     m("""## These options should in theory have a decent impact
-                    I haven't tested to be sure, but likely options: 
+                    But it's been hard to say for sure
                     `top_k` 50 is typical, 
-                    `top_p` between 0.90 and 0.95
-                    lower top_p will be less diverse
-                    you don't hvae to use both.""")
-                    semantic_top_k = gr.Slider(label="semantic_top_k", value=180, minimum=0, maximum=200, step=1)
-                    semantic_top_p = gr.Slider(label="semantic_top_p", value=0.92, minimum=0.0, maximum=1.0)
-                    coarse_top_k = gr.Slider(label="coarse_top_k", value=90, minimum=0, maximum=200, step=1)
+                    `top_p` 0.90 or 0.95,
+                    lower top_p less diverse
+                    you don't have to use both.""")
+                    semantic_top_k = gr.Slider(label="semantic_top_k", value=50, minimum=0, maximum=200, step=1)
+                    semantic_top_p = gr.Slider(label="semantic_top_p", value=0.95, minimum=0.0, maximum=1.0)
+                    coarse_top_k = gr.Slider(label="coarse_top_k", value=50, minimum=0, maximum=200, step=1)
                     coarse_top_p = gr.Slider(label="coarse_top_p", value=0.92, minimum=0.0, maximum=1.0)
                     m("""## Anecdotally:
-                     1. I might `top_k` for generating brand new speakers
-                     2. Less `top_k` it when using already really good speaker files.
-                     3. Nothing stood out about `top_p` but I didn't try it much.
-                     ## Update: Actually top_p might also be binterestitng
-                     5. I'm harcoding these on so I get more data.
-                     6. If you're looking to really EXPERIMENT maybe try turning them off (set to 0, will disable them)
-                     7. They make voices more consistent but you might not want that.""")
+                     1. Improves hit rate in random voices.
+                     2. Might reduce the weirder outputs.
+                     3. Could using same sampling parameters that made original speaker matter?
+                     4. I'm harcoding these to on because people probably like more reliabilitiy.
+                     5. (Seting them to 0 will disable them.""")
 
+                with gr.Tab("Fun"):       
+                    confused_travolta_mode = gr.Checkbox(label="🕺🕺 Confused Travolta Mode", info="Make Bark to keep talking even when it is finished with your prompt.", value=False)
             with gr.Column(variant="panel", scale=0.25):
                 m("## Output")
-                hoarder_mode = gr.Checkbox(label="💎💎Save Every Speaker.", value=False)
-                output_dir = gr.Textbox(label="Output directory", value="bark_samples/")
-                output_filename = gr.Textbox(label="Output filename", value="")
-                
-                output_iterations = gr.Slider(label="Repeat This Many Times", step=1, value=1, minimum=1, maximum=1000)
-
+                with gr.Tab("Simple"):
+                    hoarder_mode = gr.Checkbox(label="💎💎Save Every NPZ", value=False)
+                    output_dir = gr.Textbox(label="Output directory", value="bark_samples/")
+                    
+                    output_iterations = gr.Slider(label="Repeat This Many Times", step=1, value=1, minimum=1, maximum=1000)
+                with gr.Tab("Fancy"):
+                    output_filename = gr.Textbox(label="Output filename", value="", info="Use prompt, speaker, and date if left blank.")
+                    output_format = gr.Dropdown(['wav','mp3', 'ogg', 'flac', 'mp4'], value='wav', label="Audio File Output Format", info="(You can re-render wavs if you save .npzs)")
 
 
 
@@ -789,7 +869,7 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
             
 
-    with gr.Tab("Model Options, Sizes, Setup"):
+    with gr.Tab("Model Options, Configs, Setup"):
         with gr.Row():
             gr.Markdown("Preloading is a little bit faster if you have enough GPU memory, but the difference is actutally pretty small. You can still use the larger models just fine without preloading them, they get swapped out to CPU by default in this version.")
         with gr.Row():
@@ -800,33 +880,26 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                 model_button = gr.Button("Preload These Models")
                 model_button.click(preload_models_gradio, inputs=model_checkboxes) 
 
-            with gr.Column(scale=.25, variant="panel"):
-                gr.Markdown("## System Wide Config Settings")
-                gr.Markdown("If you have 10GB of VRAM and want to keep all the big models in your GPU memory memory for maximum speed,")
-                m("Then click 'Set these parameters' with OFFLOAD_CPU unchecked. If you already ran a generation or preloaded models, preload again with force_reload=True.")
+            with gr.Column(scale=.75, variant="panel"):
+                gr.Markdown("## System Wide Settings")
+                gr.Markdown("If you have 10GB of VRAM")
+                m("Then click 'Set these parameters' with OFFLOAD_CPU unchecked. If you already preloaded models, preload again with force_reload=True.")
                 env_config_vars = ["OFFLOAD_CPU", "USE_SMALL_MODELS", "GLOBAL_ENABLE_MPS"]
                 env_config_values = ["True", "False", "False"]
                 env_config_group= gr.CheckboxGroup(choices=env_config_vars, value=env_config_values, label="System Wide Config Settings", type="value", interactive=True, visible=True)
-                env_button = gr.Button("Set these parameters")
                 
-                env_button.click(sent_bark_envs, inputs=env_config_group) 
-
-            with gr.Column(scale=.25, variant="panel"):
-                gr.Markdown("## Gradio UI Options")
-
-
-
-                
-                loglevel = gr.Dropdown(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], label="# Do you like like logs? Y/N", info="DEBUG = Drown in Text")
-                loglevel_button = gr.Button("Set Log Level")
-                loglevel_button.click(set_loglevel, inputs=loglevel)
+                loglevel = gr.Dropdown(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], label="Log Level", info="DEBUG = Drown in Text")
 
                 
                 save_log_lines_number = gr.Number(label="When you click Generate, clear all but this many lines from the console",
                                             value=100)
                 
-                gradio_options_button = gr.Button("Set Gradio Options")
-                gradio_options_button.click(set_gradio_options, inputs=[save_log_lines_number]) 
+                env_button = gr.Button("Set These Config Options")
+                env_input_list = [env_config_group] + [loglevel, save_log_lines_number] + model_checkboxes
+
+                env_button.click(sent_bark_envs, inputs=env_input_list)
+
+ 
     with gr.Tab("👨🏻‍⚕️🧬Speaker Surgery Center"):
         with gr.Row():
             with gr.Column(scale=.25):
@@ -959,7 +1032,7 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
 
     
-    generate_event = generate_button.click(generate_audio_long_gradio,inputs=[input, npz_dropdown, generated_voices,confused_travolta_mode,stable_mode_interval,split_character_goal_length,split_character_max_length, split_each_text_prompt_by, split_each_text_prompt_by_value, split_each_text_prompt_by_value_type, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, split_character_jitter, extra_args_input], outputs=[audio_output])
+    generate_event = generate_button.click(generate_audio_long_gradio,inputs=[input, npz_dropdown, generated_voices,bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_input], outputs=[audio_output])
 
     
     cancel_button.click(fn=try_to_cancel, inputs=model_checkboxes, outputs=None, cancels=[generate_event])

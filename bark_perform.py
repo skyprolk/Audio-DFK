@@ -11,10 +11,11 @@ from bark_infinity import generation
 from bark_infinity import api
 
 from bark_infinity import text_processing
+import time
 
-
-generation.OFFLOAD_CPU = True
+#generation.OFFLOAD_CPU = True
 generation.USE_SMALL_MODELS = False
+generation.OFFLOAD_CPU = False #benchmarking
 
 text_prompts = []
 
@@ -27,6 +28,9 @@ text_prompt = """
     A common mistake that people make when trying to design something completely foolproof is to underestimate the ingenuity of complete fools. 
 """
 text_prompts.append(text_prompt)
+
+
+
 
 def get_group_args(group_name, updated_args):
     # Convert the Namespace object to a dictionary
@@ -96,7 +100,8 @@ def main(args):
 
     print("Done.")
 
-    
+
+
 
     for idx, text_prompt in enumerate(text_prompts_to_process, start=1):
         if len(text_prompts_to_process) > 1:
@@ -114,6 +119,9 @@ def main(args):
             args_dict = vars(args)
 
             api.generate_audio_long(**args_dict)
+    
+
+
 
 
 if __name__ == "__main__":

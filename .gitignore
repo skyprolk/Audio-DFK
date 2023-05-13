@@ -1,4 +1,15 @@
 __pycache__/
+
+# Ignore all directories
+*/
+
+# But don't ignore these specific directories
+!/bark/
+!/bark_infinity/
+!/notebooks/
+!/webui/
+
+
 bark_samples/
 bark/assets/prompts/*.wav
 bark_infinity/assets/prompts/*.wav

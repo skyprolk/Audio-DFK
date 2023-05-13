@@ -1,0 +1,37 @@
+name: bark-infinity-oneclick-nightly
+channels:
+  - pytorch-nightly
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+  - huggingface_hub>0.14
+  - boto3
+  - funcy
+  - numpy
+  - scipy
+  - tokenizers
+  - tqdm
+  - transformers
+  - bandit
+  - black
+  - codecov
+  - flake8
+  - hypothesis>=6.14,<7
+  - isort>=5.0.0,<6
+  - jupyter
+  - mypy
+  - nbconvert
+  - nbformat
+  - pydocstyle
+  - pylint
+  - pytest
+  - pytest-cov
+  - pathvalidate
+  - rich
+  - gradio
+  - nltk
