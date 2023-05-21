@@ -190,26 +190,53 @@ def create_argument_parser():
     return parser
 
 
+class StringToBoolAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if isinstance(values, str):
+            if values.lower() == 'true':
+                setattr(namespace, self.dest, True)
+            elif values.lower() == 'false':
+                setattr(namespace, self.dest, False)
+            else:
+                parser.error(f"{option_string} should be True or False")
+        else:
+            setattr(namespace, self.dest, values)
+
 def add_arguments_to_group(group, arguments, help_tag=""):
+    #print(arguments)
     group.help = help_tag
-    for key, arg in arguments:
+    for key, arg in arguments:  # Changed this line
         help_text = f"{arg['help']} Default: {arg['value']}"
         if 'choices' in arg:
             help_text += f" Choices: {', '.join(map(str, arg['choices']))}"
         
-        #if arg['type'] == bool:
-            #group.add_argument(f"--{key}", action='store_true', help=help_text)
-        #else:
-            
-        group.add_argument(f"--{key}", type=arg['type'], help=help_text, choices=arg.get('choices'))
+        if arg['type'] == bool:
+            group.add_argument(f"--{key}", action=StringToBoolAction, help=help_text)
+        else:
+            group.add_argument(f"--{key}", type=arg['type'], help=help_text, choices=arg.get('choices'))
+
 
 
 def update_group_args_with_defaults(args):
     updated_args = {}
     for group_name, arguments in DEFAULTS.items():
         for key, value in arguments:
-            if not hasattr(args, key) or getattr(args, key) is None:
+            if getattr(args, key) is None:
                 updated_args[key] = value['value']
+                #print(f" IS NONE Using {key} = {updated_args[key]}")
             else:
                 updated_args[key] = getattr(args, key)
+
+                #print(f"Using {key} = {updated_args[key]}")
+    return updated_args
+
+def update_group_args_with_defaults_what(args):
+    updated_args = {}
+    for group_name in DEFAULTS:
+        default_values = get_default_values(group_name)
+        for key, value in default_values.items():
+            if key not in args:
+                updated_args[key] = value
+            updated_args[key] = getattr(args, key)
+
     return updated_args

@@ -267,7 +267,7 @@ def split_by_lines(text: str, split_type: Optional[str] = None, split_type_quant
     return lines
     #return ['\n'.join(lines[i:i + split_type_quantity]) for i in range(0, len(lines), split_type_quantity)]
 
-def split_by_sentence(text: str, split_type: Optional[str] = None, split_type_quantity = 1, split_type_string: Optional[str] = None, split_type_value_type: Optional[str] = None) -> List[str]:
+def split_by_sentence(text: str, split_type: Optional[str] = None, split_type_quantity: Optional[int] = 1, split_type_string: Optional[str] = None, split_type_value_type: Optional[str] = None) -> List[str]:
     import nltk  
     text = text.replace("\n", " ").strip()
     sentences = nltk.sent_tokenize(text)

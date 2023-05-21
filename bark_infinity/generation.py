@@ -23,7 +23,7 @@ from rich.pretty import pprint
 from .config import logger
 
 from huggingface_hub import hf_hub_url
-
+from collections import Counter
 if (
     torch.cuda.is_available() and
     hasattr(torch.cuda, "amp") and
@@ -286,6 +286,23 @@ def _load_history_prompt(history_prompt_input):
     return history_prompt
 # removed semantic_history_oversize_limit because merging
 
+def compute_log_probs(token_list, smoothing_factor, scaling_factor):
+    # Count the frequency of each token.
+    token_freq = Counter(token_list)
+
+    # Add a smoothing factor.
+    smoothed_token_freq = {token: freq + smoothing_factor for token, freq in token_freq.items()}
+
+    # Normalize to create a probability distribution.
+    total_tokens = len(token_list) + smoothing_factor * len(smoothed_token_freq)
+    token_probs = {token: freq / total_tokens for token, freq in smoothed_token_freq.items()}
+
+    # Transform into scaled log-probabilities.
+    log_probs = {token: scaling_factor * np.log(prob) for token, prob in token_probs.items()}
+
+    return log_probs
+
+
 
 
 def generate_text_semantic(
@@ -300,12 +317,10 @@ def generate_text_semantic(
     allow_early_stop=True,
     use_kv_caching=False,
     history_prompt_magic=None,
-    history_prompt_magic_text=None,
+    history_prompt_magic_text=None, # nop
 
 ):
     """Generate semantic tokens from text."""
-
-
     logger.debug(locals())
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
@@ -313,6 +328,7 @@ def generate_text_semantic(
     if history_prompt is not None:
         history_prompt = _load_history_prompt(history_prompt)
         semantic_history = history_prompt["semantic_prompt"]
+        """
         assert (
             isinstance(semantic_history, np.ndarray)
             and len(semantic_history.shape) == 1
@@ -320,6 +336,7 @@ def generate_text_semantic(
             and semantic_history.min() >= 0
             and semantic_history.max() <= SEMANTIC_VOCAB_SIZE - 1
         )
+        """
     else:
         semantic_history = None
 
@@ -365,9 +382,9 @@ def generate_text_semantic(
             constant_values=SEMANTIC_PAD_TOKEN,
             mode="constant",
         )
-        print(f"Actual length of semantic history: {len(semantic_history)}")
+        #print(f"Actual length of semantic history: {len(semantic_history)}")
     else:
-        print(f"No semantic history provided.")
+        #print(f"No semantic history provided.")
         semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
 
 
@@ -486,6 +503,9 @@ def generate_coarse(
         history_prompt = _load_history_prompt(history_prompt)
         x_semantic_history = history_prompt["semantic_prompt"]
         x_coarse_history = history_prompt["coarse_prompt"]
+
+        """
+        #print(f"Pre Trim sem coars: {x_semantic_history.shape} {x_coarse_history.shape}")
         assert (
             isinstance(x_semantic_history, np.ndarray)
             and len(x_semantic_history.shape) == 1
@@ -503,6 +523,7 @@ def generate_coarse(
                 == round(semantic_to_coarse_ratio / N_COARSE_CODEBOOKS, 1)
             )
         )
+        """
         x_coarse_history = _flatten_codebooks(x_coarse_history) + SEMANTIC_VOCAB_SIZE
         # trim histories correctly
         n_semantic_hist_provided = np.min(
@@ -524,7 +545,7 @@ def generate_coarse(
         x_coarse_history = np.array([], dtype=np.int32)
 
 
-    print(f"actual lengths we're using, x_semantic_history: {len(x_semantic_history)} x_coarse_history: {len(x_coarse_history)}")
+    #print(f"actual lengths we're using, x_semantic_history: {len(x_semantic_history)} x_coarse_history: {len(x_coarse_history)}")
 
     # load models if not yet exist
     global models
@@ -643,6 +664,8 @@ def generate_fine(
     """Generate full audio codes from coarse audio codes."""
 
     logger.debug(locals())
+
+    """
     assert (
         isinstance(x_coarse_gen, np.ndarray)
         and len(x_coarse_gen.shape) == 2
@@ -651,6 +674,7 @@ def generate_fine(
         and x_coarse_gen.min() >= 0
         and x_coarse_gen.max() <= CODEBOOK_SIZE - 1
     )
+    """
     if history_prompt is not None:
         history_prompt = _load_history_prompt(history_prompt)
         x_fine_history = history_prompt["fine_prompt"]
@@ -843,7 +867,7 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
         print(f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")  # added
         _download(model_info["repo_id"], model_info["file_name"])
     ## added
-    print(f"Loading {model_key} model from {ckpt_path} to {device}") # added
+    print(f"Loading {model_key} model from {ckpt_path} to {device} (if offloading 'cpu' here is correct)") # added
     checkpoint = torch.load(ckpt_path, map_location=device)
 
     # this is a hack

@@ -13,3 +13,5 @@ pathvalidate
 gradio
 rich-argparse
 encodec
+fairseq
+audiolm_pytorch
