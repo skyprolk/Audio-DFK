@@ -1,4 +1,4 @@
-# 🚀 BARK INFINITY 🎶 🌈✨🚀 
+# 🚀 BARK INFINITY Voice Cloning 🎶 🌈✨🚀 
 
 ⚡ Low GPU memory? No problem. CPU offloading. ⚡
 
