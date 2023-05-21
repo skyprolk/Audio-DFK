@@ -311,22 +311,13 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
     if output_filename is not None and output_filename.strip() != '':
         base_output_filename = f"{output_filename}"
     else:
-        # didn't seem to add value, ripped out
-        """
-        extra_stats = '' 
-        extra_stats = kwargs.get('extra_stats', False)
-        if extra_stats:
-            token_probs_history = kwargs['token_probs_history']
-            if token_probs_history is not None:
-                token_probs_history_entropy = average_entropy(token_probs_history)
-                token_probs_history_perplexity = perplexity(token_probs_history)
-                token_probs_history_entropy_std = entropy_std(token_probs_history)
-                extra_stats = f"ent-{token_probs_history_entropy:.2f}_perp-{token_probs_history_perplexity:.2f}_entstd-{token_probs_history_entropy_std:.2f}"
-        """
-        # adding back because it makes the filename unique which is good when just browsing via search
+
+        # makes the filename unique which is good when just browsing via search
         date_str = datetime.datetime.now().strftime("%y-%m%d-%H%M-%S")       
 
+        truncated_text = re.sub(r'[^a-zA-Z0-9]', '', text_prompt) # this is brutal but I'm sick of weird filename problems.
         truncated_text = text_prompt[:15].strip()
+        
         base_output_filename = f"{truncated_text}-{date_str}-SPK-{history_prompt}"
 
     if segment_number_text is not None:
@@ -340,6 +331,7 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
             base_output_filename = f"{base_output_filename}.{output_format}"
         else:
             base_output_filename = f"{base_output_filename}.wav"
+
 
     output_filepath = (
         os.path.join(output_dir, base_output_filename))
@@ -393,7 +385,11 @@ def write_seg_npz(filepath, full_generation, **kwargs):
 
     if not kwargs.get('dry_run', False) and kwargs.get('always_save_speaker', True):
         filepath = generate_unique_filepath(filepath)
-        np.savez_compressed(filepath, semantic_prompt = full_generation["semantic_prompt"], coarse_prompt = full_generation["coarse_prompt"], fine_prompt = full_generation["fine_prompt"])
+        #np.savez_compressed(filepath, semantic_prompt = full_generation["semantic_prompt"], coarse_prompt = full_generation["coarse_prompt"], fine_prompt = full_generation["fine_prompt"])
+        if "semantic_prompt" in full_generation:
+            np.savez(filepath, semantic_prompt = full_generation["semantic_prompt"], coarse_prompt = full_generation["coarse_prompt"], fine_prompt = full_generation["fine_prompt"])
+        else:
+            print("No semantic prompt to save")
         
     
 
@@ -417,19 +413,25 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
 
 
     output_format = kwargs.get('output_format', None)
-    if output_format is not None:
-        if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
-            temp_wav = "{output_filepath}.tmp.wav"
-            write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
-            if dry_run is not True:
-                audio = AudioSegment.from_wav(temp_wav)
-                if output_format == 'mp4':
-                    audio.export(output_filepath, format="mp4", codec="aac")
-                else:
-                    audio.export(output_filepath, format=output_format)
-                os.remove(temp_wav)
-    else: 
+
+    print(f"output_format is {output_format}")
+    print(f"output_filepath is {output_filepath}")
+
+    if output_format is None: 
         output_format = 'wav'
+
+
+    if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
+        temp_wav = "{output_filepath}.tmp.wav"
+        write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
+        if dry_run is not True:
+            audio = AudioSegment.from_wav(temp_wav)
+            if output_format == 'mp4':
+                audio.export(output_filepath, format="mp4", codec="aac")
+            else:
+                audio.export(output_filepath, format=output_format)
+            os.remove(temp_wav)
+    else:
         write_wav(output_filepath, SAMPLE_RATE, audio_arr) if not dry_run else None
 
     logger.info(f"  .{output_format} saved to {output_filepath} {dry_text}")
@@ -490,10 +492,9 @@ def generate_audio_barki(
         done_cancelling = True
         return None, None
     
-
-    # this has to be bugged? But when I logged generate_text_semantic inputs they were exacttly the same as raw generate audio...
-
-    # i must be messning up some values somewhere
+    confused_travolta_mode = kwargs.get("confused_travolta_mode", False)
+    if confused_travolta_mode:
+        kwargs["semantic_allow_early_stop"] = False
 
     semantic_tokens = call_with_non_none_params(
         generate_text_semantic,
@@ -603,6 +604,189 @@ def generate_audio_barki(
     return audio_arr
 
 
+def generate_audio_sampling_mods_old(
+    text: str,
+    **kwargs,
+):
+    """Generate audio array from input text.
+
+    Args:
+        text: text to be turned into audio
+        history_prompt: history choice for audio cloning
+        text_temp: generation temperature (1.0 more diverse, 0.0 more conservative)
+        waveform_temp: generation temperature (1.0 more diverse, 0.0 more conservative)
+        silent: disable progress bar
+        output_full: return full generation to be used as a history prompt
+
+
+    Returns:
+        numpy audio array at sample frequency 24khz
+    """
+    logger.debug(locals())
+    kwargs = load_all_defaults(**kwargs)
+
+    history_prompt = kwargs.get("history_prompt", None)
+    text_temp = kwargs.get("text_temp", None)
+    waveform_temp = kwargs.get("waveform_temp", None)
+    silent = kwargs.get("silent", None)
+    output_full = kwargs.get("output_full", None)
+
+    global gradio_try_to_cancel
+    global done_cancelling
+
+    seed = kwargs.get("seed",None)
+    if seed is not None:
+       set_seed(seed)
+
+
+    ## Semantic Options
+    semantic_temp = text_temp
+    if kwargs.get("semantic_temp", None):
+        semantic_temp = kwargs.get("semantic_temp")
+
+    semantic_seed = kwargs.get("semantic_seed",None)
+    if semantic_seed is not None:
+       set_seed(semantic_seed)
+
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    
+
+
+
+    semantic_tokens = call_with_non_none_params(
+        generate_text_semantic,
+        text=text,
+        history_prompt=history_prompt,
+        temp=semantic_temp,
+        top_k=kwargs.get("semantic_top_k", None),
+        top_p=kwargs.get("semantic_top_p", None),
+        silent=silent,
+        min_eos_p = kwargs.get("semantic_min_eos_p", None),
+        max_gen_duration_s = kwargs.get("semantic_max_gen_duration_s", None),
+        allow_early_stop = kwargs.get("semantic_allow_early_stop", True),
+        use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+
+        banned_tokens = kwargs.get("semantic_banned_tokens", None),
+        absolute_banned_tokens = kwargs.get("semantic_absolute_banned_tokens", None),
+        outside_banned_penalty = kwargs.get("semantic_outside_banned_penalty", None),
+        target_distribution = kwargs.get("semantic_target_distribution", None),
+        target_k_smoothing_factor = kwargs.get("semantic_target_k_smoothing_factor", None),
+        target_scaling_factor = kwargs.get("semantic_target_scaling_factor", None),
+        history_prompt_distribution = kwargs.get("semantic_history_prompt_distribution", None),
+        history_prompt_k_smoothing_factor = kwargs.get("semantic_history_prompt_k_smoothing_factor", None),
+        history_prompt_scaling_factor = kwargs.get("semantic_history_prompt_scaling_factor", None),
+        history_prompt_average_distribution = kwargs.get("semantic_history_prompt_average_distribution", None),
+        history_prompt_average_k_smoothing_factor = kwargs.get("semantic_history_prompt_average_k_smoothing_factor", None),
+        history_prompt_average_scaling_factor = kwargs.get("semantic_history_prompt_average_scaling_factor", None),
+        target_outside_default_penalty = kwargs.get("semantic_target_outside_default_penalty", None),
+        target_outside_outlier_penalty = kwargs.get("semantic_target_outside_outlier_penalty", None),
+        history_prompt_unique_voice_penalty = kwargs.get("semantic_history_prompt_unique_voice_penalty", None),
+        consider_common_threshold   = kwargs.get("semantic_consider_common_threshold", None),
+        history_prompt_unique_voice_threshold = kwargs.get("semantic_history_prompt_unique_voice_threshold", None),
+    
+
+    )
+
+
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+
+    ## Coarse Options
+    coarse_temp = waveform_temp
+    if kwargs.get("coarse_temp", None):
+        coarse_temp = kwargs.get("coarse_temp")
+
+    coarse_seed = kwargs.get("coarse_seed",None)
+    if coarse_seed is not None:
+       set_seed(coarse_seed)
+        
+    
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    
+    semantic_history_only = kwargs.get("semantic_history_only", False)
+    previous_segment_type = kwargs.get("previous_segment_type", '')
+    if previous_segment_type == "base_history" and semantic_history_only is True:
+        print(f"previous_segment_type is base_history and semantic_history_only is True. Not forwarding history for for coarse and fine")
+        history_prompt = None
+
+    absolute_semantic_history_only = kwargs.get("absolute_semantic_history_only", False)
+    if absolute_semantic_history_only:
+        print(f"absolute_semantic_history_only is True. Not forwarding history for for coarse and fine")
+        history_prompt = None
+
+    absolute_semantic_history_only_every_x = kwargs.get("absolute_semantic_history_only_every_x", None)
+    if absolute_semantic_history_only_every_x is not None and absolute_semantic_history_only_every_x > 0:
+        segment_number = kwargs.get("segment_number", None)
+        if segment_number is not None:
+            if segment_number % absolute_semantic_history_only_every_x == 0:
+                print(f"segment_number {segment_number} is divisible by {absolute_semantic_history_only_every_x}. Not forwarding history for for coarse and fine")
+                history_prompt = None
+
+    coarse_tokens = call_with_non_none_params(
+        generate_coarse,
+        x_semantic=semantic_tokens,
+        history_prompt=history_prompt,
+        temp=coarse_temp,
+        top_k=kwargs.get("coarse_top_k", None),
+        top_p=kwargs.get("coarse_top_p", None),
+        silent=silent,
+        max_coarse_history=kwargs.get("coarse_max_coarse_history", None),
+        sliding_window_len=kwargs.get("coarse_sliding_window_len", None),
+        use_kv_caching=kwargs.get("coarse_kv_caching", True),
+    )
+
+    fine_temp = kwargs.get("fine_temp", 0.5)
+
+    fine_seed = kwargs.get("fine_seed",None)
+    if fine_seed is not None:
+       set_seed(fine_seed)
+
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    fine_tokens = call_with_non_none_params(
+        generate_fine,
+        x_coarse_gen=coarse_tokens,
+        history_prompt=history_prompt,
+        temp=fine_temp,
+        silent=silent,
+    )
+
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    audio_arr = codec_decode(fine_tokens)
+    full_generation = {
+        "semantic_prompt": semantic_tokens,
+        "coarse_prompt": coarse_tokens,
+        "fine_prompt": fine_tokens,
+    }
+
+    if gradio_try_to_cancel:
+        done_cancelling = True
+        return None, None
+    
+    hoarder_mode = kwargs.get("hoarder_mode", None)
+
+    force_write_segment = kwargs.get("force_write_segment", False)
+
+    total_segments = kwargs.get("total_segments", 1)
+    if (hoarder_mode and (total_segments > 1)) or force_write_segment:
+        kwargs["text"] = text
+        write_one_segment(audio_arr, full_generation, **kwargs)
+
+    if output_full:
+        return full_generation, audio_arr
+    
+    return audio_arr
+
+
+
 
 
 def generate_audio_long_from_gradio(**kwargs):
@@ -660,8 +844,10 @@ def generate_audio_long(
 
 
 
-    # yanked for now, required too many mods to core Bark code
+    # yanked for now,
     extra_confused_travolta_mode = kwargs.get('extra_confused_travolta_mode', None)
+
+    confused_travolta_mode = kwargs.get('confused_travolta_mode', None)
 
     hoarder_mode = kwargs.get('hoarder_mode', None)
 
@@ -773,23 +959,33 @@ def generate_audio_long(
             full_generation, audio_arr = [], []
         else:
 
-            # it's still gonna concat them but whatever just want to use this myself right now
+
+
+
             seperate_prompts = kwargs.get("seperate_prompts", False)
-            if seperate_prompts is True:
-                # it's nice to get one actual generation with each  
-                if history_prompt_flipper is True:
-                    kwargs['history_prompt'] = None
-                    history_prompt_for_next_segment = None
-                    history_prompt_flipper = False
-                    print(" <History prompt disabled for next segment.>")
+            seperate_prompts_flipper = kwargs.get("seperate_prompts_flipper", False)
+            
+            if seperate_prompts_flipper is True:
+                if seperate_prompts is True:
+                    # nice to get actual generation from each speaker 
+                    if history_prompt_flipper is True:
+                        kwargs['history_prompt'] = None
+                        history_prompt_for_next_segment = None
+                        history_prompt_flipper = False
+                        print(" <History prompt disabled for next segment.>")
+                    else:
+                        kwargs['history_prompt'] = history_prompt_for_next_segment
+                        history_prompt_flipper = True
                 else:
                     kwargs['history_prompt'] = history_prompt_for_next_segment
-                    history_prompt_flipper = True
+            
             else:
-                kwargs['history_prompt'] = history_prompt_for_next_segment
+                if seperate_prompts is True:
 
-    
-      
+                        history_prompt_for_next_segment = None
+                        print(" <History prompt disabled for next segment.>")
+                else:
+                    kwargs['history_prompt'] = history_prompt_for_next_segment
           
 
 
@@ -915,7 +1111,7 @@ def play_superpack_track(superpack_filepath = None, one_random=True):
         return None
 
 
-## TODO Port over the good magic when you get time. 
+## TODO can I port the notebook tools somehow?
 
 def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
 
@@ -927,7 +1123,7 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
     semantic_prompt = original_history_prompt["semantic_prompt"]
     original_semantic_prompt  = copy.deepcopy(semantic_prompt)
 
-    starting_point = 64 
+    starting_point = 128 
     ending_point = len(original_semantic_prompt) - starting_point
 
     points = np.linspace(starting_point, ending_point, gen_minor_variants)
@@ -937,21 +1133,20 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
         starting_point = int(starting_point)
         i += 1
 
-        #is it worth doing something fancier here? nah this will be superceded anyway
 
         new_semantic_from_beginning = copy.deepcopy(original_semantic_prompt[:starting_point].astype(np.int32))
         new_semantic_from_ending = copy.deepcopy(original_semantic_prompt[starting_point:].astype(np.int32))
 
 
-        
+        # worse than generating brand new random samples, typically
         for semantic_prompt in [new_semantic_from_beginning, new_semantic_from_ending]:
 
-            print(f"len(semantic_prompt): {len(semantic_prompt)}")
-            print(f"starting_point: {starting_point}, ending_poinst: {ending_point}") 
+            #print(f"len(semantic_prompt): {len(semantic_prompt)}")
+            #print(f"starting_point: {starting_point}, ending_poinst: {ending_point}") 
 
 
-            temp_coarse = random.uniform(0.50, 0.90)
-            top_k_coarse = None if random.random() < 1/3 else random.randint(50, 150)
+            temp_coarse = random.uniform(0.3, 0.90)
+            top_k_coarse = None if random.random() < 1/3 else random.randint(25, 400)
             top_p_coarse = None if random.random() < 1/3 else random.uniform(0.90, 0.97)
 
             max_coarse_history_options = [630, random.randint(500, 630), random.randint(60, 500)]
@@ -959,7 +1154,7 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
 
             coarse_tokens = generation.generate_coarse(semantic_prompt, temp=temp_coarse, top_k=top_k_coarse, top_p=top_p_coarse, max_coarse_history=max_coarse_history)
 
-            temp_fine = random.uniform(0.4, 0.6)
+            temp_fine = random.uniform(0.3, 0.8)
             fine_tokens = generation.generate_fine(coarse_tokens, temp=temp_fine)
 
             history_prompt_render_variant = {"semantic_prompt": semantic_prompt, "coarse_prompt": coarse_tokens, "fine_prompt": fine_tokens}
@@ -977,11 +1172,22 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
             except:
                 print(f"  <Error rendering audio for {npz_filepath}>")
 
+def load_npz(filename):
+    npz_data = np.load(filename)
 
+    data_dict = {
+        "semantic_prompt": npz_data["semantic_prompt"],
+        "coarse_prompt": npz_data["coarse_prompt"],
+        "fine_prompt": npz_data["fine_prompt"],
+    }
+
+    npz_data.close() 
+
+    return data_dict
 
 def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from=None, double_up_history=False, save_npz=False, compression_mode=False, gen_minor_variants=None):
     # Find all the .npz files
-    # interesting results when you pack double up and use the tokens in both history and current # model input
+
 
     print(f"Rendering samples for speakers in: {npz_directory}")
     npz_files = [f for f in os.listdir(npz_directory) if f.endswith(".npz")]
@@ -994,16 +1200,23 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
     for npz_file in npz_files:
         npz_filepath = os.path.join(npz_directory, npz_file)
 
-        history_prompt = np.load(npz_filepath)
+        history_prompt = load_npz(npz_filepath)
 
         semantic_tokens = history_prompt["semantic_prompt"]
         coarse_tokens = history_prompt["coarse_prompt"]
         fine_tokens = history_prompt["fine_prompt"]
 
+        # shape print
+        print(f"semantic_tokens.shape: {semantic_tokens.shape}")
+        print(f"coarse_tokens.shape: {coarse_tokens.shape}")
+        print(f"fine_tokens.shape: {fine_tokens.shape}")
+        
+
+        # this is super old and mostly useless, but I'll leave this in UI until I port the better stuff
         if gen_minor_variants is None:
     
             if start_from == "pure_semantic":
-                # this required my mod generate_text_semantic, need to pretend it's two prompts
+                # code removed for now
                 semantic_tokens = generate_text_semantic(text=None, history_prompt = history_prompt)
                 coarse_tokens = generate_coarse(semantic_tokens)
                 fine_tokens = generate_fine(coarse_tokens)
@@ -1022,12 +1235,13 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
             history_prompt_render_variant = {"semantic_prompt": semantic_tokens, "coarse_prompt": coarse_tokens, "fine_prompt": fine_tokens}
 
 
+        # Tterrible variations but it's hooked up to the Gradio UI and does do something guess leave it for now
         elif gen_minor_variants > 0: # gen_minor_variants quick and simple
             print(f"Generating {gen_minor_variants} minor variants for {npz_file}")
             gen_minor_variants = gen_minor_variants or 1
             for i in range(gen_minor_variants):
-                temp_coarse = random.uniform(0.5, 0.9)
-                top_k_coarse = None if random.random() < 1/3 else random.randint(50, 100)
+                temp_coarse = random.uniform(0.3, 0.9)
+                top_k_coarse = None if random.random() < 1/3 else random.randint(25, 400)
                 top_p_coarse = None if random.random() < 1/3 else random.uniform(0.8, 0.95)
 
                 max_coarse_history_options = [630, random.randint(500, 630), random.randint(60, 500)]
@@ -1054,9 +1268,15 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
 
         
         if not compression_mode:
+            start_from_txt = ''
+
+            if start_from == "semantic_prompt":
+                start_from_txt = '_W'
+            elif start_from == "coarse_prompt":
+                start_from_txt = '_S'
             try:
                 audio_arr = codec_decode(fine_tokens)
-                base_output_filename = os.path.splitext(npz_file)[0] + ".wav"
+                base_output_filename = os.path.splitext(npz_file)[0] + f"_{start_from_txt}_.wav"
                 output_filepath = os.path.join(npz_directory, base_output_filename)
                 output_filepath = generate_unique_filepath(output_filepath)
                 print(f"  Rendering audio for {npz_filepath} to {output_filepath}")
@@ -1070,6 +1290,7 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
             compress_mode_data.append(just_record_it)
             #compress_mode_data.append(history_prompt_render_variant)
 
+    # defunct
     if compression_mode:
         print(f"have {len(compress_mode_data)} samples")
         output_filepath = os.path.join(npz_directory, "superpack.npz")
