@@ -7,6 +7,8 @@
 
 # Now: 🎤 Clone a Voice
 
+![image](https://github.com/JonathanFly/bark/assets/163408/de392897-2428-4adf-87db-0db83ffc321c)
+
 # 🌠 The Past: 🌠
 
 Bark Infinity started as a humble 💻 command line wrapper, a CLI 💬. Built from simple keyword commands, it was a proof of concept 🧪, a glimmer of potential 💡.
