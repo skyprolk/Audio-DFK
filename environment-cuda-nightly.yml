@@ -1,4 +1,4 @@
-name: bark-infinity-oneclick-nightly
+name: bark-infinity
 channels:
   - pytorch-nightly
   - conda-forge
@@ -34,4 +34,3 @@ dependencies:
   - pathvalidate
   - rich
   - nltk
-  - audiolm_pytorch

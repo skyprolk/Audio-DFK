@@ -1,4 +1,4 @@
-name: bark-infinity-oneclick
+name: bark-infinity
 channels:
   - defaults
   - pytorch
@@ -34,8 +34,6 @@ dependencies:
   - pylint
   - pytest
   - pytest-cov
-  - pysoundfile
   - pathvalidate
   - rich
   - nltk
-  - audiolm_pytorch

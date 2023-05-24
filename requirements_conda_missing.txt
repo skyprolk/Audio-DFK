@@ -1,3 +1,5 @@
-encodec, rich-argparse
+encodec
+rich-argparse
 gradio
 fairseq
+audiolm_pytorch

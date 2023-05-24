@@ -430,7 +430,7 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
 
 
     if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
-        temp_wav = "{output_filepath}.tmp.wav"
+        temp_wav = f"{output_filepath}.tmp.wav"
         write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
         if dry_run is not True:
             audio = AudioSegment.from_wav(temp_wav)

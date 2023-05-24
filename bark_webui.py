@@ -781,7 +781,7 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                 with gr.Row(elem_id=f"text_row"):
 
                     with gr.Column(variant="panel", scale=1.0):
-                        gr.Markdown("Experimental, try using an audio clip as as the prompt instead of text. It's the text so you still pick a different speaker files to use. Audio less than 14 seconds.")
+                        gr.Markdown("Experimental, try using an audio clip as as the prompt instead of text. It's the text so you still pick a different speaker files to use. Audio less than 14 seconds. (Not hooked up yet, but soon.)")
 
                         audio_prompt_input = gr.Audio(label="Audio Prompts", info="Use most common audio formats",source="upload", type="filepath")
 
@@ -936,10 +936,10 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                     confused_travolta_mode = gr.Checkbox(label="🕺🕺 Confused Travolta Mode", info="Always generate maximum length. Great for history prompts of music and sounds.", value=False)
                 with gr.Tab("Fancy"):
                     seed = gr.Number(label="Random SEED: 0 for no seed. Set -1 to undo.", info="(Bark runs a lot slower when using a seed.)", value=0)
-                    m("""## These options should in theory have a decent impact
-                    But it's been hard to say for sure
-                    `top_k` 50 is typical, 
-                    `top_p` 0.90 or 0.95,
+                    m("""## These options in theory have a big impact,
+                    But I'm still not sure.
+                    `top_k` 50 is typical, try 100, 400. 
+                    `top_p` 0.90 or 0.95, maybe.
                     lower top_p less diverse
                     you don't have to use both.""")
                     semantic_top_k = gr.Slider(label="semantic_top_k", value=50, minimum=0, maximum=200, step=1)
@@ -1057,9 +1057,7 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                     initialname = "NewClonedVoiceName"
                     output_voice = gr.Textbox(label="Name Your Cloned Voice", lines=1, placeholder=initialname, value=initialname, info="The output file will be stored in ./cloned_voices/, along with a copy of the original audio. Retaining the default name won't overwrite existing files but will add a numerical suffix.")
 
-                    even_more_clones = gr.Checkbox(label="Just give me more clones. 😱💡➡️🧪🧬👯‍♂️👯‍♀️ This is not a great progress but it does get lucky once in awhile.", value=False)
-
-                    even_more_clones_power_level = gr.Slider(label="If you check 'more clones' this will repeat the generations a few more times. Very slow, each one takes a long as a clip to renders.", step=1, value=1, maximum=100, minimum=1)
+                    even_more_clones = gr.Slider(label="Just give me more clones. 😱💡➡️🧪🧬👯‍♂️👯‍♀️ This is not a great proceducre but it will give you more clones, and you lucky.", step=1, value=1, maximum=10, minimum=1)
 
                     gr.Markdown("""Make sure you put text in the main text prompt for your samples. Take time to get text that is has the style and rhythm the voice you want to tclnoe, it will save after each sample, they often work well as clones.""") 
 
