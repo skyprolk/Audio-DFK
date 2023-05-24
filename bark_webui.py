@@ -1239,8 +1239,8 @@ demo.queue()
 # demo.launch(inbrowser=autolaunch, share=True)
 
 # you cahn change the username and password 
-demo.launch(inbrowser=autolaunch, share=True, auth=("admin", "BarkAudioNotJustForTrees"))
+#demo.launch(inbrowser=autolaunch, share=True, auth=("admin", "BarkAudioNotJustForTrees"))
 
-#demo.launch(inbrowser=autolaunch)
+demo.launch(inbrowser=autolaunch)
 
 
