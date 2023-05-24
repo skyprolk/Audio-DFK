@@ -88,7 +88,7 @@ font: 1.3rem Inconsolata, monospace;
   }
 
 
-
+ #cloning {background: green !important;} 
  
  
 
@@ -113,6 +113,10 @@ padding: 0px;
    background: none;
  }
 
+
+
+
+        
 
 """
 import functools
@@ -157,7 +161,21 @@ def parse_extra_args(extra_args_str):
         parsed_args[key] = value
     return parsed_args
 
-def generate_audio_long_gradio(input, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode, stable_mode_interval, seperate_prompts, seperate_prompts_flipper, split_character_goal_length, split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments,  semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_str, progress=gr.Progress(track_tqdm=True)):
+
+def clone_voice_gradio(audio_filepath, input_audio_filename_secondary, semantic_step_interval, dest_filename, create_samples_for_clones, even_more_clones):
+
+    clone_dir = clone_voice(audio_filepath, input_audio_filename_secondary, dest_filename, semantic_step_interval = semantic_step_interval, progress=gr.Progress(track_tqdm=True), max_retries=1, even_more_clones=even_more_clones)
+    if create_samples_for_clones is True:
+        return clone_dir
+    else:
+        return False
+
+
+
+
+
+
+def generate_audio_long_gradio(input, audio_prompt_input, bark_speaker_as_the_prompt,  npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode, stable_mode_interval, seperate_prompts, seperate_prompts_flipper, split_character_goal_length, split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_str, progress=gr.Progress(track_tqdm=True)):
     print("\n")
 
 
@@ -204,7 +222,7 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, cloned_voi
 
 
     if bark_infinity_voices != '' and bark_infinity_voices is not None:
-        if len(bark_infinity_voices.strip()) > 6: kwargs["bark_infinity_voices"] = bark_infinity_voices
+        if len(bark_infinity_voices.strip()) > 6: kwargs["history_prompt"] = bark_infinity_voices
 
     if generated_voices != '' and generated_voices is not None:
         if len(generated_voices.strip()) > 6: kwargs["history_prompt"] = generated_voices
@@ -224,6 +242,14 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, cloned_voi
         specific_npz_file_name = specific_npz_file.name
         kwargs["history_prompt"] = specific_npz_file_name
 
+
+    if bark_speaker_as_the_prompt != '' and bark_speaker_as_the_prompt is not None:
+        bark_speaker_as_the_prompt = bark_speaker_as_the_prompt.name
+        kwargs["bark_speaker_as_the_prompt"] = bark_speaker_as_the_prompt
+
+
+    if audio_prompt_input is not None and audio_prompt_input != '':
+        kwargs["audio_prompt"] = audio_prompt_input
 
     if specific_npz_folder != '' and specific_npz_folder is not None:
         kwargs["specific_npz_folder"] = specific_npz_folder
@@ -410,6 +436,21 @@ def generate_audio_long_gradio(input, npz_dropdown, generated_voices, cloned_voi
             final_filename_will_be = "bark_infinity/assets/split_the_text.wav"
         return final_filename_will_be
 
+
+def generate_audio_long_gradio_clones(input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode, stable_mode_interval, seperate_prompts, seperate_prompts_flipper, split_character_goal_length, split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_str, output_voice, progress=gr.Progress(track_tqdm=True)):
+
+    if input is None or input == '':
+        print("No input text provided to render samples.")
+        return None
+    
+
+    hoarder_mode = True
+    output_dir = specific_npz_folder
+
+    output_dir = f"cloned_voices/{output_voice}_samples"
+
+    return generate_audio_long_gradio(input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode, stable_mode_interval, seperate_prompts, seperate_prompts_flipper, split_character_goal_length, split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_str, progress=gr.Progress(track_tqdm=True))
+                                      
 def create_npz_dropdown_dir(directories, label):
     npz_files_by_subfolder = defaultdict(list)
     for directory in directories:
@@ -688,13 +729,13 @@ def trim_logs():
     if save_log_lines > 0 and len(lines) > save_log_lines:
         lines = lines[-save_log_lines:]
 
-    with open("gradio_terminal_ouput.log", "w") as f:
+    with open("gradio_terminal_ouput.log", "w",encoding="utf-8") as f:
         f.writelines(lines)
 
 with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
     gr.Markdown(
         """
-    # 🐶 Bark Infinity - Cloning Cloning Universe 🌌 </a>
+    # 🐶 Bark Infinity Cloning Cloning 👨‍🔬🧬🔁👯‍♂️🌌 </a>
 
     Feedback, feature requests, far too many emojis: <a href="https://github.com/JonathanFly/bark">https://github.com/JonathanFly/bark</a>
     """
@@ -705,36 +746,47 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
         with gr.Column(variant="panel", scale=0.5):
             gr.Markdown("### 🐶 Main Bark Input")
 
+            with gr.Tab("Text Prompts"):
+                with gr.Row(elem_id=f"text_row"):
+                    input = gr.TextArea(placeholder="Text Prompt", label="Main Text Prompt", info="The main text goes here. It can be as long as you want. You will see how the text will be split into smaller chunks on the right.")
+                
+                
+                with gr.Row(elem_id=f"styles_row"):
+    
+            
+                    with gr.Column(variant="panel", scale=0.5):
+                        prompt_styles_dropdown = gr.Dropdown(label=f"Text Snippets", info=f"Add your own! {user_style_csv}", elem_id=f"styles", choices=[k for k, v in prompt_styles.styles.items()], value=[], multiselect=True)
+                        #create_refresh_button(prompt_styles_dropdown, prompt_styles.reload, lambda: {"choices": [k for k, v in prompt_styles.styles.items()]}, f"refresh_styles")
+                        prompt_style_apply = ToolButton(value=apply_style_symbol, elem_id=f"style_apply")
+                        #save_style = ToolButton(value=save_style_symbol, elem_id=f"style_create")
+                    with gr.Column(variant="panel", scale=0.5):
+                        prompt_transformations_dropdown = gr.Dropdown(label=f"Text Transformations", info=f"Add your own! {user_transformation_csv}", elem_id=f"transformations", choices=[k for k, v in prompt_transformations.transformations.items()], value=[], multiselect=True)
+                        #create_refresh_button(prompt_styles_dropdown, prompt_styles.reload, lambda: {"choices": [k for k, v in prompt_styles.styles.items()]}, f"refresh_styles")
+                        prompt_transformations_apply = ToolButton(value=text_transformation_symbol, elem_id=f"transformation_apply")
+                        #save_style = ToolButton(value=save_style_symbol, elem_id=f"style_create")
+                prompt_style_apply.click(
+                    fn=apply_styles,
+                    inputs=[input, prompt_styles_dropdown],
+                    outputs=[input, prompt_styles_dropdown],
+                )
 
-            with gr.Row(elem_id=f"text_row"):
-                input = gr.TextArea(placeholder="Text Prompt", label="Main Text Prompt", info="The main text goes here. It can be as long as you want. You will see how the text will be split into smaller chunks on the right.")
-            
-            
-            with gr.Row(elem_id=f"styles_row"):
- 
-           
-                with gr.Column(variant="panel", scale=0.5):
-                    prompt_styles_dropdown = gr.Dropdown(label=f"Text Snippets", info=f"Add your own! {user_style_csv}", elem_id=f"styles", choices=[k for k, v in prompt_styles.styles.items()], value=[], multiselect=True)
-                    #create_refresh_button(prompt_styles_dropdown, prompt_styles.reload, lambda: {"choices": [k for k, v in prompt_styles.styles.items()]}, f"refresh_styles")
-                    prompt_style_apply = ToolButton(value=apply_style_symbol, elem_id=f"style_apply")
-                    #save_style = ToolButton(value=save_style_symbol, elem_id=f"style_create")
-                with gr.Column(variant="panel", scale=0.5):
-                    prompt_transformations_dropdown = gr.Dropdown(label=f"Text Transformations", info=f"Add your own! {user_transformation_csv}", elem_id=f"transformations", choices=[k for k, v in prompt_transformations.transformations.items()], value=[], multiselect=True)
-                    #create_refresh_button(prompt_styles_dropdown, prompt_styles.reload, lambda: {"choices": [k for k, v in prompt_styles.styles.items()]}, f"refresh_styles")
-                    prompt_transformations_apply = ToolButton(value=text_transformation_symbol, elem_id=f"transformation_apply")
-                    #save_style = ToolButton(value=save_style_symbol, elem_id=f"style_create")
-            prompt_style_apply.click(
-                fn=apply_styles,
-                inputs=[input, prompt_styles_dropdown],
-                outputs=[input, prompt_styles_dropdown],
-            )
+                prompt_transformations_apply.click(
+                    fn=apply_transformations,
+                    inputs=[input, prompt_transformations_dropdown],
+                    outputs=[input, prompt_transformations_dropdown],
+                )
 
-            prompt_transformations_apply.click(
-                fn=apply_transformations,
-                inputs=[input, prompt_transformations_dropdown],
-                outputs=[input, prompt_transformations_dropdown],
-            )
-            
+            with gr.Tab("Audio/Semantic Prompts"):
+
+                with gr.Row(elem_id=f"text_row"):
+
+                    with gr.Column(variant="panel", scale=1.0):
+                        gr.Markdown("Experimental, try using an audio clip as as the prompt instead of text. It's the text so you still pick a different speaker files to use. Audio less than 14 seconds.")
+
+                        audio_prompt_input = gr.Audio(label="Audio Prompts", info="Use most common audio formats",source="upload", type="filepath")
+
+                        gr.Markdown("Try using a speaker .npz as the prompt, not the speaker. (So you can still pick a different speaker.)")
+                        bark_speaker_as_the_prompt = gr.File(label='Pick a Specific NPZ From Filesystem', file_types=['npz'])
 
 
 
@@ -746,13 +798,13 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
             
             def clear_logs():
-                with open("gradio_terminal_ouput.log", "w") as f:
+                with open("gradio_terminal_ouput.log", "w", encoding="utf-8") as f:
                     f.write("")
 
 
             clear_button = gr.Button("Clear The Console")
             clear_button.click(clear_logs)
-         
+        
 
 
     with gr.Tab("Main Options"):
@@ -950,44 +1002,77 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
                 env_button.click(sent_bark_envs, inputs=env_input_list)
 
-    with gr.Tab("# 🎤 HuBERT Voice Clone 👍 via https://github.com/gitmylo"):
-
-
+    with gr.Tab("# HuBERT Voice Clone 👨‍🔬🧬🔁👯‍♂️🌌 via https://github.com/gitmylo"):
 
 
             # Developed by from https://github.com/gitmylo/bark-voice-cloning-HuBERT-quantizer
             with gr.Row():
+                gr.Markdown("# 🎤 Clone a Voice 👨‍🔬🧬🔁👯‍♂️")
+                gr.Markdown("## Under the hood: [gitmylo's Hubert Model](https://github.com/gitmylo/bark-voice-cloning-HuBERT-quantizer)")
+
+            with gr.Row():
+                with gr.Column(scale=0.5, variant="panel"):
+                    gr.Markdown("### Primary Audio Sample:")
+                    input_audio_filename = gr.Audio(label="Upload Your Audio File, Most Common Audio Forms", info="",source="upload", type="filepath")
+
+ 
+           
+                    gr.Markdown("""### Use audio as long or short audio you like, but for now stick to a few minutes at most, for memory reasons. It's typically better if your audio has a natural pause at the end, but not absolutely necessary.""")
+
+                    gr.Markdown("""### Note that this version if upload tons of audio you are probably not giving Bark more data in the sense you think. This will fill your hard drives with different voice clones.""")
+                    
+                    gr.Markdown("""The longer audio is not being used to train a model or really be referenced referenced as a whole. If you upload a minute minutes of audio, you will get a speaker created every few seconds in that audio. Effectively this is what you would have gotten if had cut up that 30 seconds into tiny clips and uploaded them one by one, to make a clone of each. (It is actually a bit better though - it uses overlapping clips intsead of splitting.""")
+                                                              
+                    gr.Markdown("""That said, raw numbers and patience is pretty effective.""")
+
+
+                    gr.Markdown("## Audio Samples Advice")
+                    gr.Markdown("""A natural pause at the end of a short clip can improve the cloning output.
+                    \n _For voice clones_: a clear audio sample of a single person speaking English is recommended.
+                    \n _For wider audio generation_, feel free to try any kind of audio sample.""")
+
+
+                    gr.Markdown("""Don't get too excited listening to the audio labelled 'raw' in the clone directory. That's just copy of the raw audio you uploaded, useful to knowing what's in each segment. You won't get such a close voice using the files. """)
 
 
 
-                    with gr.Column(scale=1, variant="panel"):
-                        gr.Markdown("# 🎤 Clone a Voice")
-                        gr.Markdown("Under the hood: [gitmylo's Hubert Model](https://github.com/gitmylo/bark-voice-cloning-HuBERT-quantizer)")
-                        input_audio_filename = gr.Audio(label="Upload Your Audio File", info="Use most common audio formats",source="upload", type="filepath")
 
-                        gr.Markdown("""## Use audio as long or short audio you like (Stick to a minute or two for now, more soon.) It's typically better if your audio has a natural pause at the end, but not absolutely necessary and can work fine without.""")
+                with gr.Column(scale=0.50, variant="panel"):
+                 
+                    gr.Markdown("""### Options """)
+                    gr.Markdown("""Secondary audio file, between 7 and 13 seconds only. Try to choose the most iconic clips.""") 
 
-                        gr.Markdown("""# ⚠️ Please Note: In this version if upload tons of audio you are probably not giving Bark more data in the sense you think. This will fill your hard drives with voice clones.""")
+                    input_audio_filename_secondary = gr.Audio(label="Secondary Audio File", info="Use most common audio formats",source="upload", type="filepath")
 
+     
+
+                    semantic_step_interval = gr.Slider(label="Space between audio clones segments in the files", info="If you've only got a short sample or you feel like you just just barely missing a good voice, you can try lower values. On the default each speak already overlaps a lot. For very long clips, very high numbers will just take a few samples.", step=1, value=164, maximum=10000, minimum=32)
+
+                    gr.Markdown("The prompts a bit skinny by default to and get some diversity over a clip.")
+
+
+                    create_samples_for_clones = gr.Checkbox(label="Create an audio sample for each created clone at the end, using the Main Text Prompt", value=False)
+                    gr.Markdown("""Make sure you put text in the main text prompt. Take time to get text that is has the style and rhythm the voice you want to tclnoe, it will save after each sample, they often work well as clones.""") 
+
+                    initialname = "NewClonedVoiceName"
+                    output_voice = gr.Textbox(label="Name Your Cloned Voice", lines=1, placeholder=initialname, value=initialname, info="The output file will be stored in ./cloned_voices/, along with a copy of the original audio. Retaining the default name won't overwrite existing files but will add a numerical suffix.")
+
+                    even_more_clones = gr.Checkbox(label="Just give me more clones. 😱💡➡️🧪🧬👯‍♂️👯‍♀️ This is not a great progress but it does get lucky once in awhile.", value=False)
+
+                    even_more_clones_power_level = gr.Slider(label="If you check 'more clones' this will repeat the generations a few more times. Very slow, each one takes a long as a clip to renders.", step=1, value=1, maximum=100, minimum=1)
+
+                    gr.Markdown("""Make sure you put text in the main text prompt for your samples. Take time to get text that is has the style and rhythm the voice you want to tclnoe, it will save after each sample, they often work well as clones.""") 
+
+                    gr.Markdown("""If you get an error switching between cloning and generation, click the preload models button in the Model Options tab. There's something I missed cleaning up after switching.""") 
     
-                        gr.Markdown("""The longer audio is not being used to provide a larger sample to a model be referenced as a whole. If you upload 30 seconds of audio, you will get a speaker created every few seconds in that audio. Effectively this is what you would have gotten if had cut up that 30 seconds into tiny clips and uploaded them one by one, to make a clone of each. (It is actually a bit better though - it uses overlapping clips intsead of splitting. (or will be when I finish that part)""")
+            with gr.Row():
 
-                        gr.Markdown("# Audio Samples")
-                        gr.Markdown("""While it's not necessary, a natural pause at the end of a short clip can improve the cloning output.""")
+                clone_voice_button = gr.Button("Begin Generating Voice Clones",  variant="primary", elem_id="cloning")
+                dummy = gr.Text(label="Cloning Progress...")
 
-                        gr.Markdown("* For voice clones, a clear audio sample of a single person speaking English is recommended.")
-                        gr.Markdown("* For wider audio generation, feel free to use any kind of audio sample.")
 
-                        initialname = "NewClonedVoice"
-                        output_voice = gr.Textbox(label="Name Your Cloned Voice", lines=1, placeholder=initialname, value=initialname, info="The output file will be stored in ./cloned_voices/, along with a copy of the original audio. Retaining the default name won't overwrite existing files but will add a numerical suffix.")
-                        clone_voice_button = gr.Button("Begin Generating Voice Clones",  variant="primary")
-                        dummy = gr.Text(label="Cloning Progress...")
 
-  
-                        clone_overlap = gr.Slider(label="Number of Clones", info="A spread across your clip start to finish. If the clip is only a few seconds, most will be almost identical though.", step=1, value=10, maximum=100, minimum=-1)
-                        gr.Markdown("### To generate fewer clones from a longer audio, set this to a high negative value.")
 
-                        clone_voice_button.click(clone_voice, inputs=[input_audio_filename, output_voice, clone_overlap], outputs=dummy)
 
 
 
@@ -1123,8 +1208,13 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
 
     
-    generate_event = generate_button.click(generate_audio_long_gradio,inputs=[input, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_input], outputs=[audio_output])
 
+    generate_event = generate_button.click(generate_audio_long_gradio,inputs=[input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_input], outputs=[audio_output])
+
+
+
+    clone_voice_button.click(clone_voice_gradio, inputs=[input_audio_filename, input_audio_filename_secondary, semantic_step_interval, output_voice, create_samples_for_clones, even_more_clones], outputs=dummy).success(generate_audio_long_gradio_clones,inputs=[input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, dummy, split_character_jitter, extra_args_input, output_voice], outputs=[audio_output])
+    
     
     cancel_button.click(fn=try_to_cancel, inputs=model_checkboxes, outputs=None, cancels=[generate_event])
 

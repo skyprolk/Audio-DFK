@@ -43,7 +43,7 @@ DEFAULTS = {
         ('hoarder_mode', {'value': False, 'type': bool, 'help': "Who wants to make a cool audio clip and not able to reproduce it in the future? Save it all! Creates a sub directory for each clip that is more than one segment long, because it's kind of a lot."}),
         ('extra_stats', {'value': False, 'type': bool, 'help': "Extra stats in the filename."}),
         ('show_generation_times', {'value': False, 'type': bool, 'help': "Output how long each sample took to generate, good for benchmarking."}),
-        ('output_format', {'value': 'wav', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
+        ('output_format', {'value': 'mp4', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
     ],
 
     'model': [
@@ -65,7 +65,7 @@ DEFAULTS = {
     'bark_model_parameters': [
         ('text_temp', {'value': 0.7, 'type': float, 'help': "Text temperature. "}),
         ('waveform_temp', {'value': 0.7, 'type': float, 'help': "Waveform temperature."}),
-        ('confused_travolta_mode', {'value': None, 'type': bool, 'help': "Just for fun. Mostly."}),
+        ('confused_travolta_mode', {'value': False, 'type': bool, 'help': "Just for fun. Mostly."}),
         ('silent', {'value': False, 'type': bool, 'help': "Disable progress bar."}),
         ('seed', {'value': None, 'type': int, 'help': "Random seed for a single clip of audio. This sets the seed one time before all three models, but if you have multiple clips, it sets the same seed for every segment. You probably want to use --single_starting_seed instead in most cases."}),
     ],
@@ -115,6 +115,12 @@ DEFAULTS = {
     'convenience': [
         ('use_smaller_models', {'value': False, 'type': bool, 'help': "Use all small models. Overrides --text_use_small, --coarse_use_small, --fine_use_small. You can probably use big models just fine by default in the latest version though!"}),
     ],
+
+
+    'cloning': [
+        ('bark_cloning_large_model', {'value': False, 'type': bool, 'help': "Use larger model for cloning. Not quite as tested."}),
+    ],
+
     'advanced': [
 
         ('semantic_temp', {'value': 0.7, 'type': float, 'help': "Temperature for semantic function."}),
@@ -180,6 +186,7 @@ def create_argument_parser():
         'bark_model_parameters': "Bark model parameters",
         'generating_long_clips': "Generating long clips",
         'convenience': "Convenience options",
+        'cloning': "Voice cloning options",
         'advanced': "Advanced options"
     }
 

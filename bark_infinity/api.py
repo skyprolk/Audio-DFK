@@ -231,7 +231,7 @@ def set_seed(seed: int = 0):
 
     return original_seed if original_seed != 0 else seed
 
-
+# mostly just looks in different directories and handles fuzzier matching like not including the extension
 def process_history_prompt(user_history_prompt):
 
     valid_directories_to_check = VALID_HISTORY_PROMPT_DIRS
@@ -245,20 +245,28 @@ def process_history_prompt(user_history_prompt):
 
     full_path = f"{file_name}{file_extension}"
 
+    history_prompt_returned = None
     if os.path.dirname(full_path):  # Check if a directory is specified
         if os.path.exists(full_path):
-            return full_path
+            history_prompt_returned = full_path
         else:
             logger.error(f"  >> Can't find speaker file at: {full_path}")
     else:
         for directory in valid_directories_to_check:
             full_path_in_dir = os.path.join(directory, f"{file_name}{file_extension}")
             if os.path.exists(full_path_in_dir):
-                return full_path_in_dir
+                history_prompt_returned = full_path_in_dir
 
+    
+    if history_prompt_returned is None:
         logger.error(f"  >>! Can't find speaker file: {full_path} in: {valid_directories_to_check}")
+        return None
+    
+    if (not history_prompt_is_valid(history_prompt_returned)):
+        logger.error(f"  >>! Speaker file: {history_prompt_returned} is invalid, skipping.")
+        return None
 
-    return None
+    return history_prompt_returned
 
 def log_params(log_filepath, **kwargs):
 
@@ -327,10 +335,10 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
     output_format = kwargs.get('output_format', None)
 
     if output_format is not None:
-        if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
+        if output_format in ['ogg', 'flac', 'mp4','wav']:
             base_output_filename = f"{base_output_filename}.{output_format}"
         else:
-            base_output_filename = f"{base_output_filename}.wav"
+            base_output_filename = f"{base_output_filename}.mp3"
 
 
     output_filepath = (
@@ -414,11 +422,11 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
 
     output_format = kwargs.get('output_format', None)
 
-    print(f"output_format is {output_format}")
-    print(f"output_filepath is {output_filepath}")
+    # print(f"output_format is {output_format}")
+    #p rint(f"output_filepath is {output_filepath}")
 
     if output_format is None: 
-        output_format = 'wav'
+        output_format = 'mp3'
 
 
     if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
@@ -1170,6 +1178,7 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
 
                 write_seg_npz(output_filepath, history_prompt_render_variant)
             except:
+                # show error
                 print(f"  <Error rendering audio for {npz_filepath}>")
 
 def load_npz(filename):
@@ -1202,17 +1211,21 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
 
         history_prompt = load_npz(npz_filepath)
 
+        if not history_prompt_is_valid(history_prompt):
+            print(f"Skipping invalid history prompt: {npz_filepath}")
+            print(history_prompt_detailed_report(history_prompt))
+            continue
+
         semantic_tokens = history_prompt["semantic_prompt"]
         coarse_tokens = history_prompt["coarse_prompt"]
         fine_tokens = history_prompt["fine_prompt"]
 
-        # shape print
-        print(f"semantic_tokens.shape: {semantic_tokens.shape}")
-        print(f"coarse_tokens.shape: {coarse_tokens.shape}")
-        print(f"fine_tokens.shape: {fine_tokens.shape}")
+        # print(f"semantic_tokens.shape: {semantic_tokens.shape}")
+        # print(f"coarse_tokens.shape: {coarse_tokens.shape}")
+        # print(f"fine_tokens.shape: {fine_tokens.shape}")
         
 
-        # this is super old and mostly useless, but I'll leave this in UI until I port the better stuff
+        # this is old and kind of useless, but I'll leave this in UI until I port the better stuff
         if gen_minor_variants is None:
     
             if start_from == "pure_semantic":
@@ -1235,7 +1248,7 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
             history_prompt_render_variant = {"semantic_prompt": semantic_tokens, "coarse_prompt": coarse_tokens, "fine_prompt": fine_tokens}
 
 
-        # Tterrible variations but it's hooked up to the Gradio UI and does do something guess leave it for now
+        # Not great but it's hooked up to the Gradio UI and does do something guess leave it for now
         elif gen_minor_variants > 0: # gen_minor_variants quick and simple
             print(f"Generating {gen_minor_variants} minor variants for {npz_file}")
             gen_minor_variants = gen_minor_variants or 1
@@ -1275,16 +1288,18 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
             elif start_from == "coarse_prompt":
                 start_from_txt = '_S'
             try:
+                #print(f"fine_tokens.shape final: {fine_tokens.shape}")
                 audio_arr = codec_decode(fine_tokens)
                 base_output_filename = os.path.splitext(npz_file)[0] + f"_{start_from_txt}_.wav"
                 output_filepath = os.path.join(npz_directory, base_output_filename)
                 output_filepath = generate_unique_filepath(output_filepath)
                 print(f"  Rendering audio for {npz_filepath} to {output_filepath}")
                 write_seg_wav(output_filepath, audio_arr)
-                if save_npz:
+                if save_npz and start_from != "fine_prompt":
                     write_seg_npz(output_filepath, history_prompt_render_variant)
-            except:
+            except Exception as e:
                 print(f"  <Error rendering audio for {npz_filepath}>")
+                print(f"  Error details: {e}")
         elif compression_mode:
             just_record_it = {"semantic_prompt": None, "coarse_prompt": coarse_tokens, "fine_prompt": None}
             compress_mode_data.append(just_record_it)
@@ -1462,5 +1477,238 @@ def print_speakers(speakers, unsupported_files):
         print("  " + file)
 
 
+
+
+
+
+
+from collections import Counter
+
+CONTEXT_WINDOW_SIZE = 1024
+
+SEMANTIC_RATE_HZ = 49.9
+SEMANTIC_VOCAB_SIZE = 10_000
+
+CODEBOOK_SIZE = 1024
+N_COARSE_CODEBOOKS = 2
+N_FINE_CODEBOOKS = 8
+COARSE_RATE_HZ = 75
+
+SAMPLE_RATE = 24_000
+
+TEXT_ENCODING_OFFSET = 10_048
+SEMANTIC_PAD_TOKEN = 10_000
+TEXT_PAD_TOKEN = 129_595
+SEMANTIC_INFER_TOKEN = 129_599
+
+def generate_text_semantic_report(history_prompt, token_samples=3):
+
+    semantic_history = history_prompt["semantic_prompt"]
+
+    report = {"valid": True, "messages": []}
+    
+    if not isinstance(semantic_history, np.ndarray) and not isinstance(semantic_history, torch.Tensor): 
+        report["valid"] = False
+        report["messages"].append(f"should be a numpy array but was {type(semantic_history)}.")
+    
+    elif len(semantic_history.shape) != 1:
+        report["valid"] = False
+        report["messages"].append(f"should be a 1d numpy array but shape was {semantic_history.shape}.")
+    
+    elif len(semantic_history) == 0:
+        report["valid"] = False
+        report["messages"].append("should not be empty.")
+    
+    else:
+        if semantic_history.min() < 0:
+            report["valid"] = False
+            report["messages"].append(f"minimum value of 0, but it was {semantic_history.min()}.")
+            index = np.argmin(semantic_history)
+            surrounding = semantic_history[max(0, index - token_samples) : min(len(semantic_history), index + token_samples)]
+            report["messages"].append(f"Surrounding tokens: {surrounding}")
+            
+        elif semantic_history.max() >= SEMANTIC_VOCAB_SIZE:
+            report["valid"] = False
+            report["messages"].append(f"should have a maximum value less than {SEMANTIC_VOCAB_SIZE}, but it was {semantic_history.max()}.")
+            index = np.argmax(semantic_history)
+            surrounding = semantic_history[max(0, index - token_samples) : min(len(semantic_history), index + token_samples)]
+            report["messages"].append(f"Surrounding tokens: {surrounding}")
+            
+    return report
+
+
+def generate_coarse_report(history_prompt, token_samples=3):
+
+    semantic_to_coarse_ratio = COARSE_RATE_HZ / SEMANTIC_RATE_HZ * N_COARSE_CODEBOOKS
+
+    semantic_history = history_prompt["semantic_prompt"]
+    coarse_history = history_prompt["coarse_prompt"]
+
+    report = {"valid": True, "messages": []}
+    
+    if not isinstance(semantic_history, np.ndarray) and not isinstance(semantic_history, torch.Tensor):
+        report["valid"] = False
+        report["messages"].append(f"should be a numpy array but it's a {type(semantic_history)}.")
+    
+    elif len(semantic_history.shape) != 1:
+        report["valid"] = False
+        report["messages"].append("should be a 1d numpy array but shape is {semantic_history.shape}.")
+    
+    elif len(semantic_history) == 0:
+        report["valid"] = False
+        report["messages"].append("should not be empty.")
+    else:
+        
+        if semantic_history.min() < 0:
+            report["valid"] = False
+            report["messages"].append(f"should have a minimum value of 0, but it was {semantic_history.min()}.")
+            index = np.argmin(semantic_history)
+            surrounding = semantic_history[max(0, index - token_samples) : min(len(semantic_history), index + token_samples)]
+            report["messages"].append(f"Surrounding tokens: {surrounding}")
+            
+        elif semantic_history.max() >= SEMANTIC_VOCAB_SIZE:
+            report["valid"] = False
+            report["messages"].append(f"should have a maximum value less than {SEMANTIC_VOCAB_SIZE}, but it was {semantic_history.max()}.")
+            index = np.argmax(semantic_history)
+            surrounding = semantic_history[max(0, index - token_samples) : min(len(semantic_history), index + token_samples)]
+            report["messages"].append(f"Surrounding tokens: {surrounding}")
+        
+    if not isinstance(coarse_history, np.ndarray):
+        report["valid"] = False
+        report["messages"].append(f"should be a numpy array but it's a {type(coarse_history)}.")
+        
+    elif len(coarse_history.shape) != 2:
+        report["valid"] = False
+        report["messages"].append(f"should be a 2-dimensional numpy array but shape is {coarse_history.shape}.")
+        
+    elif coarse_history.shape[0] != N_COARSE_CODEBOOKS:
+        report["valid"] = False
+        report["messages"].append(f"should have {N_COARSE_CODEBOOKS} rows, but it has {coarse_history.shape[0]}.")
+
+    elif coarse_history.size == 0:
+        report["valid"] = False
+        report["messages"].append("The coarse history should not be empty.")
+    
+    else:    
+        if coarse_history.min() < 0:
+            report["valid"] = False
+            report["messages"].append(f"should have a minimum value of 0, but it was {coarse_history.min()}.")
+            indices = np.unravel_index(coarse_history.argmin(), coarse_history.shape)
+            surrounding = coarse_history[max(0, indices[1] - token_samples) : min(coarse_history.shape[1], indices[1] + token_samples)]
+            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+            
+        elif coarse_history.max() >= CODEBOOK_SIZE:
+            report["valid"] = False
+            report["messages"].append(f"should have a maximum value less than {CODEBOOK_SIZE}, but it was {coarse_history.max()}.")
+            indices = np.unravel_index(coarse_history.argmax(), coarse_history.shape)
+            surrounding = coarse_history[max(0, indices[1] - token_samples) : min(coarse_history.shape[1], indices[1] + token_samples)]
+            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+        
+        ratio = round(coarse_history.shape[1] / len(semantic_history), 1)
+        if ratio != round(semantic_to_coarse_ratio / N_COARSE_CODEBOOKS, 1):
+            report["valid"] = False
+            report["messages"].append(f"ratio should be {round(semantic_to_coarse_ratio / N_COARSE_CODEBOOKS, 1)}, but it was {ratio}.")
+
+    return report
+
+
+def generate_fine_report(history_prompt, token_samples=3):
+
+    fine_history = history_prompt["fine_prompt"]
+
+    report = {"valid": True, "messages": []}
+    
+    if not isinstance(fine_history, np.ndarray):
+        report["valid"] = False
+        report["messages"].append("fine_prompt should be a numpy array but it's a {type(fine_history)}.")
+    
+    elif len(fine_history.shape) != 2:
+        report["valid"] = False
+        report["messages"].append("fine_prompt should be a 2-dimensional numpy array but shape is {fine_history.shape}.")
+
+    elif fine_history.size == 0:
+        report["valid"] = False
+        report["messages"].append("fine_prompt should not be empty.")
+    
+    else:
+    
+        if fine_history.shape[0] != N_FINE_CODEBOOKS:
+            report["valid"] = False
+            report["messages"].append(f"fine_prompt should have {N_FINE_CODEBOOKS} rows, but it has {fine_history.shape[0]}.")
+            
+        elif fine_history.min() < 0:
+            report["valid"] = False
+            report["messages"].append(f"fine_prompt should have a minimum value of 0, but it was {fine_history.min()}.")
+            indices = np.unravel_index(fine_history.argmin(), fine_history.shape)
+            surrounding = fine_history[max(0, indices[1] - token_samples) : min(fine_history.shape[1], indices[1] + token_samples)]
+            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+            
+        elif fine_history.max() >= CODEBOOK_SIZE:
+            report["valid"] = False
+            report["messages"].append(f"fine_prompt should have a maximum value less than {CODEBOOK_SIZE}, but it was {fine_history.max()}.")
+            indices = np.unravel_index(fine_history.argmax(), fine_history.shape)
+            surrounding = fine_history[max(0, indices[1] - token_samples) : min(fine_history.shape[1], indices[1] + token_samples)]
+            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+        
+    return report
+
+
+def display_history_prompt_report(report):
+    if report["valid"]:
+        print("valid")
+    else:
+        print("history_prompt failed the following checks:")
+        for i, message in enumerate(report["messages"], start=1):
+            print(f"  Error {i}: {message}")
+
+def history_prompt_is_valid(history_prompt):
+
+    try:
+        history_prompt = generation._load_history_prompt(history_prompt)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return
+    
+
+    semantic_report = generate_text_semantic_report(history_prompt)
+    coarse_report = generate_coarse_report(history_prompt)
+    fine_report = generate_fine_report(history_prompt)
+    return semantic_report["valid"] and coarse_report["valid"] and fine_report["valid"]
+
+
+def history_prompt_detailed_report(history_prompt, token_samples=3):
+    try:
+        history_prompt = generation._load_history_prompt(history_prompt)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return
+    
+    file_name = None
+    if isinstance(history_prompt, str):
+        file_name = history_prompt
+
+    if file_name:
+        print(f"\n>>{file_name}")
+
+    try:
+        text_semantic_report = generate_text_semantic_report(history_prompt, token_samples)
+        print("\n  Semantic:")
+        display_history_prompt_report(text_semantic_report)
+    except Exception as e:
+        print(f"Error generating Text Semantic Report: {str(e)}")
+
+    try:
+        coarse_report = generate_coarse_report(history_prompt, token_samples)
+        print("\n  Coarse:")
+        display_history_prompt_report(coarse_report)
+    except Exception as e:
+        print(f"Error generating Coarse Report: {str(e)}")
+
+    try:
+        fine_report = generate_fine_report(history_prompt, token_samples)
+        print("\n  Fine:")
+        display_history_prompt_report(fine_report)
+    except Exception as e:
+        print(f"Error generating Fine Report: {str(e)}")
 
 

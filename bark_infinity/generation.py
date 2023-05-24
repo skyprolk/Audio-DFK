@@ -258,7 +258,6 @@ def _detokenize(tokenizer, enc_text):
 def _normalize_whitespace(text):
     return re.sub(r"\s+", " ", text).strip()
 
-
 TEXT_ENCODING_OFFSET = 10_048
 SEMANTIC_PAD_TOKEN = 10_000
 TEXT_PAD_TOKEN = 129_595
@@ -284,7 +283,6 @@ def _load_history_prompt(history_prompt_input):
     else:
         raise ValueError("history prompt format unrecognized")
     return history_prompt
-# removed semantic_history_oversize_limit because merging
 
 def compute_log_probs(token_list, smoothing_factor, scaling_factor):
     # Count the frequency of each token.
@@ -328,7 +326,6 @@ def generate_text_semantic(
     if history_prompt is not None:
         history_prompt = _load_history_prompt(history_prompt)
         semantic_history = history_prompt["semantic_prompt"]
-        """
         assert (
             isinstance(semantic_history, np.ndarray)
             and len(semantic_history.shape) == 1
@@ -336,7 +333,6 @@ def generate_text_semantic(
             and semantic_history.min() >= 0
             and semantic_history.max() <= SEMANTIC_VOCAB_SIZE - 1
         )
-        """
     else:
         semantic_history = None
 
@@ -374,6 +370,7 @@ def generate_text_semantic(
     )
     if semantic_history is not None:
         semantic_history = semantic_history.astype(np.int64)
+        # print(f"Actual length of semantic input: {len(semantic_history)}")
         # lop off if history is too long, pad if needed
         semantic_history = semantic_history[-256:]
         semantic_history = np.pad(
@@ -382,7 +379,7 @@ def generate_text_semantic(
             constant_values=SEMANTIC_PAD_TOKEN,
             mode="constant",
         )
-        #print(f"Actual length of semantic history: {len(semantic_history)}")
+ 
     else:
         #print(f"No semantic history provided.")
         semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
@@ -504,7 +501,7 @@ def generate_coarse(
         x_semantic_history = history_prompt["semantic_prompt"]
         x_coarse_history = history_prompt["coarse_prompt"]
 
-        """
+
         #print(f"Pre Trim sem coars: {x_semantic_history.shape} {x_coarse_history.shape}")
         assert (
             isinstance(x_semantic_history, np.ndarray)
@@ -523,7 +520,7 @@ def generate_coarse(
                 == round(semantic_to_coarse_ratio / N_COARSE_CODEBOOKS, 1)
             )
         )
-        """
+
         x_coarse_history = _flatten_codebooks(x_coarse_history) + SEMANTIC_VOCAB_SIZE
         # trim histories correctly
         n_semantic_hist_provided = np.min(
@@ -545,7 +542,7 @@ def generate_coarse(
         x_coarse_history = np.array([], dtype=np.int32)
 
 
-    #print(f"actual lengths we're using, x_semantic_history: {len(x_semantic_history)} x_coarse_history: {len(x_coarse_history)}")
+    # print(f"actual lengths we're using, x_semantic_history: {len(x_semantic_history)} x_coarse_history: {len(x_coarse_history)}")
 
     # load models if not yet exist
     global models
@@ -665,7 +662,6 @@ def generate_fine(
 
     logger.debug(locals())
 
-    """
     assert (
         isinstance(x_coarse_gen, np.ndarray)
         and len(x_coarse_gen.shape) == 2
@@ -674,7 +670,7 @@ def generate_fine(
         and x_coarse_gen.min() >= 0
         and x_coarse_gen.max() <= CODEBOOK_SIZE - 1
     )
-    """
+    
     if history_prompt is not None:
         history_prompt = _load_history_prompt(history_prompt)
         x_fine_history = history_prompt["fine_prompt"]
@@ -867,7 +863,7 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
         print(f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")  # added
         _download(model_info["repo_id"], model_info["file_name"])
     ## added
-    print(f"Loading {model_key} model from {ckpt_path} to {device} (if offloading 'cpu' here is correct)") # added
+    # print(f"Loading {model_key} model from {ckpt_path} to {device} (if offloading 'cpu' here is correct)") # added
     checkpoint = torch.load(ckpt_path, map_location=device)
 
     # this is a hack

@@ -8,7 +8,7 @@ __pycache__/
 !/bark_infinity/
 !/notebooks/
 !/webui/
-
+!/bark_infinity/hubert/
 
 bark_samples/
 bark/assets/prompts/*.wav

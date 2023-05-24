@@ -34,5 +34,4 @@ dependencies:
   - pysoundfile
   - pathvalidate
   - rich
-  - gradio
   - nltk

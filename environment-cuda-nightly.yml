@@ -33,5 +33,5 @@ dependencies:
   - pytest-cov
   - pathvalidate
   - rich
-  - gradio
   - nltk
+  - audiolm_pytorch

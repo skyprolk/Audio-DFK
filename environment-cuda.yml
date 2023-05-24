@@ -37,5 +37,5 @@ dependencies:
   - pysoundfile
   - pathvalidate
   - rich
-  - gradio
   - nltk
+  - audiolm_pytorch
