@@ -1227,11 +1227,20 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
  
 
-demo.queue(concurrency_count=2, max_size=2)
-#demo.queue()
+#demo.queue(concurrency_count=2, max_size=2)
+demo.queue()
 
-# demo.launch(inbrowser=autolaunch)
-demo.launch(inbrowser=autolaunch,  server_port=8082)
-demo.launch(inbrowser=autolaunch)
+
+#demo.launch(inbrowser=autolaunch,  server_port=8082)
+
+
+
+# You may need to use share=True if you're running on a free server like Google Colab
+# demo.launch(inbrowser=autolaunch, share=True)
+
+# you cahn change the username and password 
+demo.launch(inbrowser=autolaunch, share=True, auth=("admin", "BarkAudioNotJustForTrees"))
+
+#demo.launch(inbrowser=autolaunch)
 
 
