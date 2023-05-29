@@ -531,7 +531,7 @@ model_options = [
     ('fine_use_gpu', {'value': True, 'type': bool, 'help': "Load the fine model on the GPU."}),
     ('fine_use_small', {'value': False, 'type': bool, 'help': "Use a smaller/faster fine model."}),
     ('codec_use_gpu', {'value': True, 'type': bool, 'help': "Load the codec model on the GPU."}),
-    ('force_reload', {'value': False, 'type': bool, 'help': "Force the models to be downloaded again."}),
+    ('force_reload', {'value': False, 'type': bool, 'help': "Force the models to be loaded again. You have to do this if you already preloaded."}),
 ]
 
 def preload_models_gradio(text_use_gpu, text_use_small, coarse_use_gpu, coarse_use_small, fine_use_gpu, fine_use_small, codec_use_gpu, force_reload):

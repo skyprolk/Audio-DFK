@@ -4,7 +4,7 @@ import numpy as np
 from .generation import codec_decode, generate_coarse, generate_fine, generate_text_semantic, SAMPLE_RATE
 from .config import logger, console, console_file, get_default_values, load_all_defaults, VALID_HISTORY_PROMPT_DIRS
 from scipy.io.wavfile import write as write_wav
-
+from scipy.io import wavfile
 
 
 
@@ -434,6 +434,12 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
         write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
         if dry_run is not True:
             audio = AudioSegment.from_wav(temp_wav)
+            """
+            sample_rate, wav_sample = scipy.io.wavfile.read(temp_wav) 
+            audio = AudioSegment(data=wav_sample.tobytes(),
+                            sample_width=2,
+                            frame_rate=sample_rate, channels=1)
+            """
             if output_format == 'mp4':
                 audio.export(output_filepath, format="mp4", codec="aac")
             else:
@@ -1075,7 +1081,8 @@ def generate_audio_long(
 
             add_silence_between_segments = kwargs.get("add_silence_between_segments", 0.0)
             if add_silence_between_segments > 0.0:
-                silence = np.zeros(int(add_silence_between_segments * SAMPLE_RATE)) 
+                # silence = np.zeros(int(add_silence_between_segments * SAMPLE_RATE)) 
+                silence =  np.zeros(int(add_silence_between_segments * SAMPLE_RATE), dtype=np.int16 )
                 audio_arr_segments.append(silence)
 
     if show_generation_times:

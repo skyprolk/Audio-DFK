@@ -43,7 +43,7 @@ DEFAULTS = {
         ('hoarder_mode', {'value': False, 'type': bool, 'help': "Who wants to make a cool audio clip and not able to reproduce it in the future? Save it all! Creates a sub directory for each clip that is more than one segment long, because it's kind of a lot."}),
         ('extra_stats', {'value': False, 'type': bool, 'help': "Extra stats in the filename."}),
         ('show_generation_times', {'value': False, 'type': bool, 'help': "Output how long each sample took to generate, good for benchmarking."}),
-        ('output_format', {'value': 'mp4', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
+        ('output_format', {'value': 'mp3', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
     ],
 
     'model': [
@@ -79,7 +79,7 @@ DEFAULTS = {
 
         ('split_character_jitter', {'value': 0, 'type': int, 'help': "Add or subtract the split_chararacter values by the jitter value every iteration. Useful for running a lot of samples to get some variety."}),
 
-        ('add_silence_between_segments', {'value': 0.25, 'type': float, 'help':  "Add a bit of silence between joined audio segments. Works good if you splitting your text on copmlete sentences or phrases, or if you are using the same prompt every segment (stable_mode_interval = 1). If you are using stable_mode_interval = 0 it might be worse."}),
+        ('add_silence_between_segments', {'value': 0.0, 'type': float, 'help':  "Add a bit of silence between joined audio segments. Works good if you splitting your text on copmlete sentences or phrases, or if you are using the same prompt every segment (stable_mode_interval = 1). If you are using stable_mode_interval = 0 it might be worse."}),
 
           ('process_text_by_each', {'value': None, 'type': str, 'help': "Bark only generates 14s at a time, so the text_prompt needs to be split into chunks smaller than that.",'choices': CHOICES['split_options']}),
         ('group_text_by_counting', {'value': None, 'type': str, 'help': "Bark only generates 14s at a time, so the text_prompt needs to be split into chunks smaller than that.",'choices': CHOICES['split_options']}),
