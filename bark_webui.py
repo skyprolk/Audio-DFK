@@ -723,7 +723,7 @@ def trim_logs():
     if save_log_lines < 0:
         return
     
-    with open("gradio_terminal_ouput.log", "r") as f:
+    with open("gradio_terminal_ouput.log", "r", encoding="utf-8") as f:
         lines = f.readlines()
 
     if save_log_lines > 0 and len(lines) > save_log_lines:
