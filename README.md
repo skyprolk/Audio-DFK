@@ -16,27 +16,32 @@
 
 (Mamba is a fast version of conda. They should work the same.)
 
-Pip and conda/mamba are two _different_ ways of installing Bark Infinity. If you use **Mamba** do not install anything. Don't install pytorch, do not install anything with 'CUDA' in the same. You don't need to lookup a YouTube tutorial. Just type the commands. The only thing you need installed is the NVIDIA drivers. If you have a mac, use  `environment-cpu.yml` instead of `environment-cpu.yml`
+Pip and conda/mamba are two _different_ ways of installing Bark Infinity. If you use **Mamba** do not install anything. Don't install _pytorch_, do not install anything with 'CUDA' in the same. You don't need to lookup a YouTube tutorial. Just type the commands. The only thing you need installed is the NVIDIA drivers. If you have a mac, use  `environment-cpu.yml` instead of `environment-cpu.yml`
+
+There is one exception, on Windows if you don't have the better Windows Terminal installed, that is a nice to have feature https://apps.microsoft.com/store/detail/windows-terminal/9N0DX20HK701
+
+You don't have to but it may dispaly the output from the bark commands better. When you start **Anaconda Prompt (miniconda3)** you can do it from the new Windows Terminal app, clicking on the down arrow next to the plus, should let you pick **Anaconda Prompt (miniconda3)**
 
 (There is a **requirements-pip.txt** file but I have not tested it currently. This is an alternative install.)
 
 1. [Go here: https://github.com/conda-forge/miniforge#mambaforge](https://docs.conda.io/en/latest/miniconda.html)
 2. Download a **Python 3.10 Miniconda3** installer for your OS.  Windows 64-bit, macOS, and Linux probably don't need a guide. 
-  a. Install the Mambaforge for your OS, not specifically Windows. OSX for OSX etc.
-  b. Don't install Mambaforge-pypy3. (It might work but not what I tested.) Install the one above that, just plain Mambaforge. Or you can use Conda, Mamba should faster but the same.
-3. Install. Then start the miniforge 'Miniforge Prompt' Terminal which is a new program it installed. You will always use this program for Bark.
+  a. Install the **Mambaforge** for your OS, not specifically Windows. OSX for OSX etc.
+  b. Don't install Mambaforge-pypy3. (It probably works fine, it is just not what I tested.) Install the one above that, just plain **Mambaforge**. Or you can use **Conda**, Mamba should faster but sometimes Conda may be more compatible. 
+  
+3. Install the **Python 3.10 Miniconda3** exe. Then start the miniforge **'Miniforge Prompt** Terminal which is a new program it installed. You will always use this program for Bark.
    
-4. Start the new command you install. Don't start the regular windows command line. It should say "Anaconda Prompt (miniconda3)"
+4. Start **'Miniforge Prompt**  Be careful not to start the regular windows command line. (Unless you installed the new Terminal and know how to switch.) It should say **"Anaconda Prompt (miniconda3)**"
 
-You should see also terminal that says "(base)". **Do not move forward until you see (base).**
+You should see also terminal that says "**(base)**". 
 
-5. **Choose the place to install directory.** You can also just leave it at default.
+### Do not move forward until you see _(base)_.
 
-When you start "Anaconda Prompt (miniconda3)" you will be in a directory, in Windows, probably something like "C:\Users\YourName". That's fine to install there but you can also move. Just remember where you put it. It will be in **/bark.**
+5. **Choose the place to install Bark Infinity directory.** You can also just leave it at default. If you make a LOT of audio you think about a place with a lot of space.
 
-If you want to put it somewhere else, you will have to type change the directory here, using the 'cd' commands. (If you already had bark-infinity installed and want to update, skip to the end of this.)
+When you start **"Anaconda Prompt (miniconda3)"** you will be in a directory, in Windows, probably something like** "C:\Users\YourName"**. Okay to install there. Just remember where you put it. It will be in **/bark.** (If you already had bark-infinity installed and want to update instead of reinstalling, skip to the end.)
 
-6. Type a bunch of commands _exactly_. Hit "Y" where you need to:
+6. Type the next commands _exactly_. Hit "Y" for yes where you need to:
 
 ```
 mamba update -y mamba
