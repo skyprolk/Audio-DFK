@@ -9,12 +9,19 @@
 
 ![image](https://github.com/JonathanFly/bark/assets/163408/de392897-2428-4adf-87db-0db83ffc321c)
 
-# 🎉 Mamba/Conda Install Any OS 🎉  
+# 🎉 Install Bark Infinity Any OS 🎉  
 
-(There is a **requirements-pip.txt** file but I have not tested it currently.)
+
+## Mamba Install (Recommended for now) 
+
+(Mamba is a fast version of conda. They should work the same.)
+
+Pip and conda/mamba are two _different_ ways of installing Bark Infinity. If you use **Mamba** do not install anything. Don't install pytorch, do not install anything with 'CUDA' in the same. You don't need to lookup a YouTube tutorial. Just type the commands. The only thing you need installed is the NVIDIA drivers. If you have a mac, use  `environment-cpu.yml` instead of `environment-cpu.yml`
+
+(There is a **requirements-pip.txt** file but I have not tested it currently. This is an alternative install.)
 
 1. [Go here: https://github.com/conda-forge/miniforge#mambaforge](https://docs.conda.io/en/latest/miniconda.html)
-2. Download a Python 3.10 Miniconda3 installer for your OS.  Windows 64-bit, macOS, and Linux probably don't need a guide. 
+2. Download a **Python 3.10 Miniconda3** installer for your OS.  Windows 64-bit, macOS, and Linux probably don't need a guide. 
   a. Install the Mambaforge for your OS, not specifically Windows. OSX for OSX etc.
   b. Don't install Mambaforge-pypy3. (It might work but not what I tested.) Install the one above that, just plain Mambaforge. Or you can use Conda, Mamba should faster but the same.
 3. Install. Then start the miniforge 'Miniforge Prompt' Terminal which is a new program it installed. You will always use this program for Bark.
@@ -27,9 +34,7 @@ You should see also terminal that says "(base)". **Do not move forward until you
 
 When you start "Anaconda Prompt (miniconda3)" you will be in a directory, in Windows, probably something like "C:\Users\YourName". That's fine to install there but you can also move. Just remember where you put it. It will be in **/bark.**
 
-If you want to put it somewhere else, you will have to type change the directory here, using the 'cd' commands.
-
-If you already had bark-infinity installed you may already have a bark directory in "C:\Users\YourName\bark" from before. You can confirm this by typing 'dir' or looking in the file manager. If you have previously installed bark via mamba, type `rename bark bark_old` or any other name you want, just not bark. While you should be able to update an existing code just fine, to keep things as simple in the instructions, I'm gonna skip that for the moment. If you do want to that, skip tto the end. But if you rename it, all your files are still there.
+If you want to put it somewhere else, you will have to type change the directory here, using the 'cd' commands. (If you already had bark-infinity installed and want to updatet, skip to the end of this.)
 
 6. Type a bunch of commands _exactly_. Hit "Y" where you need to:
 
@@ -38,7 +43,8 @@ mamba update -y mamba
 mamba install -y git
 git clone https://github.com/JonathanFly/bark.git
 cd bark
-mamba env create -f environment-cuda.yml 
+mamba env create -f environment-cuda.yml
+mamba activate bark-infinity-oneclick
 python -m pip install --upgrade pip
 pip install --upgrade setuptools 
 pip install -r requirements_conda_missing.txt
@@ -100,9 +106,6 @@ Bark Infinity _evolved_ 🧬, expanding across dimensions 🌐. Infinite Length 
 🚀 Bark Infinity 🐾 was born in the command line, and Bark Infinity grew within the command line. We live in the era where old fashioned command line applications are wrapped in ✨fancy Gradio Uis🌈 and 🖱️One Click Installers. We all must adapt to a changing world, right? *Or do we?* 
 
 ![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
-
-## Pip and conda/mamba are two _differnet_ ways of installing. If you use mamba or conda do not install not listed here yet. Don't type any pip commands. You only type one at the very land. Everything is mostly automatic. Don't install pytorch, do not install anything with 'CUDA' in the same. The only thing you need installed is the NVIDIA drivers. If you have a mac, use  `environment-cpu.yml` instead of `environment-cpu.yml`
-
 
 ## 🌟 (OLD NOT UPDATED) README 🌟 __ 
 
