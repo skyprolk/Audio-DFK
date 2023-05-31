@@ -38,4 +38,3 @@ dependencies:
   - pathvalidate
   - rich
   - nltk
-  - audiolm_pytorch
