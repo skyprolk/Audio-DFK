@@ -34,7 +34,7 @@ You should see also terminal that says "(base)". **Do not move forward until you
 
 When you start "Anaconda Prompt (miniconda3)" you will be in a directory, in Windows, probably something like "C:\Users\YourName". That's fine to install there but you can also move. Just remember where you put it. It will be in **/bark.**
 
-If you want to put it somewhere else, you will have to type change the directory here, using the 'cd' commands. (If you already had bark-infinity installed and want to updatet, skip to the end of this.)
+If you want to put it somewhere else, you will have to type change the directory here, using the 'cd' commands. (If you already had bark-infinity installed and want to update, skip to the end of this.)
 
 6. Type a bunch of commands _exactly_. Hit "Y" where you need to:
 
@@ -114,7 +114,7 @@ Discover cool new voices and reuse them. Performers, musicians, sound effects, t
 
 🔊 With random celebrity appearances!
 
-(I accidently left a bunch of voices in the repo, some of them are pretty good. Use --history_prompt 'en_fiery' for the same voice as the audio sample right after this sentence.)
+(I accidentally left a bunch of voices in the repo, some of them are pretty good. Use --history_prompt 'en_fiery' for the same voice as the audio sample right after this sentence.)
 
 https://user-images.githubusercontent.com/163408/233747981-173b5f03-654e-4a0e-b71b-5d220601fcc7.mp4
 
@@ -138,7 +138,7 @@ Are you tired of telling your TTS model what to say? Why not take a break and le
 
 https://user-images.githubusercontent.com/163408/233746957-f3bbe25f-c8f0-4570-97b1-1005e1b40cbe.mp4
 
-Truly we live in the future. It might take 50 tries to get a joke and it's probabably an accident, but all 49 failures are also *very* amusing so it's a win/win. (That's right, I set a single function flag to False in a Bark and raved about the amazing new feature. Everything here is small potatoes really.)
+Truly we live in the future. It might take 50 tries to get a joke and it's probably an accident, but all 49 failures are also *very* amusing so it's a win/win. (That's right, I set a single function flag to False in a Bark and raved about the amazing new feature. Everything here is small potatoes really.)
 
 https://user-images.githubusercontent.com/163408/233746872-cac78447-8e87-49e7-b79b-28ec51264019.mp4
 
@@ -152,50 +152,31 @@ _For music, I recommend using the --split_by_lines and making sure you use a mul
 
 Type --help or use the GUI
 ```bash
-Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SPEAKERS] [--dry_run DRY_RUN]
-                       [--history_prompt HISTORY_PROMPT] [--prompt_file PROMPT_FILE]
-                       [--split_input_into_separate_prompts_by {word,line,sentence,string,random,rhyme,pos,regex}]
-                       [--split_input_into_separate_prompts_by_value SPLIT_INPUT_INTO_SEPARATE_PROMPTS_BY_VALUE]
-                       [--always_save_speaker ALWAYS_SAVE_SPEAKER] [--output_iterations OUTPUT_ITERATIONS]
-                       [--output_filename OUTPUT_FILENAME] [--output_dir OUTPUT_DIR] [--hoarder_mode HOARDER_MODE]
-                       [--extra_stats EXTRA_STATS] [--text_use_gpu TEXT_USE_GPU] [--text_use_small TEXT_USE_SMALL]
-                       [--coarse_use_gpu COARSE_USE_GPU] [--coarse_use_small COARSE_USE_SMALL]
-                       [--fine_use_gpu FINE_USE_GPU] [--fine_use_small FINE_USE_SMALL]
-                       [--codec_use_gpu CODEC_USE_GPU] [--force_reload FORCE_RELOAD] [--text_temp TEXT_TEMP]
-                       [--waveform_temp WAVEFORM_TEMP] [--confused_travolta_mode CONFUSED_TRAVOLTA_MODE]
-                       [--silent SILENT] [--seed SEED] [--stable_mode_interval STABLE_MODE_INTERVAL]
-                       [--single_starting_seed SINGLE_STARTING_SEED]
-                       [--split_character_goal_length SPLIT_CHARACTER_GOAL_LENGTH]
-                       [--split_character_max_length SPLIT_CHARACTER_MAX_LENGTH]
-                       [--add_silence_between_segments ADD_SILENCE_BETWEEN_SEGMENTS]
-                       [--split_each_text_prompt_by {word,line,sentence,string,random,rhyme,pos,regex}]
-                       [--split_each_text_prompt_by_value SPLIT_EACH_TEXT_PROMPT_BY_VALUE]
-                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE]
-                       [--semantic_history_starting_weight SEMANTIC_HISTORY_STARTING_WEIGHT]
-                       [--semantic_history_future_weight SEMANTIC_HISTORY_FUTURE_WEIGHT]
-                       [--semantic_prev_segment_weight SEMANTIC_PREV_SEGMENT_WEIGHT]
-                       [--coarse_history_starting_weight COARSE_HISTORY_STARTING_WEIGHT]
-                       [--coarse_history_future_weight COARSE_HISTORY_FUTURE_WEIGHT]
-                       [--coarse_prev_segment_weight COARSE_PREV_SEGMENT_WEIGHT]
-                       [--fine_history_starting_weight FINE_HISTORY_STARTING_WEIGHT]
-                       [--fine_history_future_weight FINE_HISTORY_FUTURE_WEIGHT]
-                       [--fine_prev_segment_weight FINE_PREV_SEGMENT_WEIGHT]
-                       [--custom_audio_processing_function CUSTOM_AUDIO_PROCESSING_FUNCTION]
-                       [--use_smaller_models USE_SMALLER_MODELS] [--semantic_temp SEMANTIC_TEMP]
-                       [--semantic_top_k SEMANTIC_TOP_K] [--semantic_top_p SEMANTIC_TOP_P]
-                       [--semantic_min_eos_p SEMANTIC_MIN_EOS_P]
-                       [--semantic_max_gen_duration_s SEMANTIC_MAX_GEN_DURATION_S]
-                       [--semantic_allow_early_stop SEMANTIC_ALLOW_EARLY_STOP]
-                       [--semantic_use_kv_caching SEMANTIC_USE_KV_CACHING] [--semantic_seed SEMANTIC_SEED]
-                       [--semantic_history_oversize_limit SEMANTIC_HISTORY_OVERSIZE_LIMIT]
-                       [--coarse_temp COARSE_TEMP] [--coarse_top_k COARSE_TOP_K] [--coarse_top_p COARSE_TOP_P]
-                       [--coarse_max_coarse_history COARSE_MAX_COARSE_HISTORY]
-                       [--coarse_sliding_window_len COARSE_SLIDING_WINDOW_LEN]
-                       [--coarse_kv_caching COARSE_KV_CACHING] [--coarse_seed COARSE_SEED]
-                       [--coarse_history_time_alignment_hack COARSE_HISTORY_TIME_ALIGNMENT_HACK]
-                       [--fine_temp FINE_TEMP] [--fine_seed FINE_SEED] [--render_npz_samples RENDER_NPZ_SAMPLES]
-                       [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-
+Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SPEAKERS] [--dry_run DRY_RUN] [--text_splits_only TEXT_SPLITS_ONLY] [--history_prompt HISTORY_PROMPT]
+                       [--prompt_file PROMPT_FILE] [--split_input_into_separate_prompts_by {word,line,sentence,char,string,random,regex}]
+                       [--split_input_into_separate_prompts_by_value SPLIT_INPUT_INTO_SEPARATE_PROMPTS_BY_VALUE] [--always_save_speaker ALWAYS_SAVE_SPEAKER]
+                       [--output_iterations OUTPUT_ITERATIONS] [--output_filename OUTPUT_FILENAME] [--output_dir OUTPUT_DIR] [--hoarder_mode HOARDER_MODE] [--extra_stats EXTRA_STATS]
+                       [--show_generation_times SHOW_GENERATION_TIMES] [--output_format {wav,mp3,ogg,flac,mp4}] [--text_use_gpu TEXT_USE_GPU] [--text_use_small TEXT_USE_SMALL]
+                       [--coarse_use_gpu COARSE_USE_GPU] [--coarse_use_small COARSE_USE_SMALL] [--fine_use_gpu FINE_USE_GPU] [--fine_use_small FINE_USE_SMALL] [--codec_use_gpu CODEC_USE_GPU]
+                       [--force_reload FORCE_RELOAD] [--GLOBAL_ENABLE_MPS GLOBAL_ENABLE_MPS] [--USE_SMALL_MODELS USE_SMALL_MODELS] [--OFFLOAD_CPU OFFLOAD_CPU] [--text_temp TEXT_TEMP]
+                       [--waveform_temp WAVEFORM_TEMP] [--confused_travolta_mode CONFUSED_TRAVOLTA_MODE] [--silent SILENT] [--seed SEED] [--stable_mode_interval STABLE_MODE_INTERVAL]
+                       [--single_starting_seed SINGLE_STARTING_SEED] [--split_character_goal_length SPLIT_CHARACTER_GOAL_LENGTH] [--split_character_max_length SPLIT_CHARACTER_MAX_LENGTH]
+                       [--split_character_jitter SPLIT_CHARACTER_JITTER] [--add_silence_between_segments ADD_SILENCE_BETWEEN_SEGMENTS]
+                       [--process_text_by_each {word,line,sentence,char,string,random,regex}] [--group_text_by_counting {word,line,sentence,char,string,random,regex}]
+                       [--in_groups_of_size IN_GROUPS_OF_SIZE] [--split_type_string SPLIT_TYPE_STRING] [--prompt_text_prefix PROMPT_TEXT_PREFIX]
+                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE] [--seperate_prompts SEPERATE_PROMPTS] [--semantic_history_only SEMANTIC_HISTORY_ONLY]
+                       [--absolute_semantic_history_only ABSOLUTE_SEMANTIC_HISTORY_ONLY] [--absolute_semantic_history_only_every_x ABSOLUTE_SEMANTIC_HISTORY_ONLY_EVERY_X]
+                       [--semantic_history_starting_weight SEMANTIC_HISTORY_STARTING_WEIGHT] [--semantic_history_future_weight SEMANTIC_HISTORY_FUTURE_WEIGHT]
+                       [--semantic_prev_segment_weight SEMANTIC_PREV_SEGMENT_WEIGHT] [--coarse_history_starting_weight COARSE_HISTORY_STARTING_WEIGHT]
+                       [--coarse_history_future_weight COARSE_HISTORY_FUTURE_WEIGHT] [--coarse_prev_segment_weight COARSE_PREV_SEGMENT_WEIGHT]
+                       [--fine_history_starting_weight FINE_HISTORY_STARTING_WEIGHT] [--fine_history_future_weight FINE_HISTORY_FUTURE_WEIGHT]
+                       [--fine_prev_segment_weight FINE_PREV_SEGMENT_WEIGHT] [--custom_audio_processing_function CUSTOM_AUDIO_PROCESSING_FUNCTION] [--use_smaller_models USE_SMALLER_MODELS]
+                       [--bark_cloning_large_model BARK_CLONING_LARGE_MODEL] [--semantic_temp SEMANTIC_TEMP] [--semantic_top_k SEMANTIC_TOP_K] [--semantic_top_p SEMANTIC_TOP_P]
+                       [--semantic_min_eos_p SEMANTIC_MIN_EOS_P] [--semantic_max_gen_duration_s SEMANTIC_MAX_GEN_DURATION_S] [--semantic_allow_early_stop SEMANTIC_ALLOW_EARLY_STOP]
+                       [--semantic_use_kv_caching SEMANTIC_USE_KV_CACHING] [--semantic_seed SEMANTIC_SEED] [--semantic_history_oversize_limit SEMANTIC_HISTORY_OVERSIZE_LIMIT]
+                       [--coarse_temp COARSE_TEMP] [--coarse_top_k COARSE_TOP_K] [--coarse_top_p COARSE_TOP_P] [--coarse_max_coarse_history COARSE_MAX_COARSE_HISTORY]
+                       [--coarse_sliding_window_len COARSE_SLIDING_WINDOW_LEN] [--coarse_kv_caching COARSE_KV_CACHING] [--coarse_seed COARSE_SEED]
+                       [--x_coarse_history_alignment_hack X_COARSE_HISTORY_ALIGNMENT_HACK] [--fine_temp FINE_TEMP] [--fine_seed FINE_SEED] [--render_npz_samples RENDER_NPZ_SAMPLES]
 
 ```
 
