@@ -1,6 +1,6 @@
 # 🚀 BARK INFINITY Voice Cloning 🎶 🌈✨🚀 
 
-⚡ Low GPU memory? No problem. CPU offloading. ⚡
+⚡ Low GPU memory? No problem. CPU offloading. ⚡ Somewhat easy install?
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Lebdbbq7xOvl9Q430ly6sYrmYoDvlglM?usp=sharing) Basic Colab Notebook
 
@@ -8,6 +8,84 @@
 # Now: 🎤 Clone a Voice
 
 ![image](https://github.com/JonathanFly/bark/assets/163408/de392897-2428-4adf-87db-0db83ffc321c)
+
+# 🎉 Mamba/Conda Install Any OS 🎉  
+
+(There is a **requirements-pip.txt** file but I have not tested it currently.)
+
+1. [Go here: https://github.com/conda-forge/miniforge#mambaforge](https://docs.conda.io/en/latest/miniconda.html)
+2. Download a Python 3.10 Miniconda3 installer for your OS.  Windows 64-bit, macOS, and Linux probably don't need a guide. 
+  a. Install the Mambaforge for your OS, not specifically Windows. OSX for OSX etc.
+  b. Don't install Mambaforge-pypy3. (It might work but not what I tested.) Install the one above that, just plain Mambaforge. Or you can use Conda, Mamba should faster but the same.
+3. Install. Then start the miniforge 'Miniforge Prompt' Terminal which is a new program it installed. You will always use this program for Bark.
+   
+4. Start the new command you install. Don't start the regular windows command line. It should say "Anaconda Prompt (miniconda3)"
+
+You should see also terminal that says "(base)". **Do not move forward until you see (base).**
+
+5. **Choose the place to install directory.** You can also just leave it at default.
+
+When you start "Anaconda Prompt (miniconda3)" you will be in a directory, in Windows, probably something like "C:\Users\YourName". That's fine to install there but you can also move. Just remember where you put it. It will be in **/bark.**
+
+If you want to put it somewhere else, you will have to type change the directory here, using the 'cd' commands.
+
+If you already had bark-infinity installed you may already have a bark directory in "C:\Users\YourName\bark" from before. You can confirm this by typing 'dir' or looking in the file manager. If you have previously installed bark via mamba, type `rename bark bark_old` or any other name you want, just not bark. While you should be able to update an existing code just fine, to keep things as simple in the instructions, I'm gonna skip that for the moment. If you do want to that, skip tto the end. But if you rename it, all your files are still there.
+
+6. Type a bunch of commands _exactly_. Hit "Y" where you need to:
+
+```
+mamba update -y mamba
+mamba install -y git
+git clone https://github.com/JonathanFly/bark.git
+cd bark
+mamba env create -f environment-cuda.yml 
+python -m pip install --upgrade pip
+pip install --upgrade setuptools 
+pip install -r requirements_conda_missing.txt
+python bark_perform.py
+python bark_webui.py
+```
+
+(If you see a warning that "No GPU being used. Careful, inference might be very slow!" after `python bark_perform.py` then something may be wrong, if you have GPU. If you didn't see that then the GPU is working.)
+
+# Start Bark Infinity At A Later Time
+
+To restart later, start **Miniforge Prompt.** Not Regular Prompt. Make sure you see (base) You will type a command to activate **bark-infinity-oneclick** and of base, like this:
+
+```
+mamba activate bark-infinity-oneclick
+cd bark
+python bark_webui.py
+```
+
+# Update Bark Infinity 
+
+```
+git pull
+mamba env update -f environment-cuda.yml --prune
+python -m pip install --upgrade pip
+pip install --upgrade setuptools 
+pip install -r requirements_conda_missing.txt
+```
+
+# Pip install. For people who know what they are doing. For this one you are a bit on your own.
+```
+!git clone https://github.com/JonathanFly/bark.git
+%cd bark
+!pip install -r requirements-pip.txt
+```
+
+## IF you get a strange error during `pip install -r requirements_conda_missing.txt` and are on a Windows computer type this:
+
+```
+pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl
+```
+
+If you are on a mac, you may need to just type `mamba install fairseq` (the windows conda version is too out of date)
+
+
+I have so much good Bark I need to post at [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
+
 
 # 🌠 The Past: 🌠
 
@@ -23,86 +101,10 @@ Bark Infinity _evolved_ 🧬, expanding across dimensions 🌐. Infinite Length 
 
 ![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
 
-pip
-```
-!git clone https://github.com/JonathanFly/bark.git
-%cd bark
-!pip install -r requirements-pip.txt
-!pip install encodec rich-argparse
-```
-## 🎉 Mamba/Conda Install 🎉  
+## Pip and conda/mamba are two _differnet_ ways of installing. If you use mamba or conda do not install not listed here yet. Don't type any pip commands. You only type one at the very land. Everything is mostly automatic. Don't install pytorch, do not install anything with 'CUDA' in the same. The only thing you need installed is the NVIDIA drivers. If you have a mac, use  `environment-cpu.yml` instead of `environment-cpu.yml`
 
-(I created a requirements-pip.txt file as well, but haven't tested a full pip route. However you should be able to install with that too.)
 
-1. Go here: https://github.com/conda-forge/miniforge#mambaforge
-2. Download this: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
-  a. Install the Mambaforge for your OS, not specifically Windows. OSX for OSX etc.
-  b. Don't install Mambaforge-pypy3. (It might work but not what I tested.) Install the one above that, just plain Mambaforge.
-3. Install. Then start the miniforge 'Miniforge Prompt' Terminal which is a new program it installed. You will always use this program for Bark.
-4. You should see a terminal that says "(base)". Do not move forward until you see that.
-5. Type this:
-```
-mamba update mamba
-mamba install git
-```
-Your terminal still says (base).
-6. This step is most of the installation time, the "mamba env create -f environment-cuda.yml" line. TType:
-```
-git clone https://github.com/JonathanFly/bark.git
-cd bark
-mamba env create -f environment-cuda.yml 
-```
-Okay stop here and see if something went wrong. When it's done it should say somewhere:
-"To activate this environment, use conda activate bark-infinity-oneclick" Then type.
-```
-mamba activate bark-infinity-oneclick
-```
-Note I typed "mamba" not "conda", even though the message said the word conda.
-
-7. Okay now instead of (base) you should see (bark-infinity-oneclick). Do not move on if you still see (base) on your screen.
-8. Type:
-```
-pip install encodec
-pip install rich-argparse
-```
-Now if type 'dir' should see 'bark_webui.py' in the list tof files. 
-If you don't, something might have gone wrong bin step 6 where you type 'cd bark'
-9. Start Bark like this. (Always making sure you start 'Miniforge Prompt') not (base)
-TO START (Always making sure you start 'Miniforge Prompt') and make sure you are the /bark directory that has thet bark_webgui.py file
-
-Are you done? Maybe not. You can try skipping this step but something in the libararies are bugged, so you porbably need a step 10.
-
-10. (you can try skipping this if you want)
-```
-mamba uninstall pysoundfile
-pip install soundfile
-```
-
-Okay you are done. Just type:
-```
-python bark_perform.py
-```
-or 
-```
-python bark_webui.py
-```
-
-To restart later, start Miniforge Prompt. Then activate bark-infinity-oneclick (you can set it up to actiate automatically as well), and then:
-
-Option 1: Using commands
-```
-mamba activate bark-infinity-oneclick
-cd bark
-python bark_webui.py
-```
-
-Option 2: Run `bark-webui.bat` from Windows Explorer as normal, non-administrator, user.
-
-(If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml`)
-
-I dipped my toes back into a bit [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
-
-## 🌟 (OLD NOT UPDATED) Main Features 🌟 __ 
+## 🌟 (OLD NOT UPDATED) README 🌟 __ 
 
 ### 1. INFINITY VOICES 🔊🌈
 Discover cool new voices and reuse them. Performers, musicians, sound effects, two party dialog scenes. Save and share them. Every audio clip saves a speaker.npz file with the voice. To reuse a voice, move the generated speaker.npz file (named the same as the .wav file) to the "prompts" directory inside "bark" where all the other .npz files are.
