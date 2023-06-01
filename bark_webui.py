@@ -2,6 +2,7 @@ import datetime
 import os
 import random
 import glob
+import argparse
 import gradio as gr
 from gradio.components import Markdown as m
 import sys
@@ -1227,20 +1228,32 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
  
 
+parser = argparse.ArgumentParser(description='Gradio app command line options.')
+parser.add_argument('--share', action='store_true', help='Enable share setting.')
+parser.add_argument('--user', type=str, help='User for authentication.')
+parser.add_argument('--password', type=str, help='Password for authentication.')
+parser.add_argument('--listen', action='store_true', help='Server name setting.')
+parser.add_argument('--server_port', type=int, default=7861, help='Port setting.')
+parser.add_argument('--no-autolaunch', action='store_false', default=True, help='Disable automatic opening of the app in browser.')
+parser.add_argument('--debug', action='store_true', default=False, help='Enable detailed error messages and extra outputs.')
+
+args = parser.parse_args()
+
+auth = None
+if args.user and args.password:
+    auth = (args.user, args.password)
+
+server_name = "0.0.0.0" if args.listen else "127.0.0.1"
+
+
 #demo.queue(concurrency_count=2, max_size=2)
 demo.queue()
 
-
-#demo.launch(inbrowser=autolaunch,  server_port=8082)
-
-
-
-# You may need to use share=True if you're running on a free server like Google Colab
-# demo.launch(inbrowser=autolaunch, share=True)
-
-# you cahn change the username and password 
-#demo.launch(inbrowser=autolaunch, share=True, auth=("admin", "BarkAudioNotJustForTrees"))
-
-demo.launch(inbrowser=autolaunch)
-
-
+demo.launch(
+    share=args.share,
+    auth=auth,
+    server_name=server_name,
+    server_port=args.server_port,
+    inbrowser=args.no_autolaunch,  
+    debug=args.debug,
+)
