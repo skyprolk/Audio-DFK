@@ -14,8 +14,8 @@ from bark_infinity import text_processing
 import time
 
 #generation.OFFLOAD_CPU = True
-generation.USE_SMALL_MODELS = False
-generation.OFFLOAD_CPU = False #benchmarking
+# generation.USE_SMALL_MODELS = False
+# generation.OFFLOAD_CPU = False #benchmarking
 
 text_prompts = []
 
@@ -96,6 +96,25 @@ def main(args):
     #pprint(args) 
     print("Loading Bark models...")
     if not args.dry_run:
+
+        
+        # generation.OFFLOAD_CPU = "OFFLOAD_CPU" in env_config_group
+        # generation.USE_SMALL_MODELS = "USE_SMALL_MODELS" in env_config_group
+        # generation.GLOBAL_ENABLE_MPS = "GLOBAL_ENABLE_MPS" in env_config_group
+
+        if args.OFFLOAD_CPU is not None:
+            generation.OFFLOAD_CPU = args.OFFLOAD_CPU
+            print(f"OFFLOAD_CPU is set to {generation.OFFLOAD_CPU}")
+        else:
+            generation.OFFLOAD_CPU = True #default on just in case
+        if args.USE_SMALL_MODELS is not None:
+            generation.USE_SMALL_MODELS = args.USE_SMALL_MODELS
+            print(f"USE_SMALL_MODELS is set to {generation.USE_SMALL_MODELS}")
+        if args.GLOBAL_ENABLE_MPS is not None:
+            generation.GLOBAL_ENABLE_MPS = args.GLOBAL_ENABLE_MPS
+            print(f"GLOBAL_ENABLE_MPS is set to {generation.GLOBAL_ENABLE_MPS}")
+
+
         generation.preload_models(args.text_use_gpu, args.text_use_small, args.coarse_use_gpu, args.coarse_use_small, args.fine_use_gpu, args.fine_use_small, args.codec_use_gpu, args.force_reload)
 
     print("Done.")
