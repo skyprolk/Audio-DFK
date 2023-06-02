@@ -2,12 +2,16 @@
 
 ⚡ Low GPU memory? No problem. CPU offloading. ⚡ Somewhat easy install?
 
+[![Open Gradio In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1t84qbluQSg7V-YzKit8cD3btmgysT_8V?usp=sharing) Barebone Gradio Running in Google Colab
+
+
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Lebdbbq7xOvl9Q430ly6sYrmYoDvlglM?usp=sharing) Basic Colab Notebook
 
 
 # Now: 🎤 Clone a Voice
 
 ![image](https://github.com/JonathanFly/bark/assets/163408/de392897-2428-4adf-87db-0db83ffc321c)
+
 
 # 🎉 Install Bark Infinity Any OS 🎉  
 
