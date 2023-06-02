@@ -1236,12 +1236,19 @@ parser.add_argument('--listen', action='store_true', help='Server name setting.'
 parser.add_argument('--server_port', type=int, default=7861, help='Port setting.')
 parser.add_argument('--no-autolaunch', action='store_false', default=True, help='Disable automatic opening of the app in browser.')
 parser.add_argument('--debug', action='store_true', default=False, help='Enable detailed error messages and extra outputs.')
+parser.add_argument('--incolab', action='store_true', default=False, help='Default for Colab.')
 
 args = parser.parse_args()
 
 auth = None
 if args.user and args.password:
     auth = (args.user, args.password)
+
+
+
+if args.incolab:
+    generation.OFFLOAD_CPU = False
+
 
 server_name = "0.0.0.0" if args.listen else "127.0.0.1"
 
