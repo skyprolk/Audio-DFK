@@ -47,6 +47,9 @@ When you start **"Anaconda Prompt (miniconda3)"** you will be in a directory, in
 
 6. Type the next commands _exactly_. Hit "Y" for yes where you need to:
 
+## WINDOWS INSTALL NOTE:
+The line `pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl` is for *Windows Only*. If you have Linux or Mac, use `mamba install fairseq` or `pip install fairseq` instead of that line.
+
 ```
 mamba update -y mamba
 mamba install -y git
@@ -56,6 +59,7 @@ mamba env create -f environment-cuda.yml
 mamba activate bark-infinity-oneclick
 python -m pip install --upgrade pip
 pip install --upgrade setuptools 
+pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl
 pip install -r requirements_conda_missing.txt
 python bark_perform.py
 python bark_webui.py
