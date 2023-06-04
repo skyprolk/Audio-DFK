@@ -44,6 +44,7 @@ DEFAULTS = {
         ('extra_stats', {'value': False, 'type': bool, 'help': "Extra stats in the filename."}),
         ('show_generation_times', {'value': False, 'type': bool, 'help': "Output how long each sample took to generate, good for benchmarking."}),
         ('output_format', {'value': 'mp3', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
+        ('output_format', {'value': 'mp3', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
     ],
 
     'model': [

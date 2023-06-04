@@ -1,6 +1,9 @@
 # 🚀 BARK INFINITY Voice Cloning 🎶 🌈✨🚀 
 
-⚡ Low GPU memory? No problem. CPU offloading. ⚡
+⚡ Low GPU memory? No problem. CPU offloading. ⚡ Somewhat easy install?
+
+[![Open Gradio In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1t84qbluQSg7V-YzKit8cD3btmgysT_8V?usp=sharing) Barebone Gradio Running in Google Colab
+
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Lebdbbq7xOvl9Q430ly6sYrmYoDvlglM?usp=sharing) Basic Colab Notebook
 
@@ -8,6 +11,103 @@
 # Now: 🎤 Clone a Voice
 
 ![image](https://github.com/JonathanFly/bark/assets/163408/de392897-2428-4adf-87db-0db83ffc321c)
+
+
+# 🎉 Install Bark Infinity Any OS 🎉  
+
+
+## Mamba Install (Recommended for now) 
+
+(Mamba is a fast version of conda. They should work the same.)
+
+Pip and conda/mamba are two _different_ ways of installing Bark Infinity. If you use **Mamba** do not install anything. Don't install _pytorch_, do not install anything with 'CUDA' in the same. You don't need to lookup a YouTube tutorial. Just type the commands. The only thing you need installed is the NVIDIA drivers. If you have a mac, use  `environment-cpu.yml` instead of `environment-cpu.yml`
+
+There is one exception, on Windows if you don't have the better Windows Terminal installed, that is a nice to have feature https://apps.microsoft.com/store/detail/windows-terminal/9N0DX20HK701
+
+You don't have to but it may dispaly the output from the bark commands better. When you start **Anaconda Prompt (miniconda3)** you can do it from the new Windows Terminal app, clicking on the down arrow next to the plus, should let you pick **Anaconda Prompt (miniconda3)**
+
+(There is a **requirements-pip.txt** file but I have not tested it currently. This is an alternative install.)
+
+1. [Go here: https://github.com/conda-forge/miniforge#mambaforge](https://docs.conda.io/en/latest/miniconda.html)
+2. Download a **Python 3.10 Miniconda3** installer for your OS.  Windows 64-bit, macOS, and Linux probably don't need a guide. 
+  a. Install the **Mambaforge** for your OS, not specifically Windows. OSX for OSX etc.
+  b. Don't install Mambaforge-pypy3. (It probably works fine, it is just not what I tested.) Install the one above that, just plain **Mambaforge**. Or you can use **Conda**, Mamba should faster but sometimes Conda may be more compatible. 
+  
+3. Install the **Python 3.10 Miniconda3** exe. Then start the miniforge **'Miniforge Prompt** Terminal which is a new program it installed. You will always use this program for Bark.
+   
+4. Start **'Miniforge Prompt**  Be careful not to start the regular windows command line. (Unless you installed the new Terminal and know how to switch.) It should say **"Anaconda Prompt (miniconda3)**"
+
+You should see also terminal that says "**(base)**". 
+
+### Do not move forward until you see _(base)_.
+
+5. **Choose the place to install Bark Infinity directory.** You can also just leave it at default. If you make a LOT of audio you think about a place with a lot of space.
+
+When you start **"Anaconda Prompt (miniconda3)"** you will be in a directory, in Windows, probably something like** "C:\Users\YourName"**. Okay to install there. Just remember where you put it. It will be in **/bark.** (If you already had bark-infinity installed and want to update instead of reinstalling, skip to the end.)
+
+6. Type the next commands _exactly_. Hit "Y" for yes where you need to:
+
+## Note for NON-WINDOWS INSTALL
+The line 
+```pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl``` 
+is for *Windows Only*. 
+If you have Linux or Mac, use `mamba install fairseq` or `pip install fairseq` instead of that line. (If you are on Windows don't change anything, just copy and paste it as you see it.
+
+```
+mamba update -y mamba
+mamba install -y git
+git clone https://github.com/JonathanFly/bark.git
+cd bark
+mamba env create -f environment-cuda.yml
+mamba activate bark-infinity-oneclick
+python -m pip install --upgrade pip
+pip install --upgrade setuptools 
+pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl
+pip install -r requirements_conda_missing.txt
+python bark_perform.py
+python bark_webui.py
+```
+
+(If you see a warning that "No GPU being used. Careful, inference might be very slow!" after `python bark_perform.py` then something may be wrong, if you have GPU. If you didn't see that then the GPU is working.)
+
+# Start Bark Infinity At A Later Time
+
+To restart later, start **Miniforge Prompt.** Not Regular Prompt. Make sure you see (base) You will type a command to activate **bark-infinity-oneclick** and of base, like this:
+
+```
+mamba activate bark-infinity-oneclick
+cd bark
+python bark_webui.py
+```
+
+# Update Bark Infinity 
+
+```
+git pull
+mamba env update -f environment-cuda.yml --prune
+python -m pip install --upgrade pip
+pip install --upgrade setuptools 
+pip install -r requirements_conda_missing.txt
+```
+
+# Pip install. For people who know what they are doing. For this one you are a bit on your own.
+```
+!git clone https://github.com/JonathanFly/bark.git
+%cd bark
+!pip install -r requirements-pip.txt
+```
+
+## IF you get a strange error during `pip install -r requirements_conda_missing.txt` and are on a Windows computer type this:
+
+```
+pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl
+```
+
+If you are on a mac, you may need to just type `mamba install fairseq` (the windows conda version is too out of date)
+
+
+I have so much good Bark I need to post at [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
+
 
 # 🌠 The Past: 🌠
 
@@ -23,93 +123,14 @@ Bark Infinity _evolved_ 🧬, expanding across dimensions 🌐. Infinite Length 
 
 ![bark_test_webui](https://user-images.githubusercontent.com/163408/235910939-fa9ae2d6-9a2e-49d2-9646-d07a0793f7b7.PNG)
 
-pip
-```
-!git clone https://github.com/JonathanFly/bark.git
-%cd bark
-!pip install -r requirements-pip.txt
-!pip install encodec rich-argparse
-```
-## 🎉 Mamba/Conda Install 🎉  
-
-(I created a requirements-pip.txt file as well, but haven't tested a full pip route. However you should be able to install with that too.)
-
-1. Go here: https://github.com/conda-forge/miniforge#mambaforge
-2. Download this: https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe
-  a. Install the Mambaforge for your OS, not specifically Windows. OSX for OSX etc.
-  b. Don't install Mambaforge-pypy3. (It might work but not what I tested.) Install the one above that, just plain Mambaforge.
-3. Install. Then start the miniforge 'Miniforge Prompt' Terminal which is a new program it installed. You will always use this program for Bark.
-4. You should see a terminal that says "(base)". Do not move forward until you see that.
-5. Type this:
-```
-mamba update mamba
-mamba install git
-```
-Your terminal still says (base).
-6. This step is most of the installation time, the "mamba env create -f environment-cuda.yml" line. TType:
-```
-git clone https://github.com/JonathanFly/bark.git
-cd bark
-mamba env create -f environment-cuda.yml 
-```
-Okay stop here and see if something went wrong. When it's done it should say somewhere:
-"To activate this environment, use conda activate bark-infinity-oneclick" Then type.
-```
-mamba activate bark-infinity-oneclick
-```
-Note I typed "mamba" not "conda", even though the message said the word conda.
-
-7. Okay now instead of (base) you should see (bark-infinity-oneclick). Do not move on if you still see (base) on your screen.
-8. Type:
-```
-pip install encodec
-pip install rich-argparse
-```
-Now if type 'dir' should see 'bark_webui.py' in the list tof files. 
-If you don't, something might have gone wrong bin step 6 where you type 'cd bark'
-9. Start Bark like this. (Always making sure you start 'Miniforge Prompt') not (base)
-TO START (Always making sure you start 'Miniforge Prompt') and make sure you are the /bark directory that has thet bark_webgui.py file
-
-Are you done? Maybe not. You can try skipping this step but something in the libararies are bugged, so you porbably need a step 10.
-
-10. (you can try skipping this if you want)
-```
-mamba uninstall pysoundfile
-pip install soundfile
-```
-
-Okay you are done. Just type:
-```
-python bark_perform.py
-```
-or 
-```
-python bark_webui.py
-```
-
-To restart later, start Miniforge Prompt. Then activate bark-infinity-oneclick (you can set it up to actiate automatically as well), and then:
-
-Option 1: Using commands
-```
-mamba activate bark-infinity-oneclick
-cd bark
-python bark_webui.py
-```
-
-Option 2: Run `bark-webui.bat` from Windows Explorer as normal, non-administrator, user.
-
-(If you do not have an NVIDIA GPU use `environment-cpu.yml` instead of `environment-cuda.yml`)
-
-I dipped my toes back into a bit [twitter.com/jonathanfly](https://twitter.com/jonathanfly)
-
-## 🌟 (OLD NOT UPDATED) Main Features 🌟 __ 
+## 🌟 (OLD NOT UPDATED) README 🌟 __ 
 
 ### 1. INFINITY VOICES 🔊🌈
 Discover cool new voices and reuse them. Performers, musicians, sound effects, two party dialog scenes. Save and share them. Every audio clip saves a speaker.npz file with the voice. To reuse a voice, move the generated speaker.npz file (named the same as the .wav file) to the "prompts" directory inside "bark" where all the other .npz files are.
 
 🔊 With random celebrity appearances!
 
-(I accidently left a bunch of voices in the repo, some of them are pretty good. Use --history_prompt 'en_fiery' for the same voice as the audio sample right after this sentence.)
+(I accidentally left a bunch of voices in the repo, some of them are pretty good. Use --history_prompt 'en_fiery' for the same voice as the audio sample right after this sentence.)
 
 https://user-images.githubusercontent.com/163408/233747981-173b5f03-654e-4a0e-b71b-5d220601fcc7.mp4
 
@@ -133,7 +154,7 @@ Are you tired of telling your TTS model what to say? Why not take a break and le
 
 https://user-images.githubusercontent.com/163408/233746957-f3bbe25f-c8f0-4570-97b1-1005e1b40cbe.mp4
 
-Truly we live in the future. It might take 50 tries to get a joke and it's probabably an accident, but all 49 failures are also *very* amusing so it's a win/win. (That's right, I set a single function flag to False in a Bark and raved about the amazing new feature. Everything here is small potatoes really.)
+Truly we live in the future. It might take 50 tries to get a joke and it's probably an accident, but all 49 failures are also *very* amusing so it's a win/win. (That's right, I set a single function flag to False in a Bark and raved about the amazing new feature. Everything here is small potatoes really.)
 
 https://user-images.githubusercontent.com/163408/233746872-cac78447-8e87-49e7-b79b-28ec51264019.mp4
 
@@ -147,50 +168,31 @@ _For music, I recommend using the --split_by_lines and making sure you use a mul
 
 Type --help or use the GUI
 ```bash
-Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SPEAKERS] [--dry_run DRY_RUN]
-                       [--history_prompt HISTORY_PROMPT] [--prompt_file PROMPT_FILE]
-                       [--split_input_into_separate_prompts_by {word,line,sentence,string,random,rhyme,pos,regex}]
-                       [--split_input_into_separate_prompts_by_value SPLIT_INPUT_INTO_SEPARATE_PROMPTS_BY_VALUE]
-                       [--always_save_speaker ALWAYS_SAVE_SPEAKER] [--output_iterations OUTPUT_ITERATIONS]
-                       [--output_filename OUTPUT_FILENAME] [--output_dir OUTPUT_DIR] [--hoarder_mode HOARDER_MODE]
-                       [--extra_stats EXTRA_STATS] [--text_use_gpu TEXT_USE_GPU] [--text_use_small TEXT_USE_SMALL]
-                       [--coarse_use_gpu COARSE_USE_GPU] [--coarse_use_small COARSE_USE_SMALL]
-                       [--fine_use_gpu FINE_USE_GPU] [--fine_use_small FINE_USE_SMALL]
-                       [--codec_use_gpu CODEC_USE_GPU] [--force_reload FORCE_RELOAD] [--text_temp TEXT_TEMP]
-                       [--waveform_temp WAVEFORM_TEMP] [--confused_travolta_mode CONFUSED_TRAVOLTA_MODE]
-                       [--silent SILENT] [--seed SEED] [--stable_mode_interval STABLE_MODE_INTERVAL]
-                       [--single_starting_seed SINGLE_STARTING_SEED]
-                       [--split_character_goal_length SPLIT_CHARACTER_GOAL_LENGTH]
-                       [--split_character_max_length SPLIT_CHARACTER_MAX_LENGTH]
-                       [--add_silence_between_segments ADD_SILENCE_BETWEEN_SEGMENTS]
-                       [--split_each_text_prompt_by {word,line,sentence,string,random,rhyme,pos,regex}]
-                       [--split_each_text_prompt_by_value SPLIT_EACH_TEXT_PROMPT_BY_VALUE]
-                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE]
-                       [--semantic_history_starting_weight SEMANTIC_HISTORY_STARTING_WEIGHT]
-                       [--semantic_history_future_weight SEMANTIC_HISTORY_FUTURE_WEIGHT]
-                       [--semantic_prev_segment_weight SEMANTIC_PREV_SEGMENT_WEIGHT]
-                       [--coarse_history_starting_weight COARSE_HISTORY_STARTING_WEIGHT]
-                       [--coarse_history_future_weight COARSE_HISTORY_FUTURE_WEIGHT]
-                       [--coarse_prev_segment_weight COARSE_PREV_SEGMENT_WEIGHT]
-                       [--fine_history_starting_weight FINE_HISTORY_STARTING_WEIGHT]
-                       [--fine_history_future_weight FINE_HISTORY_FUTURE_WEIGHT]
-                       [--fine_prev_segment_weight FINE_PREV_SEGMENT_WEIGHT]
-                       [--custom_audio_processing_function CUSTOM_AUDIO_PROCESSING_FUNCTION]
-                       [--use_smaller_models USE_SMALLER_MODELS] [--semantic_temp SEMANTIC_TEMP]
-                       [--semantic_top_k SEMANTIC_TOP_K] [--semantic_top_p SEMANTIC_TOP_P]
-                       [--semantic_min_eos_p SEMANTIC_MIN_EOS_P]
-                       [--semantic_max_gen_duration_s SEMANTIC_MAX_GEN_DURATION_S]
-                       [--semantic_allow_early_stop SEMANTIC_ALLOW_EARLY_STOP]
-                       [--semantic_use_kv_caching SEMANTIC_USE_KV_CACHING] [--semantic_seed SEMANTIC_SEED]
-                       [--semantic_history_oversize_limit SEMANTIC_HISTORY_OVERSIZE_LIMIT]
-                       [--coarse_temp COARSE_TEMP] [--coarse_top_k COARSE_TOP_K] [--coarse_top_p COARSE_TOP_P]
-                       [--coarse_max_coarse_history COARSE_MAX_COARSE_HISTORY]
-                       [--coarse_sliding_window_len COARSE_SLIDING_WINDOW_LEN]
-                       [--coarse_kv_caching COARSE_KV_CACHING] [--coarse_seed COARSE_SEED]
-                       [--coarse_history_time_alignment_hack COARSE_HISTORY_TIME_ALIGNMENT_HACK]
-                       [--fine_temp FINE_TEMP] [--fine_seed FINE_SEED] [--render_npz_samples RENDER_NPZ_SAMPLES]
-                       [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-
+Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SPEAKERS] [--dry_run DRY_RUN] [--text_splits_only TEXT_SPLITS_ONLY] [--history_prompt HISTORY_PROMPT]
+                       [--prompt_file PROMPT_FILE] [--split_input_into_separate_prompts_by {word,line,sentence,char,string,random,regex}]
+                       [--split_input_into_separate_prompts_by_value SPLIT_INPUT_INTO_SEPARATE_PROMPTS_BY_VALUE] [--always_save_speaker ALWAYS_SAVE_SPEAKER]
+                       [--output_iterations OUTPUT_ITERATIONS] [--output_filename OUTPUT_FILENAME] [--output_dir OUTPUT_DIR] [--hoarder_mode HOARDER_MODE] [--extra_stats EXTRA_STATS]
+                       [--show_generation_times SHOW_GENERATION_TIMES] [--output_format {wav,mp3,ogg,flac,mp4}] [--text_use_gpu TEXT_USE_GPU] [--text_use_small TEXT_USE_SMALL]
+                       [--coarse_use_gpu COARSE_USE_GPU] [--coarse_use_small COARSE_USE_SMALL] [--fine_use_gpu FINE_USE_GPU] [--fine_use_small FINE_USE_SMALL] [--codec_use_gpu CODEC_USE_GPU]
+                       [--force_reload FORCE_RELOAD] [--GLOBAL_ENABLE_MPS GLOBAL_ENABLE_MPS] [--USE_SMALL_MODELS USE_SMALL_MODELS] [--OFFLOAD_CPU OFFLOAD_CPU] [--text_temp TEXT_TEMP]
+                       [--waveform_temp WAVEFORM_TEMP] [--confused_travolta_mode CONFUSED_TRAVOLTA_MODE] [--silent SILENT] [--seed SEED] [--stable_mode_interval STABLE_MODE_INTERVAL]
+                       [--single_starting_seed SINGLE_STARTING_SEED] [--split_character_goal_length SPLIT_CHARACTER_GOAL_LENGTH] [--split_character_max_length SPLIT_CHARACTER_MAX_LENGTH]
+                       [--split_character_jitter SPLIT_CHARACTER_JITTER] [--add_silence_between_segments ADD_SILENCE_BETWEEN_SEGMENTS]
+                       [--process_text_by_each {word,line,sentence,char,string,random,regex}] [--group_text_by_counting {word,line,sentence,char,string,random,regex}]
+                       [--in_groups_of_size IN_GROUPS_OF_SIZE] [--split_type_string SPLIT_TYPE_STRING] [--prompt_text_prefix PROMPT_TEXT_PREFIX]
+                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE] [--seperate_prompts SEPERATE_PROMPTS] [--semantic_history_only SEMANTIC_HISTORY_ONLY]
+                       [--absolute_semantic_history_only ABSOLUTE_SEMANTIC_HISTORY_ONLY] [--absolute_semantic_history_only_every_x ABSOLUTE_SEMANTIC_HISTORY_ONLY_EVERY_X]
+                       [--semantic_history_starting_weight SEMANTIC_HISTORY_STARTING_WEIGHT] [--semantic_history_future_weight SEMANTIC_HISTORY_FUTURE_WEIGHT]
+                       [--semantic_prev_segment_weight SEMANTIC_PREV_SEGMENT_WEIGHT] [--coarse_history_starting_weight COARSE_HISTORY_STARTING_WEIGHT]
+                       [--coarse_history_future_weight COARSE_HISTORY_FUTURE_WEIGHT] [--coarse_prev_segment_weight COARSE_PREV_SEGMENT_WEIGHT]
+                       [--fine_history_starting_weight FINE_HISTORY_STARTING_WEIGHT] [--fine_history_future_weight FINE_HISTORY_FUTURE_WEIGHT]
+                       [--fine_prev_segment_weight FINE_PREV_SEGMENT_WEIGHT] [--custom_audio_processing_function CUSTOM_AUDIO_PROCESSING_FUNCTION] [--use_smaller_models USE_SMALLER_MODELS]
+                       [--bark_cloning_large_model BARK_CLONING_LARGE_MODEL] [--semantic_temp SEMANTIC_TEMP] [--semantic_top_k SEMANTIC_TOP_K] [--semantic_top_p SEMANTIC_TOP_P]
+                       [--semantic_min_eos_p SEMANTIC_MIN_EOS_P] [--semantic_max_gen_duration_s SEMANTIC_MAX_GEN_DURATION_S] [--semantic_allow_early_stop SEMANTIC_ALLOW_EARLY_STOP]
+                       [--semantic_use_kv_caching SEMANTIC_USE_KV_CACHING] [--semantic_seed SEMANTIC_SEED] [--semantic_history_oversize_limit SEMANTIC_HISTORY_OVERSIZE_LIMIT]
+                       [--coarse_temp COARSE_TEMP] [--coarse_top_k COARSE_TOP_K] [--coarse_top_p COARSE_TOP_P] [--coarse_max_coarse_history COARSE_MAX_COARSE_HISTORY]
+                       [--coarse_sliding_window_len COARSE_SLIDING_WINDOW_LEN] [--coarse_kv_caching COARSE_KV_CACHING] [--coarse_seed COARSE_SEED]
+                       [--x_coarse_history_alignment_hack X_COARSE_HISTORY_ALIGNMENT_HACK] [--fine_temp FINE_TEMP] [--fine_seed FINE_SEED] [--render_npz_samples RENDER_NPZ_SAMPLES]
 
 ```
 

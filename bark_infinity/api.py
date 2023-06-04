@@ -4,10 +4,10 @@ import numpy as np
 from .generation import codec_decode, generate_coarse, generate_fine, generate_text_semantic, SAMPLE_RATE
 from .config import logger, console, console_file, get_default_values, load_all_defaults, VALID_HISTORY_PROMPT_DIRS
 from scipy.io.wavfile import write as write_wav
+from scipy.io import wavfile
 
 
-
-
+import tempfile
 import copy
 ## ADDED
 import os
@@ -431,8 +431,9 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
     if output_format is None: 
         output_format = 'mp3'
 
-
     if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
+        temp_wav = f"{output_filepath}.tmp.wav"
+        # print(f"temp_wav is {temp_wav}")
         temp_wav = f"{output_filepath}.tmp.wav"
         # print(f"temp_wav is {temp_wav}")
         write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
@@ -448,6 +449,29 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
 
     logger.info(f"  .{output_format} saved to {output_filepath} {dry_text}")
 
+    
+    """
+    if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
+        with tempfile.NamedTemporaryFile(suffix=".tmp.wav") as temp:
+            temp_wav = temp.name
+            write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
+            if dry_run is not True:
+                audio = AudioSegment.from_wav(temp_wav)
+                
+                # sample_rate, wav_sample = scipy.io.wavfile.read(temp_wav) 
+                # audio = AudioSegment(data=wav_sample.tobytes(),
+                                sample_width=2,
+                                frame_rate=sample_rate, channels=1)
+                
+                if output_format == 'mp4':
+                    audio.export(output_filepath, format="mp4", codec="aac")
+                else:
+                    audio.export(output_filepath, format=output_format)
+    else:
+        write_wav(output_filepath, SAMPLE_RATE, audio_arr) if not dry_run else None
+
+    logger.info(f"  .{output_format} saved to {output_filepath} {dry_text}")
+    """
 
 
 
