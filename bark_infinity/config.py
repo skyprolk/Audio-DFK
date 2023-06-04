@@ -43,7 +43,7 @@ DEFAULTS = {
         ('hoarder_mode', {'value': False, 'type': bool, 'help': "Who wants to make a cool audio clip and not able to reproduce it in the future? Save it all! Creates a sub directory for each clip that is more than one segment long, because it's kind of a lot."}),
         ('extra_stats', {'value': False, 'type': bool, 'help': "Extra stats in the filename."}),
         ('show_generation_times', {'value': False, 'type': bool, 'help': "Output how long each sample took to generate, good for benchmarking."}),
-        ('output_format', {'value': 'mp4', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
+        ('output_format', {'value': 'mp3', 'type': str, 'help': "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)", 'choices': CHOICES['output_formats']}),
     ],
 
     'model': [
@@ -69,17 +69,17 @@ DEFAULTS = {
         ('silent', {'value': False, 'type': bool, 'help': "Disable progress bar."}),
         ('seed', {'value': None, 'type': int, 'help': "Random seed for a single clip of audio. This sets the seed one time before all three models, but if you have multiple clips, it sets the same seed for every segment. You probably want to use --single_starting_seed instead in most cases."}),
     ],
-    # todo split by one of the options, count by the other. splitting by phrase, and counting by word, is probably pretty tgood.
+    # todo split by one of the options, count by the other. splitting by phrase, and counting by word, is probably pretty good.
     'generating_long_clips': [
         ('stable_mode_interval', {'value': 1, 'type': int, 'help': "Optional. stable_mode_interval set to 1 means every 14s clip uses the original speaker .npz file, or the first 14s clip of a random voice. 0 means the previous file is continues. 3 means the speaker history is carried forward 3 times, and then reset back to the original. Not needed at all for short clips. "}),
-        ('single_starting_seed', {'value': None, 'type': int, 'help': "Random seed that it just set once at the start. This is probalby the seed you want."}),
+        ('single_starting_seed', {'value': None, 'type': int, 'help': "Random seed that it just set once at the start. This is probably the seed you want."}),
 
         ('split_character_goal_length', {'value': 110, 'type': int, 'help': "Split your text_prompt into < 14s chunks of about many characters, general splitter."}),
         ('split_character_max_length', {'value': 170, 'type': int, 'help': "Split your text_prompt into < 14s, ceiling value."}),
 
-        ('split_character_jitter', {'value': 0, 'type': int, 'help': "Add or subtract the split_chararacter values by the jitter value every iteration. Useful for running a lot of samples to get some variety."}),
+        ('split_character_jitter', {'value': 0, 'type': int, 'help': "Add or subtract the split_character values by the jitter value every iteration. Useful for running a lot of samples to get some variety."}),
 
-        ('add_silence_between_segments', {'value': 0.25, 'type': float, 'help':  "Add a bit of silence between joined audio segments. Works good if you splitting your text on copmlete sentences or phrases, or if you are using the same prompt every segment (stable_mode_interval = 1). If you are using stable_mode_interval = 0 it might be worse."}),
+        ('add_silence_between_segments', {'value': 0.0, 'type': float, 'help':  "Add a bit of silence between joined audio segments. Works good if you splitting your text on complete sentences or phrases, or if you are using the same prompt every segment (stable_mode_interval = 1). If you are using stable_mode_interval = 0 it might be worse."}),
 
           ('process_text_by_each', {'value': None, 'type': str, 'help': "Bark only generates 14s at a time, so the text_prompt needs to be split into chunks smaller than that.",'choices': CHOICES['split_options']}),
         ('group_text_by_counting', {'value': None, 'type': str, 'help': "Bark only generates 14s at a time, so the text_prompt needs to be split into chunks smaller than that.",'choices': CHOICES['split_options']}),

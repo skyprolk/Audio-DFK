@@ -303,6 +303,8 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
     text_prompt = text_prompt.strip()
     history_prompt = os.path.basename(history_prompt).replace('.npz', '')
 
+    history_prompt = history_prompt[:15].strip()
+
     # There's a Lot of stuff that passes that sanitize check that we don't want in the filename
     text_prompt = re.sub(r' ', '_', text_prompt)  # spaces with underscores
     # quotes, colons, and semicolons
@@ -334,6 +336,7 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
     
     output_format = kwargs.get('output_format', None)
 
+    # print(f"output_format is {output_format}")
     if output_format is not None:
         if output_format in ['ogg', 'flac', 'mp4','wav']:
             base_output_filename = f"{base_output_filename}.{output_format}"
@@ -389,7 +392,7 @@ def write_seg_npz(filepath, full_generation, **kwargs):
     #logger.debug(kwargs)
 
     if kwargs.get("segment_number", 1) == "base_history":
-        filepath = f"{filepath}_initial_prompt.npz"
+        filepath = f"{filepath}_orig_speaker.npz"
 
     if not kwargs.get('dry_run', False) and kwargs.get('always_save_speaker', True):
         filepath = generate_unique_filepath(filepath)
@@ -423,7 +426,7 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
     output_format = kwargs.get('output_format', None)
 
     # print(f"output_format is {output_format}")
-    #p rint(f"output_filepath is {output_filepath}")
+    # print(f"output_filepath is {output_filepath}")
 
     if output_format is None: 
         output_format = 'mp3'
@@ -431,6 +434,7 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
 
     if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
         temp_wav = f"{output_filepath}.tmp.wav"
+        # print(f"temp_wav is {temp_wav}")
         write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
         if dry_run is not True:
             audio = AudioSegment.from_wav(temp_wav)
@@ -515,9 +519,11 @@ def generate_audio_barki(
         min_eos_p = kwargs.get("semantic_min_eos_p", None),
         max_gen_duration_s = kwargs.get("semantic_max_gen_duration_s", None),
         allow_early_stop = kwargs.get("semantic_allow_early_stop", True),
-        use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+        # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+        use_kv_caching=True,
     )
 
+    # print(f"semantic_tokens is {semantic_tokens}")
 
     if gradio_try_to_cancel:
         done_cancelling = True
@@ -566,9 +572,9 @@ def generate_audio_barki(
         silent=silent,
         max_coarse_history=kwargs.get("coarse_max_coarse_history", None),
         sliding_window_len=kwargs.get("coarse_sliding_window_len", None),
-        use_kv_caching=kwargs.get("coarse_kv_caching", True),
+        # use_kv_caching=kwargs.get("coarse_kv_caching", True),
+        use_kv_caching=True,
     )
-
     fine_temp = kwargs.get("fine_temp", 0.5)
 
     fine_seed = kwargs.get("fine_seed",None)
@@ -674,7 +680,8 @@ def generate_audio_sampling_mods_old(
         min_eos_p = kwargs.get("semantic_min_eos_p", None),
         max_gen_duration_s = kwargs.get("semantic_max_gen_duration_s", None),
         allow_early_stop = kwargs.get("semantic_allow_early_stop", True),
-        use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+        # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+        use_kv_caching=True,
 
         banned_tokens = kwargs.get("semantic_banned_tokens", None),
         absolute_banned_tokens = kwargs.get("semantic_absolute_banned_tokens", None),
@@ -745,7 +752,8 @@ def generate_audio_sampling_mods_old(
         silent=silent,
         max_coarse_history=kwargs.get("coarse_max_coarse_history", None),
         sliding_window_len=kwargs.get("coarse_sliding_window_len", None),
-        use_kv_caching=kwargs.get("coarse_kv_caching", True),
+        # use_kv_caching=kwargs.get("coarse_kv_caching", True),
+        use_kv_caching=True,
     )
 
     fine_temp = kwargs.get("fine_temp", 0.5)
@@ -1075,7 +1083,10 @@ def generate_audio_long(
 
             add_silence_between_segments = kwargs.get("add_silence_between_segments", 0.0)
             if add_silence_between_segments > 0.0:
-                silence = np.zeros(int(add_silence_between_segments * SAMPLE_RATE)) 
+                print(f"Adding {add_silence_between_segments} seconds of silence between segments.")
+                # silence = np.zeros(int(add_silence_between_segments * SAMPLE_RATE)) 
+                silence =  np.zeros(int(add_silence_between_segments * SAMPLE_RATE), dtype=np.int16 )
+
                 audio_arr_segments.append(silence)
 
     if show_generation_times:
@@ -1096,7 +1107,10 @@ def generate_audio_long(
     final_filename_will_be = determine_output_filename(**kwargs)
     dry_run = kwargs.get('dry_run', None)
     if not dry_run: 
-        write_one_segment(audio_arr = np.concatenate(audio_arr_segments), full_generation = full_generation_segments[0], **kwargs)
+        if len(audio_arr_segments) > 0:
+            write_one_segment(audio_arr = np.concatenate(audio_arr_segments), full_generation = full_generation_segments[0], **kwargs)
+        else:
+            print("No audio to write. Something may have gone wrong.")
     print(f"Saved to {final_filename_will_be}")
     
     return full_generation_segments, audio_arr_segments, final_filename_will_be
@@ -1231,16 +1245,19 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
             if start_from == "pure_semantic":
                 # code removed for now
                 semantic_tokens = generate_text_semantic(text=None, history_prompt = history_prompt)
-                coarse_tokens = generate_coarse(semantic_tokens)
+                coarse_tokens = generate_coarse(semantic_tokens, use_kv_caching=True)
                 fine_tokens = generate_fine(coarse_tokens)
 
             elif start_from == "semantic_prompt":
-                coarse_tokens = generate_coarse(semantic_tokens)
+                coarse_tokens = generate_coarse(semantic_tokens,  use_kv_caching=True)
                 fine_tokens = generate_fine(coarse_tokens)
 
             elif start_from == "coarse_prompt":
                 fine_tokens = generate_fine(coarse_tokens)
                 
+            elif start_from == "coarse_prompt_first_two_quantizers_decoded":
+                # just decode existing fine tokens
+                pass
             elif start_from == "fine_prompt":
                 # just decode existing fine tokens
                 pass
@@ -1289,7 +1306,10 @@ def render_npz_samples(npz_directory="bark_infinity/assets/prompts/", start_from
                 start_from_txt = '_S'
             try:
                 #print(f"fine_tokens.shape final: {fine_tokens.shape}")
-                audio_arr = codec_decode(fine_tokens)
+                if start_from == "coarse_prompt_first_two_quantizers_decoded":
+                    audio_arr = codec_decode(coarse_tokens)
+                else:
+                    audio_arr = codec_decode(fine_tokens)
                 base_output_filename = os.path.splitext(npz_file)[0] + f"_{start_from_txt}_.wav"
                 output_filepath = os.path.join(npz_directory, base_output_filename)
                 output_filepath = generate_unique_filepath(output_filepath)
@@ -1527,7 +1547,7 @@ def generate_text_semantic_report(history_prompt, token_samples=3):
             surrounding = semantic_history[max(0, index - token_samples) : min(len(semantic_history), index + token_samples)]
             report["messages"].append(f"Surrounding tokens: {surrounding}")
             
-        elif semantic_history.max() >= SEMANTIC_VOCAB_SIZE:
+        elif semantic_history.max() >= SEMANTIC_VOCAB_SIZE + 1:
             report["valid"] = False
             report["messages"].append(f"should have a maximum value less than {SEMANTIC_VOCAB_SIZE}, but it was {semantic_history.max()}.")
             index = np.argmax(semantic_history)
@@ -1552,7 +1572,7 @@ def generate_coarse_report(history_prompt, token_samples=3):
     
     elif len(semantic_history.shape) != 1:
         report["valid"] = False
-        report["messages"].append("should be a 1d numpy array but shape is {semantic_history.shape}.")
+        report["messages"].append(f"should be a 1d numpy array but shape is {semantic_history.shape}.")
     
     elif len(semantic_history) == 0:
         report["valid"] = False
@@ -1620,11 +1640,11 @@ def generate_fine_report(history_prompt, token_samples=3):
     
     if not isinstance(fine_history, np.ndarray):
         report["valid"] = False
-        report["messages"].append("fine_prompt should be a numpy array but it's a {type(fine_history)}.")
+        report["messages"].append(f"fine_prompt should be a numpy array but it's a {type(fine_history)}.")
     
     elif len(fine_history.shape) != 2:
         report["valid"] = False
-        report["messages"].append("fine_prompt should be a 2-dimensional numpy array but shape is {fine_history.shape}.")
+        report["messages"].append(f"fine_prompt should be a 2-dimensional numpy array but shape is {fine_history.shape}.")
 
     elif fine_history.size == 0:
         report["valid"] = False

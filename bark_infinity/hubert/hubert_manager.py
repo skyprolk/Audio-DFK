@@ -13,14 +13,16 @@ class HuBERTManager:
             os.makedirs(install_dir, exist_ok=True)
         install_file = os.path.join(install_dir, file_name)
         if not os.path.isfile(install_file):
-            print('Downloading HuBERT base model')
+            print(f'Downloading HuBERT  model {download_url} to {install_file}')
             urllib.request.urlretrieve(download_url, install_file)
             print('Downloaded HuBERT')
         return install_file
 
 
     @staticmethod
-    def make_sure_tokenizer_installed(model: str = 'quantifier_hubert_base_ls960_14.pth', repo: str = 'GitMylo/bark-voice-cloning', local_file: str = 'tokenizer.pth'):
+    #def make_sure_tokenizer_installed(model: str = 'quantifier_hubert_base_ls960_14.pth', repo: str = 'GitMylo/bark-voice-cloning', local_file: str = 'tokenizer.pth'):
+    def make_sure_tokenizer_installed(model: str = 'quantifier_V1_hubert_base_ls960_23.pth', repo: str = 'GitMylo/bark-voice-cloning', local_file: str = 'tokenizer.pth'):
+        # print(f"Downloading tokenizer {model} from {repo} to {local_file}")
         install_dir = os.path.join('data', 'models', 'hubert')
         if not os.path.isdir(install_dir):
             os.makedirs(install_dir, exist_ok=True)

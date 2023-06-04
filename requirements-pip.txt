@@ -15,3 +15,15 @@ rich-argparse
 encodec
 fairseq
 audiolm_pytorch
+ffmpeg
+universal-startfile
+requests
+diffusers
+audio2numpy
+joblib
+soundfile
+audiolm_pytorch
+universal-startfile
+soundfile
+ffmpeg
+ffmpeg-python

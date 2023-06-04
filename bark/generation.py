@@ -85,9 +85,13 @@ default_cache_dir = os.path.join(os.path.expanduser("~"), ".cache")
 CACHE_DIR = os.path.join(os.getenv("XDG_CACHE_HOME", default_cache_dir), "suno", "bark_v0")
 
 
-USE_SMALL_MODELS = os.environ.get("SUNO_USE_SMALL_MODELS", False)
-GLOBAL_ENABLE_MPS = os.environ.get("SUNO_ENABLE_MPS", False)
-OFFLOAD_CPU = os.environ.get("SUNO_OFFLOAD_CPU", False)
+def _cast_bool_env_var(s):
+    return s.lower() in ('true', '1', 't')
+
+
+USE_SMALL_MODELS = _cast_bool_env_var(os.environ.get("SUNO_USE_SMALL_MODELS", "False"))
+GLOBAL_ENABLE_MPS = _cast_bool_env_var(os.environ.get("SUNO_ENABLE_MPS", "False"))
+OFFLOAD_CPU = _cast_bool_env_var(os.environ.get("SUNO_OFFLOAD_CPU", "False"))
 
 
 REMOTE_MODEL_PATHS = {
@@ -137,7 +141,7 @@ def _grab_best_device(use_gpu=True):
 
 def _get_ckpt_path(model_type, use_small=False):
     key = model_type
-    if use_small:
+    if use_small or USE_SMALL_MODELS:
         key += "_small"
     return os.path.join(CACHE_DIR, REMOTE_MODEL_PATHS[key]["file_name"])
 
@@ -353,6 +357,8 @@ def _load_history_prompt(history_prompt_input):
     if isinstance(history_prompt_input, str) and history_prompt_input.endswith(".npz"):
         history_prompt = np.load(history_prompt_input)
     elif isinstance(history_prompt_input, str):
+        # make sure this works on non-ubuntu
+        history_prompt_input = os.path.join(*history_prompt_input.split("/"))
         if history_prompt_input not in ALLOWED_PROMPTS:
             raise ValueError("history prompt not found")
         history_prompt = np.load(
@@ -459,8 +465,7 @@ def generate_text_semantic(
                 )
             if top_p is not None:
                 # faster to convert to numpy
-                logits_device = relevant_logits.device
-                logits_dtype = relevant_logits.type()
+                original_device = relevant_logits.device
                 relevant_logits = relevant_logits.detach().cpu().type(torch.float32).numpy()
                 sorted_indices = np.argsort(relevant_logits)[::-1]
                 sorted_logits = relevant_logits[sorted_indices]
@@ -470,18 +475,12 @@ def generate_text_semantic(
                 sorted_indices_to_remove[0] = False
                 relevant_logits[sorted_indices[sorted_indices_to_remove]] = -np.inf
                 relevant_logits = torch.from_numpy(relevant_logits)
-                relevant_logits = relevant_logits.to(logits_device).type(logits_dtype)
+                relevant_logits = relevant_logits.to(original_device)
             if top_k is not None:
                 v, _ = torch.topk(relevant_logits, min(top_k, relevant_logits.size(-1)))
                 relevant_logits[relevant_logits < v[-1]] = -float("Inf")
             probs = F.softmax(relevant_logits / temp, dim=-1)
-            # multinomial bugged on mps: shuttle to cpu if necessary
-            inf_device = probs.device
-            if probs.device.type == "mps":
-                probs = probs.to("cpu")
-            item_next = torch.multinomial(probs, num_samples=1)
-            probs = probs.to(inf_device)
-            item_next = item_next.to(inf_device)
+            item_next = torch.multinomial(probs, num_samples=1).to(torch.int32)
             if allow_early_stop and (
                 item_next == SEMANTIC_VOCAB_SIZE
                 or (min_eos_p is not None and probs[-1] >= min_eos_p)
@@ -650,8 +649,7 @@ def generate_coarse(
                 relevant_logits = logits[0, 0, logit_start_idx:logit_end_idx]
                 if top_p is not None:
                     # faster to convert to numpy
-                    logits_device = relevant_logits.device
-                    logits_dtype = relevant_logits.type()
+                    original_device = relevant_logits.device
                     relevant_logits = relevant_logits.detach().cpu().type(torch.float32).numpy()
                     sorted_indices = np.argsort(relevant_logits)[::-1]
                     sorted_logits = relevant_logits[sorted_indices]
@@ -661,18 +659,12 @@ def generate_coarse(
                     sorted_indices_to_remove[0] = False
                     relevant_logits[sorted_indices[sorted_indices_to_remove]] = -np.inf
                     relevant_logits = torch.from_numpy(relevant_logits)
-                    relevant_logits = relevant_logits.to(logits_device).type(logits_dtype)
+                    relevant_logits = relevant_logits.to(original_device)
                 if top_k is not None:
                     v, _ = torch.topk(relevant_logits, min(top_k, relevant_logits.size(-1)))
                     relevant_logits[relevant_logits < v[-1]] = -float("Inf")
                 probs = F.softmax(relevant_logits / temp, dim=-1)
-                # multinomial bugged on mps: shuttle to cpu if necessary
-                inf_device = probs.device
-                if probs.device.type == "mps":
-                    probs = probs.to("cpu")
-                item_next = torch.multinomial(probs, num_samples=1)
-                probs = probs.to(inf_device)
-                item_next = item_next.to(inf_device)
+                item_next = torch.multinomial(probs, num_samples=1).to(torch.int32)
                 item_next += logit_start_idx
                 x_coarse_in = torch.cat((x_coarse_in, item_next[None]), dim=1)
                 x_in = torch.cat((x_in, item_next[None]), dim=1)
@@ -777,16 +769,10 @@ def generate_fine(
                 else:
                     relevant_logits = logits[0, :, :CODEBOOK_SIZE] / temp
                     probs = F.softmax(relevant_logits, dim=-1)
-                    # multinomial bugged on mps: shuttle to cpu if necessary
-                    inf_device = probs.device
-                    if probs.device.type == "mps":
-                        probs = probs.to("cpu")
-                    codebook_preds = torch.hstack(
-                        [
-                            torch.multinomial(probs[nnn], num_samples=1).to(inf_device)
-                            for nnn in range(rel_start_fill_idx, 1024)
-                        ]
-                    )
+                    codebook_preds = torch.multinomial(
+                        probs[rel_start_fill_idx:1024], num_samples=1
+                    ).reshape(-1)
+                codebook_preds = codebook_preds.to(torch.int32)
                 in_buffer[0, rel_start_fill_idx:, nn] = codebook_preds
                 del logits, codebook_preds
             # transfer over info into model_in and convert to numpy

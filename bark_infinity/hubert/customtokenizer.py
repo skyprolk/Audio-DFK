@@ -1,3 +1,9 @@
+"""
+Custom tokenizer model.
+Author: https://www.github.com/gitmylo/
+License: MIT
+"""
+
 import json
 import os.path
 from zipfile import ZipFile
@@ -89,7 +95,7 @@ class CustomTokenizer(nn.Module):
         optimizer.step()
 
     def save(self, path):
-        info_path = os.path.basename(path) + '/.info'
+        info_path = '.'.join(os.path.basename(path).split('.')[:-1]) + '/.info'
         torch.save(self.state_dict(), path)
         data_from_model = Data(self.input_size, self.hidden_size, self.output_size, self.version)
         with ZipFile(path, 'a') as model_zip:
@@ -98,7 +104,9 @@ class CustomTokenizer(nn.Module):
 
     @staticmethod
     def load_from_checkpoint(path, map_location: MAP_LOCATION = None):
-        old = True
+        # print(f"Loading model from {path}...")
+        # old = True
+        old = False
         with ZipFile(path) as model_zip:
             filesMatch = [file for file in model_zip.namelist() if file.endswith('/.info')]
             file = filesMatch[0] if filesMatch else None
@@ -110,7 +118,9 @@ class CustomTokenizer(nn.Module):
             model = CustomTokenizer()
         else:
             model = CustomTokenizer(data_from_model.hidden_size, data_from_model.input_size, data_from_model.output_size, data_from_model.version)
-        model.load_state_dict(torch.load(path, map_location))
+        model.load_state_dict(torch.load(path))
+        if map_location:
+            model = model.to(map_location)
         return model
 
 
@@ -146,10 +156,10 @@ def auto_train(data_path, save_path='model.pth', load_model: str | None = None, 
     data_x, data_y = [], []
 
     if load_model and os.path.isfile(load_model):
-        print('Loading model from', load_model)
+        # print('Loading model from', load_model)
         model_training = CustomTokenizer.load_from_checkpoint(load_model, 'cuda')
     else:
-        print('Creating new model.')
+        # print('Creating new model.')
         model_training = CustomTokenizer(version=1).to('cuda')  # Settings for the model to run without lstm
     save_path = os.path.join(data_path, save_path)
     base_save_path = '.'.join(save_path.split('.')[:-1])

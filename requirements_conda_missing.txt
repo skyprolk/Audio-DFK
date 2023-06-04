@@ -1,5 +1,6 @@
 encodec
 rich-argparse
 gradio
-fairseq
 audiolm_pytorch
+universal-startfile
+soundfile
