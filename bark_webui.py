@@ -166,10 +166,11 @@ def parse_extra_args(extra_args_str):
 def clone_voice_gradio(audio_filepath, input_audio_filename_secondary, semantic_step_interval, dest_filename, create_samples_for_clones, even_more_clones):
 
     clone_dir = clone_voice(audio_filepath, input_audio_filename_secondary, dest_filename, semantic_step_interval = semantic_step_interval, progress=gr.Progress(track_tqdm=True), max_retries=1, even_more_clones=even_more_clones)
-    if create_samples_for_clones is True:
-        return clone_dir
-    else:
-        return False
+    return clone_dir
+    # if create_samples_for_clones is True:
+    #    return clone_dir
+    # else:
+    #    return False
 
 
 
@@ -388,6 +389,7 @@ def generate_audio_long_gradio(input, audio_prompt_input, bark_speaker_as_the_pr
 
     npz_files = None
     if specific_npz_folder is not None and specific_npz_folder != '':
+        print(f"Looking for npz files in {specific_npz_folder}")
         npz_files = [f for f in os.listdir(specific_npz_folder) if f.endswith(".npz")]
         npz_files.sort()
         if len(npz_files) == 0:
@@ -733,6 +735,10 @@ def trim_logs():
     with open("gradio_terminal_ouput.log", "w",encoding="utf-8") as f:
         f.writelines(lines)
 
+
+
+where_am_i = os.getcwd()
+
 with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
     gr.Markdown(
         """
@@ -843,8 +849,9 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
                 with gr.Tab("👩‍🎤🎙️ Folder Processing"):
                     gr.Markdown("""Generation a sample for every npz in the directory. If you're testing clones, check the Save Every NPZ checkbox as well.""")
-                    specific_npz_folder = gr.Textbox(label="folder of npz files", value="")
-   
+                    # specific_npz_folder = gr.Textbox(label="folder of npz files", value="")
+                    specific_npz_folder = gr.Textbox(label=f"📁 A directory containing .npz files. Each one will generate the prompt.", info=f"(The full directory path or from {where_am_i}/", value="", placeholder=f"Directory name or path.")
+
 
             with gr.Column(variant="panel",scale=0.25):
                 m("## ...")
@@ -1213,8 +1220,9 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
     generate_event = generate_button.click(generate_audio_long_gradio,inputs=[input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_input], outputs=[audio_output])
 
 
+    clone_button_event = clone_voice_button.click(clone_voice_gradio, inputs=[input_audio_filename, input_audio_filename_secondary, semantic_step_interval, output_voice, create_samples_for_clones, even_more_clones], outputs=dummy)
 
-    clone_voice_button.click(clone_voice_gradio, inputs=[input_audio_filename, input_audio_filename_secondary, semantic_step_interval, output_voice, create_samples_for_clones, even_more_clones], outputs=dummy).success(generate_audio_long_gradio_clones,inputs=[input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, dummy, split_character_jitter, extra_args_input, output_voice], outputs=[audio_output])
+    clone_button_event_success = clone_button_event.success(generate_audio_long_gradio_clones,inputs=[input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, dummy, split_character_jitter, extra_args_input, output_voice], outputs=[audio_output])
     
     
     cancel_button.click(fn=try_to_cancel, inputs=model_checkboxes, outputs=None, cancels=[generate_event])

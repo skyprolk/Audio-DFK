@@ -36,3 +36,5 @@ dependencies:
   - rich
   - gradio
   - nltk
+  - ffmpeg
+  - ffmpeg-python
