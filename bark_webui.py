@@ -934,8 +934,8 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                 with gr.Tab("Simple"):
   
                     m("### higher = more diversity, lower more conservative")
-                    text_temp = gr.Slider(label="text temperature: ", minimum=0.0, maximum=1.0, value = 0.70, interactive = True)
-                    waveform_temp = gr.Slider(label="wave temperature: ", minimum=0.0, maximum=1.0, value=0.70, interactive = True)
+                    text_temp = gr.Slider(label="text temperature: ", minimum=0.01, maximum=2.0, value = 0.70, interactive = True)
+                    waveform_temp = gr.Slider(label="wave temperature: ", minimum=0.01, maximum=2.0, value=0.70, interactive = True)
 
        
                     confused_travolta_mode = gr.Checkbox(label="🕺🕺 Confused Travolta Mode", info="Always generate maximum length. Great for history prompts of music and sounds.", value=False)
@@ -947,10 +947,10 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                     `top_p` 0.90 or 0.95,
                     lower top_p less diverse
                     you don't have to use both.""")
-                    semantic_top_k = gr.Slider(label="semantic_top_k", value=50, minimum=0, maximum=200, step=1)
-                    semantic_top_p = gr.Slider(label="semantic_top_p", value=0.95, minimum=0.0, maximum=1.0)
-                    coarse_top_k = gr.Slider(label="coarse_top_k", value=50, minimum=0, maximum=200, step=1)
-                    coarse_top_p = gr.Slider(label="coarse_top_p", value=0.92, minimum=0.0, maximum=1.0)
+                    semantic_top_k = gr.Slider(label="semantic_top_k", value=0, minimum=0, maximum=300, step=1)
+                    semantic_top_p = gr.Slider(label="semantic_top_p", value=0, minimum=0.0, maximum=1.0)
+                    coarse_top_k = gr.Slider(label="coarse_top_k", value=0, minimum=0, maximum=300, step=1)
+                    coarse_top_p = gr.Slider(label="coarse_top_p", value=0, minimum=0.0, maximum=1.0)
                     m("""## Anecdotally:
                      1. Improves hit rate in random voices.
                      2. Might reduce the weirder outputs.
@@ -1139,8 +1139,8 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
                 with gr.Column(scale=.33, variant="panel"):
                     m("# 🐍🐍 Advanced Options")
                     m("Some of these even work. Type them like you would on a command line.")
-                    m("```--semantic_top_k 50```")
-                    m("```--semantic_min_eos_p 0.05```")
+                    m("```--semantic_top_k 100```")
+                    m("```--semantic_min_eos_p 0.95```")
                 
                 with gr.Column(scale=.33, variant="panel"):
                     m("### 🐍🐍 Raw list of some advanced options that may or may not be implemented or working.")
@@ -1238,7 +1238,7 @@ parser.add_argument('--share', action='store_true', help='Enable share setting.'
 parser.add_argument('--user', type=str, help='User for authentication.')
 parser.add_argument('--password', type=str, help='Password for authentication.')
 parser.add_argument('--listen', action='store_true', help='Server name setting.')
-parser.add_argument('--server_port', type=int, default=7861, help='Port setting.')
+parser.add_argument('--server_port', type=int, default=7860, help='Port setting.')
 parser.add_argument('--no-autolaunch', action='store_false', default=True, help='Disable automatic opening of the app in browser.')
 parser.add_argument('--debug', action='store_true', default=False, help='Enable detailed error messages and extra outputs.')
 parser.add_argument('--incolab', action='store_true', default=False, help='Default for Colab.')
