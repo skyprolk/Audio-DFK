@@ -13,24 +13,33 @@ from bark_infinity import api
 from bark_infinity import text_processing
 import time
 
-#generation.OFFLOAD_CPU = True
-# generation.USE_SMALL_MODELS = False
-# generation.OFFLOAD_CPU = False #benchmarking
+import random 
 
-text_prompts = []
+text_prompts_in_this_file = []
+
+
+
+import torch
+from torch.utils import collect_env
+
+
+
+
+
+try:
+    text_prompts_in_this_file.append(f"It's {text_processing.current_date_time_in_words()}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+    
+text_prompt = """
+    In the beginning the Universe was created. This has made a lot of people very angry and been widely regarded as a bad move. However, Bark is working. 
+"""
+text_prompts_in_this_file.append(text_prompt)
 
 text_prompt = """
-    In the beginning the Universe was created. This has made a lot of people very angry and been widely regarded as a bad move.  
+    A common mistake that people make when trying to design something completely foolproof is to underestimate the ingenuity of complete fools.
 """
-text_prompts.append(text_prompt)
-
-text_prompt = """
-    A common mistake that people make when trying to design something completely foolproof is to underestimate the ingenuity of complete fools. 
-"""
-text_prompts.append(text_prompt)
-
-
-
+text_prompts_in_this_file.append(text_prompt)
 
 def get_group_args(group_name, updated_args):
     # Convert the Namespace object to a dictionary
@@ -47,7 +56,27 @@ def main(args):
     if args.loglevel is not None:
         logger.setLevel(args.loglevel)
 
+    if args.OFFLOAD_CPU is not None:
+        generation.OFFLOAD_CPU = args.OFFLOAD_CPU
+        # print(f"OFFLOAD_CPU is set to {generation.OFFLOAD_CPU}")
+    else:
+        generation.OFFLOAD_CPU = True #default on just in case
+    if args.USE_SMALL_MODELS is not None:
+        generation.USE_SMALL_MODELS = args.USE_SMALL_MODELS
+        # print(f"USE_SMALL_MODELS is set to {generation.USE_SMALL_MODELS}")
+    if args.GLOBAL_ENABLE_MPS is not None:
+        generation.GLOBAL_ENABLE_MPS = args.GLOBAL_ENABLE_MPS
+        # print(f"GLOBAL_ENABLE_MPS is set to {generation.GLOBAL_ENABLE_MPS}")
 
+    if not args.silent:
+        if args.detailed_gpu_report:
+            print(api.startup_status_report(quick=False))
+        elif (not args.text_prompt and not args.prompt_file): # probably a test run, default to show
+            print(api.startup_status_report(quick=True))
+        if args.detailed_hugging_face_cache_report:
+            print(api.hugging_face_cache_report())
+        if args.detailed_cuda_report:
+            print(api.cuda_status_report())
 
     if args.list_speakers:
         api.list_speakers()
@@ -70,8 +99,8 @@ def main(args):
         print(f"  Looks like: {len(text_prompts_to_process)} prompt(s)")
 
     else:
-        print("No text prompt or file provided.")
-        text_prompts_to_process = text_prompts
+        print("No --text_prompt or --prompt_file specified, using test prompt.")
+        text_prompts_to_process = random.sample(text_prompts_in_this_file,2)
 
     things = len(text_prompts_to_process) + args.output_iterations
     if (things > 10):
@@ -79,46 +108,14 @@ def main(args):
             print(
                 f"WARNING: You are about to process {things} prompts. Consider using '--dry-run' to test things first.")
 
-
-
-    """    
-    def preload_models(
-        text_use_gpu=True,
-        text_use_small=False,
-        coarse_use_gpu=True,
-        coarse_use_small=False,
-        fine_use_gpu=True,
-        fine_use_small=False,
-        codec_use_gpu=True,
-        force_reload=False,
-    ):
-    """
     #pprint(args) 
     print("Loading Bark models...")
     if not args.dry_run:
 
         
-        # generation.OFFLOAD_CPU = "OFFLOAD_CPU" in env_config_group
-        # generation.USE_SMALL_MODELS = "USE_SMALL_MODELS" in env_config_group
-        # generation.GLOBAL_ENABLE_MPS = "GLOBAL_ENABLE_MPS" in env_config_group
-
-        if args.OFFLOAD_CPU is not None:
-            generation.OFFLOAD_CPU = args.OFFLOAD_CPU
-            print(f"OFFLOAD_CPU is set to {generation.OFFLOAD_CPU}")
-        else:
-            generation.OFFLOAD_CPU = True #default on just in case
-        if args.USE_SMALL_MODELS is not None:
-            generation.USE_SMALL_MODELS = args.USE_SMALL_MODELS
-            print(f"USE_SMALL_MODELS is set to {generation.USE_SMALL_MODELS}")
-        if args.GLOBAL_ENABLE_MPS is not None:
-            generation.GLOBAL_ENABLE_MPS = args.GLOBAL_ENABLE_MPS
-            print(f"GLOBAL_ENABLE_MPS is set to {generation.GLOBAL_ENABLE_MPS}")
-
-
         generation.preload_models(args.text_use_gpu, args.text_use_small, args.coarse_use_gpu, args.coarse_use_small, args.fine_use_gpu, args.fine_use_small, args.codec_use_gpu, args.force_reload)
 
     print("Done.")
-
 
 
 
@@ -139,9 +136,6 @@ def main(args):
 
             api.generate_audio_long(**args_dict)
     
-
-
-
 
 if __name__ == "__main__":
 

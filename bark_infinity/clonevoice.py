@@ -441,8 +441,7 @@ def load_hubert():
 
 huberts = {}
 
-bark_cloning_large_model = True # TODO: load cloning model from config, allow user to choose
-
+bark_cloning_large_model = True # 
 def load_hubert():
     hubert_path = HuBERTManager.make_sure_hubert_installed()
     model = ('quantifier_V1_hubert_base_ls960_23.pth', 'tokenizer_large.pth') if bark_cloning_large_model else ('quantifier_hubert_base_ls960_14.pth', 'tokenizer.pth')

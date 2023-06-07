@@ -18,9 +18,6 @@ logger.setLevel("INFO")
 from bark_infinity import generation
 from bark_infinity import api
 
-
-
-
 generation.OFFLOAD_CPU = True
 generation.USE_SMALL_MODELS = False
 

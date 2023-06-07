@@ -313,7 +313,7 @@ def generate_text_semantic(
     min_eos_p=0.2,
     max_gen_duration_s=None,
     allow_early_stop=True,
-    use_kv_caching=False,
+    use_kv_caching=True,
     history_prompt_magic=None,
     history_prompt_magic_text=None, # nop
 
@@ -478,7 +478,7 @@ def generate_coarse(
     silent=False,
     max_coarse_history=630,  # min 60 (faster), max 630 (more context)
     sliding_window_len=60,
-    use_kv_caching=False,
+    use_kv_caching=True,
     x_coarse_history_alignment_hack = -2,
 ):
     """Generate coarse audio codes from semantic tokens."""
@@ -863,7 +863,7 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
         print(f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")  # added
         _download(model_info["repo_id"], model_info["file_name"])
     ## added
-    # print(f"Loading {model_key} model from {ckpt_path} to {device} (if offloading 'cpu' here is correct)") # added
+    print(f"Loading {model_key} from {ckpt_path} to {device} ('cpu' is normal with OFFLOAD_CPU)") # added
     checkpoint = torch.load(ckpt_path, map_location=device)
 
     # this is a hack

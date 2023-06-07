@@ -9,8 +9,6 @@ transformers
 ipython
 huggingface_hub>0.14
 rich
-ffmpeg
-ffmpeg-python
 pathvalidate
 gradio
 rich-argparse
@@ -18,3 +16,6 @@ encodec
 fairseq
 audiolm_pytorch
 chardet
+soundfile
+ffmpeg-downloader
+pydub
