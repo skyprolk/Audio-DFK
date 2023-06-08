@@ -1626,7 +1626,7 @@ parser.add_argument('--share', action='store_true', help='Enable share setting.'
 parser.add_argument('--user', type=str, help='User for authentication.')
 parser.add_argument('--password', type=str, help='Password for authentication.')
 parser.add_argument('--listen', action='store_true', help='Server name setting.')
-parser.add_argument('--server_port', type=int, default=7861, help='Port setting.')
+parser.add_argument('--server_port', type=int, default=7860, help='Port setting.')
 parser.add_argument('--no-autolaunch', action='store_false', default=True, help='Disable automatic opening of the app in browser.')
 parser.add_argument('--debug', action='store_true', default=False, help='Enable detailed error messages and extra outputs.')
 parser.add_argument('--incolab', action='store_true', default=False, help='Default for Colab.')

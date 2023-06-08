@@ -1,16 +1,16 @@
-name: bark-infinity-oneclick-nightly
+name: bark-infinity-nightly
 channels:
   - pytorch-nightly
   - nvidia
   - conda-forge
+  - nvidia
 dependencies:
   - python=3.10
   - pip
   - pytorch
   - torchvision
   - torchaudio
-  - pytorch-cuda
-  - cudatoolkit=11.8.0
+  - pytorch-cuda>=2.1.0dev
   - huggingface_hub>0.15
   - boto3
   - funcy
@@ -33,8 +33,9 @@ dependencies:
   - pylint
   - pytest
   - pytest-cov
+  - pysoundfile
   - pathvalidate
   - rich
   - nltk
-  - ffmpeg
-  - ffmpeg-python
+  - pydub
+  

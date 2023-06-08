@@ -4,6 +4,7 @@ import numpy as np
 from .generation import codec_decode, generate_coarse, generate_fine, generate_text_semantic, SAMPLE_RATE
 from .config import logger, console, console_file, get_default_values, load_all_defaults, VALID_HISTORY_PROMPT_DIRS
 from scipy.io.wavfile import write as write_wav
+from huggingface_hub import scan_cache_dir
 import scipy
 
 
@@ -17,6 +18,11 @@ import re
 import torch
 import datetime
 import random
+import sys
+
+
+from torch.utils import collect_env
+
 
 import time
 from bark_infinity import generation
@@ -32,7 +38,7 @@ from tqdm import tqdm
 from bark_infinity import text_processing
 
 
-
+import ctypes
 from pydub import AudioSegment
 
 
@@ -46,42 +52,63 @@ gradio_try_to_cancel = False
 done_cancelling = False
 
 
-import torch
 
-def gpu_status_report(quick=False):
+
+
+def cuda_status_report():
+
+    # print(torch.__config__.show(), torch.cuda.get_device_properties(0))
+    status_report_string = "=== torch.__config__.show() ===\n"
+    status_report_string += torch.__config__.show()
+    status_report_string += "\n=== torch.cuda.get_device_properties(0) ===\n"
+    status_report_string += str(torch.cuda.get_device_properties(0))
+
+    # pytorch/torch/utils/collect_env.py get_pretty_env_info()
+    status_report_string += "\n=== torch.utils.collect_env.get_pretty_env_info() ===\n"
+    status_report_string += collect_env.get_pretty_env_info()
+
+    return status_report_string
+
+def gpu_status_report(quick=False, gpu_no_details=False):
     status_report_string = "" 
 
     if torch.cuda.is_available():
         device = torch.device("cuda") 
 
-        status_report_string += "=== GPU Information ===\n"
-        status_report_string += f"GPU Device: {torch.cuda.get_device_name(device)}\n"
-        if not quick:
-            status_report_string += f"Number of GPUs: {torch.cuda.device_count()}\n"
-            status_report_string += f"Current GPU id: {torch.cuda.current_device()}\n"
-            status_report_string += f"GPU Capability: {torch.cuda.get_device_capability(device)}\n"
-            status_report_string += f"Supports Tensor Cores: {torch.cuda.get_device_properties(device).major >= 7}\n"
+        if gpu_no_details:
+            status_report_string += f"{torch.cuda.get_device_name(device)}\n"
+        else: 
+            status_report_string += "=== GPU Information ===\n"
+            status_report_string += f"GPU Device: {torch.cuda.get_device_name(device)}\n"
+            if not quick:
+                status_report_string += f"Number of GPUs: {torch.cuda.device_count()}\n"
+                status_report_string += f"Current GPU id: {torch.cuda.current_device()}\n"
+                status_report_string += f"GPU Capability: {torch.cuda.get_device_capability(device)}\n"
+                status_report_string += f"Supports Tensor Cores: {torch.cuda.get_device_properties(device).major >= 7}\n"
 
-        props = torch.cuda.get_device_properties(device)
-        status_report_string += f"Total memory: {props.total_memory / (1024 ** 3)} GB\n"
+            props = torch.cuda.get_device_properties(device)
+            status_report_string += f"Total memory: {props.total_memory / (1024 ** 3)} GB\n"
 
-        if not quick:
-            status_report_string += f"GPU Cores: {props.multi_processor_count}\n"
+            if not quick:
+                status_report_string += f"GPU Cores: {props.multi_processor_count}\n"
 
-            status_report_string += "\n=== Current GPU Memory ===\n"
+                status_report_string += "\n=== Current GPU Memory ===\n"
 
-            current_memory_allocated = torch.cuda.memory_allocated(device) / 1e9
-            status_report_string += f"Current memory allocated: {current_memory_allocated} GB\n"
+                current_memory_allocated = torch.cuda.memory_allocated(device) / 1e9
+                status_report_string += f"Current memory allocated: {current_memory_allocated} GB\n"
 
-            max_memory_allocated = torch.cuda.max_memory_allocated(device) / 1e9
-            status_report_string += f"Max memory allocated during run: {max_memory_allocated} GB\n"
+                max_memory_allocated = torch.cuda.max_memory_allocated(device) / 1e9
+                status_report_string += f"Max memory allocated during run: {max_memory_allocated} GB\n"
 
 
-        status_report_string += f"CUDA Version: {torch.version.cuda}\n"
-        status_report_string += f"PyTorch Version: {torch.__version__}\n"
+            status_report_string += f"CUDA Version: {torch.version.cuda}\n"
+            status_report_string += f"PyTorch Version: {torch.__version__}\n"
 
     else:
-        status_report_string += "No CUDA device is detected.\n"
+        if gpu_no_details:
+            status_report_string += "CPU or non CUDA device.\n"
+        else:
+            status_report_string += "No CUDA device is detected.\n"
 
     return status_report_string
 
@@ -108,10 +135,9 @@ def gpu_max_memory():
         device = torch.device("cuda") 
         props = torch.cuda.get_device_properties(device) 
         return(props.total_memory / (1024 ** 3))
-       
+
     else:
         return None
-
 
 
 def text_to_semantic(
@@ -486,7 +512,8 @@ def write_seg_wav(filepath, audio_arr, **kwargs):
 
 
 
-def write_audiofile(output_filepath, audio_arr, **kwargs):
+
+def write_audiofile_old(output_filepath, audio_arr, **kwargs):
     output_filepath = generate_unique_filepath(output_filepath)
 
     dry_run =  kwargs.get('dry_run', False)
@@ -496,12 +523,21 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
 
     output_format = kwargs.get('output_format', None)
 
-    # print(f"output_format is {output_format}")
-    # print(f"output_filepath is {output_filepath}")
+    output_format_bitrate = kwargs.get('output_format_bitrate', None)
 
-    if output_format is None: 
+    output_format_ffmpeg_parameters = kwargs.get('output_format_ffmpeg_parameters', None)
+
+    if output_format is None or output_format == '': 
         output_format = 'mp3'
 
+    if output_format_bitrate is None or output_format_bitrate == '':
+        output_format_bitrate = '64k'
+
+    ffmpeg_parameters = None
+    if output_format_ffmpeg_parameters is not None and output_format_ffmpeg_parameters != '':
+        ffmpeg_parameters = output_format_ffmpeg_parameters
+
+        
     if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
         temp_wav = f"{output_filepath}.tmp.wav"
         # print(f"temp_wav is {temp_wav}")
@@ -510,8 +546,15 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
         write_wav(temp_wav, SAMPLE_RATE, audio_arr) if not dry_run else None
         if dry_run is not True:
             audio = AudioSegment.from_wav(temp_wav)
+
+            # sample_rate, wav_sample = scipy_wavfile.read(temp_wav)
+            # print(f"sample_rate is {sample_rate}") 
+            # audio = AudioSegment(data=wav_sample.tobytes(),
+            #                    sample_width=2,
+            #                    frame_rate=sample_rate, channels=1)
+            
             if output_format == 'mp4':
-                audio.export(output_filepath, format="mp4", codec="aac")
+                audio.export(output_filepath, format="mp4", codec="aac", bitrate=output_format_bitrate)
             else:
                 audio.export(output_filepath, format=output_format)
             os.remove(temp_wav)
@@ -543,6 +586,56 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
 
     logger.info(f"  .{output_format} saved to {output_filepath} {dry_text}")
     """
+
+def parse_ffmpeg_parameters(parameters):
+    # Split the parameters string based on 'QQQQQ'
+    parsed_parameters = parameters.split('QQQQQ')
+
+    # Replace 'DDDDD' with '-'
+    parsed_parameters = [param.replace('DDDDD', '-') for param in parsed_parameters]
+
+    # Strip leading/trailing white spaces from each parameter
+    parsed_parameters = [param.strip() for param in parsed_parameters]
+
+    # Print debug information
+    print('Final command for ffmpeg (without QQQQQ, DDDDD replaced by -):')
+    print(' '.join(parsed_parameters))
+
+    return parsed_parameters
+
+
+
+def write_audiofile(output_filepath, audio_arr, **kwargs):
+    output_filepath = generate_unique_filepath(output_filepath)
+
+    dry_run = kwargs.get('dry_run', False)
+    dry_text = '(dry run)' if dry_run else ''
+
+    output_format = kwargs.get('output_format', 'mp3')
+    output_format_bitrate = kwargs.get('output_format_bitrate', '64k')
+    output_format_ffmpeg_parameters = kwargs.get('output_format_ffmpeg_parameters')
+
+    ffmpeg_parameters = None
+    if output_format_ffmpeg_parameters is not None and output_format_ffmpeg_parameters != '':
+        ffmpeg_parameters = []
+        parameters = parse_ffmpeg_parameters(output_format_ffmpeg_parameters)
+
+    if output_format in ['mp3', 'ogg', 'flac', 'mp4']:
+        temp_wav = f"{output_filepath}.tmp.wav"
+        if not dry_run:
+            write_wav(temp_wav, SAMPLE_RATE, audio_arr)
+            audio = AudioSegment.from_wav(temp_wav)
+            if output_format == 'mp4':
+                audio.export(output_filepath, format="mp4", codec="aac", bitrate=output_format_bitrate)
+            elif output_format_ffmpeg_parameters:
+                audio.export(output_filepath, format=output_format, bitrate=output_format_bitrate, parameters=ffmpeg_parameters)
+            else:
+                audio.export(output_filepath, format=output_format, bitrate=output_format_bitrate)
+            os.remove(temp_wav)
+    elif not dry_run:
+        write_wav(output_filepath, SAMPLE_RATE, audio_arr)
+
+    logger.info(f"  .{output_format} saved to {output_filepath} {dry_text}")
 
 
 
@@ -1852,9 +1945,9 @@ def history_prompt_detailed_report(history_prompt, token_samples=3):
         print(f"Error generating Fine Report: {str(e)}")
 
 
-def startup_status_report():
+def startup_status_report(quick=True, gpu_no_details=False):
 
-    status = gpu_status_report(quick=True)
+    status = gpu_status_report(quick=quick, gpu_no_details=gpu_no_details)
 
     status += (f"\nOFFLOAD_CPU: {generation.OFFLOAD_CPU} (Default is True)")
     status += (f"\nUSE_SMALL_MODELS: {generation.USE_SMALL_MODELS} (Default is False)")
@@ -1862,7 +1955,7 @@ def startup_status_report():
     XDG = os.getenv('XDG_CACHE_HOME')
     if XDG is not None:
         status += (f"\nXDG_CACHE_HOME (Model Override Directory) {os.getenv('XDG_CACHE_HOME')}")
-    status += (f"\nBark Model Location: {generation.CACHE_DIR}")
+    status += (f"\nBark Model Location: {generation.CACHE_DIR} (Env var 'XDG_CACHE_HOME' to override)")
 
     hugging_face_home = os.getenv("HF_HOME")
     if hugging_face_home:
@@ -1873,3 +1966,4 @@ def startup_status_report():
 def hugging_face_cache_report():
     hf_cache_info = scan_cache_dir()
     return hf_cache_info
+

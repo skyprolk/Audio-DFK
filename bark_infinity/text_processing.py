@@ -10,7 +10,7 @@ from typing import List
 
 import re
 import textwrap
-
+from datetime import datetime
 
 from rich.pretty import pprint
 from rich.table import Table
@@ -26,6 +26,65 @@ import logging
 logger = logging.getLogger(__name__)
 
 import re
+
+
+
+
+def ordinal(n):
+    """Add ordinal suffix to a number"""
+    return str(n) + ("th" if 4<=n%100<=20 else {1:"st",2:"nd",3:"rd"}.get(n%10, "th"))
+
+def time_of_day(hour):
+    """Define time of day based on hour"""
+    if 5 <= hour < 12:
+        return "in the morning"
+    elif 12 <= hour < 17:
+        return "in the afternoon"
+    elif 17 <= hour < 21:
+        return "in the evening"
+    else:
+        return "at night"
+    
+def current_date_time_in_words():
+    now = datetime.now()
+    day_of_week = now.strftime('%A')
+    month = now.strftime('%B')
+    day = ordinal(now.day)
+    year = now.year
+    hour = now.hour
+    minute = now.minute
+
+    time_of_day_str = time_of_day(hour)
+
+    if minute == 0:
+        minute_str = ""
+    elif minute == 1:
+        minute_str = "1 minute past"
+    elif minute == 15:
+        minute_str = "quarter past"
+    elif minute == 30:
+        minute_str = "half past"
+    elif minute == 45:
+        minute_str = "quarter to "
+        hour += 1
+    elif minute < 30:
+        minute_str = str(minute) + " minutes past"
+    else:
+        minute_str = str(60 - minute) + " minutes to "
+        hour += 1
+
+    hour_str = str(hour if hour <= 12 else hour - 12)
+
+    if minute_str:
+        time_str = minute_str + " " + hour_str
+    else:
+        time_str = hour_str + " o'clock"
+
+
+    time_string = f"{day_of_week}, {month} {day}, {year}, {time_str} {time_of_day_str}."
+
+    # Prepare final output
+    return time_string + " " + f" And if you're hearing this, Bark is working. But you didn't provide any text."
 
 
 #Let's keep comptability for now in case people are used to this
@@ -217,7 +276,7 @@ def split_text(text: str, split_type: Optional[str] = None, split_type_quantity 
             #print(split_type_to_function[split_type](current_segment, split_type=split_type_value_type, split_type_quantity=1, split_type_string=split_type_string))
             split_type_quantity_found = len(split_type_to_function[split_type_value_type](current_segment, split_type=split_type_value_type, split_type_quantity=1, split_type_string=split_type_string))
             #print(f"I see {split_type_quantity_found} {split_type_value_type} in {current_segment}")
-            if split_type_quantity_found >= split_type_quantity:
+            if split_type_quantity_found >= int(split_type_quantity):
                 final_segmented_text.append(current_segment)
                 split_type_quantity_found = 0
                 current_segment = ''

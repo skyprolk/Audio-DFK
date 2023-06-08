@@ -1,9 +1,8 @@
-name: bark-infinity-oneclick
+name: bark-infinity
 channels:
-  - defaults
   - pytorch
-  - nvidia
   - conda-forge
+  - nvidia
 dependencies:
   - python=3.10
   - pip
@@ -11,8 +10,7 @@ dependencies:
   - torchvision
   - torchaudio
   - pytorch-cuda=11.8
-  - cudatoolkit=11.8.0
-  - huggingface_hub>0.14
+  - huggingface_hub>=0.15
   - boto3
   - funcy
   - numpy
@@ -37,5 +35,12 @@ dependencies:
   - pathvalidate
   - rich
   - nltk
-  - ffmpeg
-  - ffmpeg-python
+  - pydub
+  - pywin32
+  - pip:
+    - encodec
+    - rich-argparse
+    - gradio
+    - audiolm_pytorch
+    - universal-startfile
+    - ffmpeg-downloader
