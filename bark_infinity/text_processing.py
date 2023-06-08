@@ -84,7 +84,7 @@ def current_date_time_in_words():
     time_string = f"{day_of_week}, {month} {day}, {year}, {time_str} {time_of_day_str}."
 
     # Prepare final output
-    return time_string + " " + f" And if you're hearing this, Bark is working. But you didn't provide any text."
+    return time_string
 
 
 #Let's keep comptability for now in case people are used to this

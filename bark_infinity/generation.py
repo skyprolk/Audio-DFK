@@ -624,7 +624,6 @@ def generate_text_semantic(
     max_gen_duration_s=None,
     allow_early_stop=True,
     use_kv_caching=True,
-    use_kv_caching=False,
     use_mirostat_sampling=False,
     # tau = 31100.0,
     tau = 5.0,
@@ -1093,7 +1092,6 @@ def generate_text_semantic_debug(
     min_eos_p=0.2,
     max_gen_duration_s=None,
     allow_early_stop=True,
-    use_kv_caching=False,
     history_prompt_magic=None,
     history_prompt_magic_text=None, # nop
 

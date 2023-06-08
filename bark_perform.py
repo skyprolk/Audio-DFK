@@ -13,26 +13,24 @@ from bark_infinity import api
 from bark_infinity import text_processing
 import time
 
-import random 
+import random
 
 text_prompts_in_this_file = []
-
 
 
 import torch
 from torch.utils import collect_env
 
 
-
-
-
 try:
-    text_prompts_in_this_file.append(f"It's {text_processing.current_date_time_in_words()}")
+    text_prompts_in_this_file.append(
+        f"It's {text_processing.current_date_time_in_words()} And if you're hearing this, Bark is working. But you didn't provide any text"
+    )
 except Exception as e:
     print(f"An error occurred: {e}")
-    
+
 text_prompt = """
-    In the beginning the Universe was created. This has made a lot of people very angry and been widely regarded as a bad move. However, Bark is working. 
+    In the beginning the Universe was created. This has made a lot of people very angry and been widely regarded as a bad move. However, Bark is working.
 """
 text_prompts_in_this_file.append(text_prompt)
 
@@ -40,6 +38,7 @@ text_prompt = """
     A common mistake that people make when trying to design something completely foolproof is to underestimate the ingenuity of complete fools.
 """
 text_prompts_in_this_file.append(text_prompt)
+
 
 def get_group_args(group_name, updated_args):
     # Convert the Namespace object to a dictionary
@@ -51,17 +50,16 @@ def get_group_args(group_name, updated_args):
             group_args[key] = value
     return group_args
 
-def main(args):
 
+def main(args):
     if args.loglevel is not None:
         logger.setLevel(args.loglevel)
-
 
     if args.OFFLOAD_CPU is not None:
         generation.OFFLOAD_CPU = args.OFFLOAD_CPU
         # print(f"OFFLOAD_CPU is set to {generation.OFFLOAD_CPU}")
     else:
-        generation.OFFLOAD_CPU = True #default on just in case
+        generation.OFFLOAD_CPU = True  # default on just in case
     if args.USE_SMALL_MODELS is not None:
         generation.USE_SMALL_MODELS = args.USE_SMALL_MODELS
         # print(f"USE_SMALL_MODELS is set to {generation.USE_SMALL_MODELS}")
@@ -72,13 +70,12 @@ def main(args):
     if not args.silent:
         if args.detailed_gpu_report:
             print(api.startup_status_report(quick=False))
-        elif (not args.text_prompt and not args.prompt_file): # probably a test run, default to show
+        elif not args.text_prompt and not args.prompt_file:  # probably a test run, default to show
             print(api.startup_status_report(quick=True))
         if args.detailed_hugging_face_cache_report:
             print(api.hugging_face_cache_report())
         if args.detailed_cuda_report:
             print(api.cuda_status_report())
-
 
     if args.list_speakers:
         api.list_speakers()
@@ -95,31 +92,40 @@ def main(args):
         if text_file is None:
             logger.error(f"Error loading file: {args.prompt_file}")
             return
-        text_prompts_to_process = text_processing.split_text(text_processing.load_text(
-            args.prompt_file), args.split_input_into_separate_prompts_by, args.split_input_into_separate_prompts_by_value)
+        text_prompts_to_process = text_processing.split_text(
+            text_processing.load_text(args.prompt_file),
+            args.split_input_into_separate_prompts_by,
+            args.split_input_into_separate_prompts_by_value,
+        )
         print(f"\nProcessing file: {args.prompt_file}")
         print(f"  Looks like: {len(text_prompts_to_process)} prompt(s)")
 
     else:
         print("No --text_prompt or --prompt_file specified, using test prompt.")
-        text_prompts_to_process = random.sample(text_prompts_in_this_file,2)
+        text_prompts_to_process = random.sample(text_prompts_in_this_file, 2)
 
     things = len(text_prompts_to_process) + args.output_iterations
-    if (things > 10):
+    if things > 10:
         if args.dry_run is False:
             print(
-                f"WARNING: You are about to process {things} prompts. Consider using '--dry-run' to test things first.")
+                f"WARNING: You are about to process {things} prompts. Consider using '--dry-run' to test things first."
+            )
 
-    #pprint(args) 
+    # pprint(args)
     print("Loading Bark models...")
     if not args.dry_run:
-
-        
-        generation.preload_models(args.text_use_gpu, args.text_use_small, args.coarse_use_gpu, args.coarse_use_small, args.fine_use_gpu, args.fine_use_small, args.codec_use_gpu, args.force_reload)
+        generation.preload_models(
+            args.text_use_gpu,
+            args.text_use_small,
+            args.coarse_use_gpu,
+            args.coarse_use_small,
+            args.fine_use_gpu,
+            args.fine_use_small,
+            args.codec_use_gpu,
+            args.force_reload,
+        )
 
     print("Done.")
-
-
 
     for idx, text_prompt in enumerate(text_prompts_to_process, start=1):
         if len(text_prompts_to_process) > 1:
@@ -137,10 +143,9 @@ def main(args):
             args_dict = vars(args)
 
             api.generate_audio_long(**args_dict)
-    
+
 
 if __name__ == "__main__":
-
     parser = config.create_argument_parser()
 
     args = parser.parse_args()
@@ -149,5 +154,3 @@ if __name__ == "__main__":
 
     namespace_args = argparse.Namespace(**updated_args)
     main(namespace_args)
-
-
