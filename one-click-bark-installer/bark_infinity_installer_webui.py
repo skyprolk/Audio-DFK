@@ -9,7 +9,12 @@ import sys
 script_dir = os.getcwd()
 conda_env_path = os.path.join(script_dir, "installer_files", "env")
 
+print(f"script_dir: {script_dir}")
 
+print(f"conda_env_path: {conda_env_path}")
+
+conda_environment_yml = os.path.join(script_dir, "bark")
+conda_environment_yml_file = f"{conda_environment_yml}\environment-cuda.yml"
 # CMD_FLAGS = '--share'
 
 CMD_FLAGS = ''
@@ -102,22 +107,24 @@ def install_dependencies():
         print_big_message("This installer is only for NVIDIA at the moment. Just testing.")
 
     if os.path.exists("bark/"): 
-        os.chdir("bark/")
-        run_cmd("conda install -n base -y conda-libmamba-solver", assert_success=True, environment=True)
-        run_cmd(f"conda env update -p \"{conda_env_path}\" -f environment-cuda.yml --prune --solver=libmamba", assert_success=True, environment=True)
-        run_cmd("pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl", assert_success=True, environment=False)
-        run_cmd("ffdl install --add-path", assert_success=False, environment=True)
+
+        run_cmd(f"conda env update -p \"{conda_env_path}\" -f {conda_environment_yml_file}  --prune --solver=libmamba", assert_success=True, environment=True)
     else:
         run_cmd("conda install -n base -y conda-libmamba-solver", assert_success=True, environment=True)
         run_cmd("conda install -y -k git --solver=libmamba", assert_success=True, environment=True)
+        run_cmd("conda install -y -k pip --solver=libmamba", assert_success=True, environment=True)
+        run_cmd("pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl", assert_success=False, environment=True)
+
         run_cmd("git clone https://github.com/JonathanFly/bark.git", assert_success=True, environment=True)
     
-        run_cmd(f"conda env update -p \"{conda_env_path}\" -f environment-cuda.yml --prune --solver=libmamba", assert_success=True, environment=True)
-        run_cmd("conda install -c \"nvidia/label/cuda-11.8.0\" cuda-toolkit --solver=libmamba", assert_success=True, environment=True)
-        run_cmd("pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl", assert_success=True, environment=False)
+        run_cmd(f"conda env update -p \"{conda_env_path}\" -f {conda_environment_yml_file} --prune --solver=libmamba", assert_success=True, environment=True)
+
+        # this fights with conda-forge cuda-toolkit and keeps flipping the lirary versions
+        # run_cmd("conda install -y -c \"nvidia/label/cuda-11.8.0\" cuda-toolkit --solver=libmamba", assert_success=False, environment=True) # later for more performance
+
         run_cmd("ffdl install --add-path", assert_success=False, environment=True)
 
-    print(f"If this is your first time installing Bark, after this installation is done, close down the entire terminal. Close the whole window. Then click on start_bark_infinity.bat in a fresh explorer window. This seems to be necessary for FFMPEG to be detected after installation.")
+    print(f"\n\nIf this is your first time installing Bark, after this installation is done, close this window.\n\nClose any text terminals open.\n\nThen click on start_bark_infinity.bat in a fresh explorer window. This seems to be necessary for FFMPEG to be detected after installation. Then click on \"start_up_already_installed_bark_infinity_windows.bat\"")
     return
     
 

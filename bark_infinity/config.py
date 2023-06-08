@@ -33,7 +33,7 @@ DEFAULTS = {
         ('history_prompt', {'value': None, 'type': str, 'help': "Text prompt to generate audio from."}),
         ('prompt_file', {'value': None, 'type': str, 'help': "Text prompt to generate audio from."}),
         ('split_input_into_separate_prompts_by', {'value': None, 'type': str, 'help': "Split input into separate prompts, each with it's own wav file.", 'choices': CHOICES['split_options']}),
-        ('split_input_into_separate_prompts_by_value', {'value': None, 'type': str, 'help': "The number of words, lines, sentences, rhymes, alliterations, or the value of the specific string to split your prompts by."}),
+        ('split_input_into_separate_prompts_by_value', {'value': None, 'type': str, 'help': "The number of words, lines, sentences, rhymes, alliterations, or the value of the specific string to split your text-file prompts by. Much like in_groups_of_size is in prompts."}),
     ],
         'output': [
         ('always_save_speaker', {'value': True, 'type': bool, 'help': "Save the speaker.npz files for every generated audio clip. Even history prompts, because the voice will be slightly different after the generation if you save it again."}),
