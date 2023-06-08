@@ -276,7 +276,7 @@ def split_text(text: str, split_type: Optional[str] = None, split_type_quantity 
             #print(split_type_to_function[split_type](current_segment, split_type=split_type_value_type, split_type_quantity=1, split_type_string=split_type_string))
             split_type_quantity_found = len(split_type_to_function[split_type_value_type](current_segment, split_type=split_type_value_type, split_type_quantity=1, split_type_string=split_type_string))
             #print(f"I see {split_type_quantity_found} {split_type_value_type} in {current_segment}")
-            if split_type_quantity_found >= split_type_quantity:
+            if split_type_quantity_found >= int(split_type_quantity):
                 final_segmented_text.append(current_segment)
                 split_type_quantity_found = 0
                 current_segment = ''
