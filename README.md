@@ -180,7 +180,7 @@ Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SP
                        [--split_character_jitter SPLIT_CHARACTER_JITTER] [--add_silence_between_segments ADD_SILENCE_BETWEEN_SEGMENTS]
                        [--process_text_by_each {word,line,sentence,char,string,random,regex}] [--group_text_by_counting {word,line,sentence,char,string,random,regex}]
                        [--in_groups_of_size IN_GROUPS_OF_SIZE] [--split_type_string SPLIT_TYPE_STRING] [--prompt_text_prefix PROMPT_TEXT_PREFIX]
-                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE] [--seperate_prompts SEPERATE_PROMPTS] [--semantic_history_only SEMANTIC_HISTORY_ONLY]
+                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE] [--separate_prompts separate_prompts] [--semantic_history_only SEMANTIC_HISTORY_ONLY]
                        [--absolute_semantic_history_only ABSOLUTE_SEMANTIC_HISTORY_ONLY] [--absolute_semantic_history_only_every_x ABSOLUTE_SEMANTIC_HISTORY_ONLY_EVERY_X]
                        [--semantic_history_starting_weight SEMANTIC_HISTORY_STARTING_WEIGHT] [--semantic_history_future_weight SEMANTIC_HISTORY_FUTURE_WEIGHT]
                        [--semantic_prev_segment_weight SEMANTIC_PREV_SEGMENT_WEIGHT] [--coarse_history_starting_weight COARSE_HISTORY_STARTING_WEIGHT]

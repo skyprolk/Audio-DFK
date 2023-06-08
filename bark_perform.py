@@ -47,7 +47,7 @@ def main(args):
     if args.loglevel is not None:
         logger.setLevel(args.loglevel)
 
-
+    print(api.startup_status_report())
 
     if args.list_speakers:
         api.list_speakers()
@@ -153,3 +153,5 @@ if __name__ == "__main__":
 
     namespace_args = argparse.Namespace(**updated_args)
     main(namespace_args)
+
+

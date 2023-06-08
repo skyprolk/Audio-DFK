@@ -4,8 +4,10 @@ import numpy as np
 from .generation import codec_decode, generate_coarse, generate_fine, generate_text_semantic, SAMPLE_RATE
 from .config import logger, console, console_file, get_default_values, load_all_defaults, VALID_HISTORY_PROMPT_DIRS
 from scipy.io.wavfile import write as write_wav
-from scipy.io import wavfile
+import scipy
 
+
+from huggingface_hub import scan_cache_dir
 
 import tempfile
 import copy
@@ -42,6 +44,75 @@ global done_cancelling
 
 gradio_try_to_cancel = False
 done_cancelling = False
+
+
+import torch
+
+def gpu_status_report(quick=False):
+    status_report_string = "" 
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda") 
+
+        status_report_string += "=== GPU Information ===\n"
+        status_report_string += f"GPU Device: {torch.cuda.get_device_name(device)}\n"
+        if not quick:
+            status_report_string += f"Number of GPUs: {torch.cuda.device_count()}\n"
+            status_report_string += f"Current GPU id: {torch.cuda.current_device()}\n"
+            status_report_string += f"GPU Capability: {torch.cuda.get_device_capability(device)}\n"
+            status_report_string += f"Supports Tensor Cores: {torch.cuda.get_device_properties(device).major >= 7}\n"
+
+        props = torch.cuda.get_device_properties(device)
+        status_report_string += f"Total memory: {props.total_memory / (1024 ** 3)} GB\n"
+
+        if not quick:
+            status_report_string += f"GPU Cores: {props.multi_processor_count}\n"
+
+            status_report_string += "\n=== Current GPU Memory ===\n"
+
+            current_memory_allocated = torch.cuda.memory_allocated(device) / 1e9
+            status_report_string += f"Current memory allocated: {current_memory_allocated} GB\n"
+
+            max_memory_allocated = torch.cuda.max_memory_allocated(device) / 1e9
+            status_report_string += f"Max memory allocated during run: {max_memory_allocated} GB\n"
+
+
+        status_report_string += f"CUDA Version: {torch.version.cuda}\n"
+        status_report_string += f"PyTorch Version: {torch.__version__}\n"
+
+    else:
+        status_report_string += "No CUDA device is detected.\n"
+
+    return status_report_string
+
+
+
+def gpu_memory_report(quick=False):
+    status_report_string = "" 
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda") 
+
+        status_report_string += "=== CUDA Memory Summary ===\n"
+        status_report_string +=  torch.cuda.memory_summary(device)
+
+    else:
+        status_report_string += "No CUDA device is detected.\n"
+
+    return status_report_string
+
+
+def gpu_max_memory():
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda") 
+        props = torch.cuda.get_device_properties(device) 
+        return(props.total_memory / (1024 ** 3))
+       
+    else:
+        return None
+
+
 
 def text_to_semantic(
     text: str,
@@ -297,7 +368,7 @@ def determine_output_filename(special_one_off_path = None, **kwargs):
     output_filename = kwargs.get('output_filename',None)
 
 
-    # TODO: Offer a config for long clips to show only the original starting prompt. I prefer seeing each clip seperately names for easy referencing myself.
+    # TODO: Offer a config for long clips to show only the original starting prompt. I prefer seeing each clip separately names for easy referencing myself.
     text_prompt = kwargs.get('text_prompt',None) or kwargs.get('text',None) or ''
     history_prompt = kwargs.get('history_prompt_string',None) or 'random'
     text_prompt = text_prompt.strip()
@@ -532,20 +603,41 @@ def generate_audio_barki(
     if confused_travolta_mode:
         kwargs["semantic_allow_early_stop"] = False
 
-    semantic_tokens = call_with_non_none_params(
-        generate_text_semantic,
-        text=text,
-        history_prompt=history_prompt,
-        temp=semantic_temp,
-        top_k=kwargs.get("semantic_top_k", None),
-        top_p=kwargs.get("semantic_top_p", None),
-        silent=silent,
-        min_eos_p = kwargs.get("semantic_min_eos_p", None),
-        max_gen_duration_s = kwargs.get("semantic_max_gen_duration_s", None),
-        allow_early_stop = kwargs.get("semantic_allow_early_stop", True),
-        # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
-        use_kv_caching=True,
-    )
+
+    semantic_tokens = None
+    bark_speaker_as_the_prompt = kwargs.get("bark_speaker_as_the_prompt", None)
+
+    print(f"prompt is {bark_speaker_as_the_prompt}")
+    if bark_speaker_as_the_prompt is not None:
+
+
+
+        bark_speaker_as_the_prompt = kwargs.get("bark_speaker_as_the_prompt")
+        bark_speaker_as_the_prompt = load_npz(bark_speaker_as_the_prompt)
+        if "semantic_prompt" in bark_speaker_as_the_prompt:
+            print(f"bark_speaker_as_the_prompt is {bark_speaker_as_the_prompt}")
+            semantic_tokens = bark_speaker_as_the_prompt["semantic_prompt"]
+        else:
+            print(f"cannot find semantic_prompt in bark_speaker_as_the_prompt")
+    
+
+    if semantic_tokens is None:
+
+        print(f"bark_speaker_as_the_prompt is not in kwargs")
+        semantic_tokens = call_with_non_none_params(
+            generate_text_semantic,
+            text=text,
+            history_prompt=history_prompt,
+            temp=semantic_temp,
+            top_k=kwargs.get("semantic_top_k", None),
+            top_p=kwargs.get("semantic_top_p", None),
+            silent=silent,
+            min_eos_p = kwargs.get("semantic_min_eos_p", None),
+            max_gen_duration_s = kwargs.get("semantic_max_gen_duration_s", None),
+            allow_early_stop = kwargs.get("semantic_allow_early_stop", True),
+            # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+            use_kv_caching=True,
+        )
 
     # print(f"semantic_tokens is {semantic_tokens}")
 
@@ -971,6 +1063,10 @@ def generate_audio_long(
             segment_text = f"{prompt_text_prefix} {segment_text}"
 
 
+        prompt_text_suffix = kwargs.get("prompt_text_suffix", None)
+        if prompt_text_suffix is not None:
+            segment_text = f"{segment_text} {prompt_text_suffix}"
+
         kwargs["text_prompt"] = segment_text
         timeest = f"{estimated_time:.2f}"
         if estimated_time > 14 or estimated_time < 3:
@@ -1002,11 +1098,11 @@ def generate_audio_long(
 
 
 
-            seperate_prompts = kwargs.get("seperate_prompts", False)
-            seperate_prompts_flipper = kwargs.get("seperate_prompts_flipper", False)
+            separate_prompts = kwargs.get("separate_prompts", False)
+            separate_prompts_flipper = kwargs.get("separate_prompts_flipper", False)
             
-            if seperate_prompts_flipper is True:
-                if seperate_prompts is True:
+            if separate_prompts_flipper is True:
+                if separate_prompts is True:
                     # nice to get actual generation from each speaker 
                     if history_prompt_flipper is True:
                         kwargs['history_prompt'] = None
@@ -1020,7 +1116,7 @@ def generate_audio_long(
                     kwargs['history_prompt'] = history_prompt_for_next_segment
             
             else:
-                if seperate_prompts is True:
+                if separate_prompts is True:
 
                         history_prompt_for_next_segment = None
                         print(" <History prompt disabled for next segment.>")
@@ -1756,3 +1852,24 @@ def history_prompt_detailed_report(history_prompt, token_samples=3):
         print(f"Error generating Fine Report: {str(e)}")
 
 
+def startup_status_report():
+
+    status = gpu_status_report(quick=True)
+
+    status += (f"\nOFFLOAD_CPU: {generation.OFFLOAD_CPU} (Default is True)")
+    status += (f"\nUSE_SMALL_MODELS: {generation.USE_SMALL_MODELS} (Default is False)")
+    status += (f"\nGLOBAL_ENABLE_MPS (Apple): {generation.GLOBAL_ENABLE_MPS} (Default is False)")
+    XDG = os.getenv('XDG_CACHE_HOME')
+    if XDG is not None:
+        status += (f"\nXDG_CACHE_HOME (Model Override Directory) {os.getenv('XDG_CACHE_HOME')}")
+    status += (f"\nBark Model Location: {generation.CACHE_DIR}")
+
+    hugging_face_home = os.getenv("HF_HOME")
+    if hugging_face_home:
+        status += (f"\nHF_HOME: {hugging_face_home}")
+
+    return status
+
+def hugging_face_cache_report():
+    hf_cache_info = scan_cache_dir()
+    return hf_cache_info
