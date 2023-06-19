@@ -1,4 +1,3 @@
-## ADDED
 import os
 
 os.environ["HF_HOME"] = os.getenv(
@@ -11,13 +10,25 @@ os.environ["HF_HOME"] = os.getenv(
 from typing import Dict, Optional, Union
 
 import numpy as np
-from .generation import (
-    codec_decode,
-    generate_coarse,
-    generate_fine,
-    generate_text_semantic,
-    SAMPLE_RATE,
-)
+
+from .generation import get_SUNO_USE_DIRECTML
+
+if get_SUNO_USE_DIRECTML() is True:
+    from .generation import (
+        codec_decode,
+        generate_coarse_amd_directml as generate_coarse,
+        generate_fine,
+        generate_text_semantic,
+        SAMPLE_RATE,
+    )
+else:
+    from .generation import (
+        codec_decode,
+        generate_coarse,
+        generate_fine,
+        generate_text_semantic,
+        SAMPLE_RATE,
+    )
 from .config import (
     logger,
     console,
@@ -63,6 +74,9 @@ from bark_infinity import text_processing
 
 import ctypes
 from pydub import AudioSegment
+
+import ffmpeg_downloader as ffdl
+
 
 
 global gradio_try_to_cancel
@@ -766,6 +780,9 @@ def generate_audio_barki(
             use_kv_caching=True,
         )
 
+    if generation.get_SUNO_USE_DIRECTML() is True:
+        generation.clean_models()
+
     # print(f"semantic_tokens is {semantic_tokens}")
 
     if gradio_try_to_cancel:
@@ -828,6 +845,11 @@ def generate_audio_barki(
         # use_kv_caching=kwargs.get("coarse_kv_caching", True),
         use_kv_caching=True,
     )
+
+
+    if generation.get_SUNO_USE_DIRECTML() is True:
+        generation.clean_models()
+    
     fine_temp = kwargs.get("fine_temp", 0.5)
 
     fine_seed = kwargs.get("fine_seed", None)
@@ -844,6 +866,8 @@ def generate_audio_barki(
         temp=fine_temp,
         silent=silent,
     )
+    if generation.get_SUNO_USE_DIRECTML() is True:
+        generation.clean_models()
 
     if gradio_try_to_cancel:
         done_cancelling = True
@@ -854,7 +878,8 @@ def generate_audio_barki(
         "coarse_prompt": coarse_tokens,
         "fine_prompt": fine_tokens,
     }
-
+    if generation.get_SUNO_USE_DIRECTML() is True:
+        generation.clean_models()
     if gradio_try_to_cancel:
         done_cancelling = True
         return None, None
@@ -2159,6 +2184,12 @@ def startup_status_report(quick=True, gpu_no_details=False):
     status += f"\nOFFLOAD_CPU: {generation.OFFLOAD_CPU} (Default is True)"
     status += f"\nUSE_SMALL_MODELS: {generation.USE_SMALL_MODELS} (Default is False)"
     status += f"\nGLOBAL_ENABLE_MPS (Apple): {generation.GLOBAL_ENABLE_MPS} (Default is False)"
+
+    # generation.get_SUNO_USE_DIRECTML()
+    status += f"\nSUNO_USE_DIRECTML (AMD): {generation.SUNO_USE_DIRECTML} (Default is False)"
+    num_threads = torch.get_num_threads() 
+    status += f"\nTorch Num CPU Threads: {num_threads}"
+
     XDG = os.getenv("XDG_CACHE_HOME")
     if XDG is not None:
         status += (
@@ -2169,6 +2200,26 @@ def startup_status_report(quick=True, gpu_no_details=False):
     hugging_face_home = os.getenv("HF_HOME")
     if hugging_face_home:
         status += f"\nHF_HOME: {hugging_face_home}"
+
+
+    # print ffmpeg variable status
+    status += f"\n\nFFmpeg status, this should say version 6.0"
+    try:
+        status += f"\nFFmpeg binaries directory: {ffdl.ffmpeg_version}"
+        status += f"\nFFmpeg Version: {ffdl.ffmpeg_version}"
+        status += f"\nFFmpeg Path: {ffdl.ffmpeg_path}"
+        status += f"\nFFprobe Path: {ffdl.ffprobe_path}"
+        status += f"\nFFplay Path: {ffdl.ffplay_path}\n"
+    except Exception as e:
+        status += f"\nError finding FFmpeg: {str(e)}\n"
+        status += """
+        Bark can't find ffmpeg. Try typing this in a command prompt:
+
+        ffdl install -U --add-path 
+
+        You can also install ffmpeg.exe in regular windows program, and make sure the the file ffmpeg.exe is in your PATH environment variable.
+        Basically, you want to be able to type 'ffmpeg -version' in a command prompt, in the same place you type 'python bark_webui.py'
+        """
 
     return status
 

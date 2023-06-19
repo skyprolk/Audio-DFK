@@ -1,0 +1,6 @@
+﻿name,regex,replacement,flags,long_description
+Save Dialogues in Quotation Marks,« (.*?) »,{QUOTES\1QUOTES},MULTILINE,Temporarily replace dialogues in quotation marks with unique placeholders
+Save Dialogues with Dashes,— (.*?)(?=\n|$),{DASHES\1DASHES},MULTILINE,Temporarily replace dialogues with dashes with unique placeholders
+Remove Non-dialogue Lines,^(?!{DASHES|{QUOTES).*,,MULTILINE,Remove all lines that don't start with dialog placeholders
+Restore Dialogues from Quotation Marks Placeholders,{QUOTES(.*?)QUOTES},« \1 »,MULTILINE,Restore dialogues from quotation marks placeholders
+Restore Dialogues from Dashes Placeholders,{DASHES(.*?)DASHES},\1,MULTILINE,Restore dialogues from dashes placeholders

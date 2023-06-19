@@ -2,14 +2,29 @@ Thank you for downloading https://github.com/JonathanFly/bark
 
 # Installation
 
-Run the "install_bark_infinity_windows.bat" file.
+Run:
+    INSTALL_bark_infinity_windows.bat
 
-To launch the web UI in the future after it is already installed, run
-"start_up_already_installed_bark_infinity_windows.bat"
+(After Install, close terminal window)
+
+Start:
+  LAUNCH_already_installed_bark_infinity_windows.bat
+
+
+To launch the CLI or troubleshoot the Bark Setup Environment.
+  TROUBLESHOOT_bark_setup_manually_by_entering_the_conda_environment.bat
 
 # Updating the web UI
 
-Run the "install_bark_infinity_windows.bat" file. ? Not tetsted yet.
+Run the "INSTALL_bark_infinity_windows.bat" and it may update. But you may have 
+
+1. Run "TROUBLESHOOT_bark_setup_manually_by_entering_the_conda_environment.bat"
+2. Type "cd bark"
+3. Type "git pull"
+
+
+This setup is not super optimized, I actually just backed down some versions to make it install more reliably. 
+I will create a second option for a more cutting edge faster libraries on the install later. Right now just wanted it to WORK for everyone.
 
 # Adding flags like --chat, --notebook, etc
 
@@ -24,8 +39,37 @@ to the CMD_FLAGS variable at the top. It should look like this:
 --password PASSWORD   Password for authentication.
 --listen              Server name setting.
 --server_port SERVER_PORT
-                    Port setting.
 --no-autolaunch       Disable automatic opening of the app in browser.
 --debug               Enable detailed error messages and extra outputs.
 --incolab             Default for Colab.
 """
+
+
+If you start TROUBLESHOOT_bark_setup_manually_by_entering_the_conda_environment.bat, useful commands:
+
+-
+-----START BARK MANUALLY------
+Type 'cd bark' to enter the bark directory.
+Type 'python bark_perform.py' to run the CLI.
+Type 'python bark_webui.py' to run the GUI.
+-
+-----Manual Updates------
+
+
+Type 'conda update -y -n base conda' to update conda.
+Type 'conda update -y --all --solver=libmamba' to update all packages.
+Type 'conda clean --all' to free up disk space from unused versions.
+type 'ffdl install -U --add-path' to try to reinstall ffmpeg if you have issues with it.
+type 'pip install -r requirements-extra.txt' to try to manually install pip requirements.
+
+Type 'conda env update -y -f environment-cuda-installer.yml --prune --solver=libmamba' to update your env manually, if the .yml changed.
+Type 'cd bark' to enter the bark directory and then 'git pull' to update the repo code. This may or not work with the installer..
+-
+-----Still Not Working?------
+Go ahead and @ me on the Bark Official Discord, username "Jonathan Fly" jonathanfly. 
+My Discord is always silent, don't worry about waking me up or anything, any time is fine.
+
+-
+-----How do I get out of here? ------
+Type 'conda deactivate' to exit this environment and go back to normal terminal.
+-

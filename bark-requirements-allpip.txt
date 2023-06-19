@@ -1,0 +1,36 @@
+setuptools
+transformers
+diffusers
+ffmpeg-downloader
+ffmpeg
+ffmpeg-python
+sox ; platform_system == 'Linux'
+sox ; platform_system == 'Darwin'
+soundfile==0.12.1 ; platform_system == 'Windows'
+https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl ; platform_system == 'Windows'
+fairseq ; platform_system == 'Darwin'
+fairseq ; platform_system == 'Linux'
+librosa
+boto3
+funcy
+numpy
+scipy
+tokenizers
+tqdm
+ipython
+huggingface_hub>0.15
+rich
+pathvalidate
+rich-argparse
+encodec
+chardet
+pydub
+requests
+audio2numpy
+faiss-cpu
+joblib
+audiolm-pytorch
+universal-startfile
+gradio>=3.34.0
+pywin32 ; platform_system == 'Windows'
+

@@ -1,0 +1,53 @@
+name: musicgen-infinity-windows
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - setuptools
+  - pytorch>=2.0
+  - torchvision
+  - torchaudio
+  - pytorch-cuda
+  - huggingface_hub>=0.15
+  - boto3
+  - funcy
+  - numpy
+  - scipy
+  - tokenizers
+  - tqdm
+  - transformers
+  - pathvalidate
+  - rich
+  - nltk
+  - blas=*=*mkl
+  - libblas=*=*mkl
+  - pydub
+  - pywin32 # windows
+  # - fairseq
+  # sox is for linux, soundfile is for windows
+  - pysoundfile
+  - chardet
+  - ffmpeg
+  - ffmpeg-python
+  - av
+  - einops
+  - num2words
+  - numpy
+  - sentencepiece
+  - spacy==3.5.2
+  - librosa
+  - pip:
+    - encodec
+    - rich-argparse
+    - gradio>=3.34.0
+    - audiolm_pytorch
+    - universal-startfile
+
+
+
+
+

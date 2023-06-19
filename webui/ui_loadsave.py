@@ -8,7 +8,7 @@ from .ui_components import ToolButton
 
 
 class UiLoadsave:
-    """allows saving and restorig default values for gradio components"""
+    """allows saving and restoring default values for gradio components"""
 
     def __init__(self, filename):
         self.filename = filename
@@ -33,11 +33,15 @@ class UiLoadsave:
 
         assert not self.finalized_ui
 
+
+        # print(f"Type: {type(x)}")
+        # print(f"value: {getattr(x, 'value', None)}")
+
         def apply_field(obj, field, condition=None, init_field=None):
             key = f"{path}/{field}"
 
             if getattr(obj, 'custom_script_source', None) is not None:
-              key = f"customscript/{obj.custom_script_source}/{key}"
+                key = f"customscript/{obj.custom_script_source}/{key}"
 
             if getattr(obj, 'do_not_save_to_config', False):
                 return
@@ -55,7 +59,7 @@ class UiLoadsave:
             if field == 'value' and key not in self.component_mapping:
                 self.component_mapping[key] = x
 
-        if type(x) in [gr.Slider, gr.Radio, gr.Checkbox, gr.Textbox, gr.Number, gr.Dropdown, ToolButton, gr.Button] and x.visible:
+        if type(x) in [gr.Slider, gr.Radio, gr.Checkbox, gr.Textbox, gr.Number, gr.Dropdown, ToolButton, gr.Button, gr.TextArea] and x.visible:
             apply_field(x, 'visible')
 
         if type(x) == gr.Slider:
@@ -84,7 +88,7 @@ class UiLoadsave:
         if type(x) == gr.Checkbox:
             apply_field(x, 'value')
 
-        if type(x) == gr.Textbox:
+        if type(x) == gr.Textbox or type(x) == gr.TextArea:
             apply_field(x, 'value')
 
         if type(x) == gr.Number:
@@ -98,6 +102,9 @@ class UiLoadsave:
                     return val in x.choices
 
             apply_field(x, 'value', check_dropdown, getattr(x, 'init_field', None))
+        
+
+
 
         def check_tab_id(tab_id):
             tab_items = list(filter(lambda e: isinstance(e, gr.TabItem), x.children))
@@ -125,7 +132,10 @@ class UiLoadsave:
             self.add_component(f"{path}/{x.label}", x)
         elif isinstance(x, gr.Button) and x.value is not None:
             self.add_component(f"{path}/{x.value}", x)
-
+        else:
+            pass
+            #print("Unknown type: ", type(x))
+            # print(f"val: {x.value}")
     def read_from_file(self):
         with open(self.filename, "r", encoding="utf8") as file:
             return json.load(file)

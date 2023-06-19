@@ -1,6 +1,6 @@
 from bark_infinity import generation
 from bark_infinity import api
-from bark_infinity import SAMPLE_RATE
+
 from bark_infinity.generation import SAMPLE_RATE, load_codec_model
 
 from encodec.utils import convert_audio

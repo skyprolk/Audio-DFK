@@ -176,6 +176,7 @@ DEFAULTS = {
             {"value": None, "type": bool, "help": "Apple M1 Hardware Acceleration."},
         ),
         ("USE_SMALL_MODELS", {"value": None, "type": bool, "help": "Set OS env for small models."}),
+        ("SUNO_USE_DIRECTML", {"value": False, "type": bool, "help": "Experimental AMD DirectML Bark support."}),
         (
             "OFFLOAD_CPU",
             {
@@ -454,6 +455,8 @@ DEFAULTS = {
     ],
 }
 
+def _cast_bool_env_var(s):
+    return s.lower() in ("true", "1", "t")
 
 def get_default_values(group_name):
     if group_name in DEFAULTS:

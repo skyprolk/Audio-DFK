@@ -59,7 +59,8 @@ def main(args):
         generation.OFFLOAD_CPU = args.OFFLOAD_CPU
         # print(f"OFFLOAD_CPU is set to {generation.OFFLOAD_CPU}")
     else:
-        generation.OFFLOAD_CPU = True  # default on just in case
+        if generation.get_SUNO_USE_DIRECTML() is not True:
+            generation.OFFLOAD_CPU = True  # default on just in case
     if args.USE_SMALL_MODELS is not None:
         generation.USE_SMALL_MODELS = args.USE_SMALL_MODELS
         # print(f"USE_SMALL_MODELS is set to {generation.USE_SMALL_MODELS}")
@@ -97,6 +98,8 @@ def main(args):
             args.split_input_into_separate_prompts_by,
             args.split_input_into_separate_prompts_by_value,
         )
+
+
         print(f"\nProcessing file: {args.prompt_file}")
         print(f"  Looks like: {len(text_prompts_to_process)} prompt(s)")
 
@@ -113,7 +116,7 @@ def main(args):
 
     # pprint(args)
     print("Loading Bark models...")
-    if not args.dry_run:
+    if not args.dry_run and generation.get_SUNO_USE_DIRECTML() is not True:
         generation.preload_models(
             args.text_use_gpu,
             args.text_use_small,

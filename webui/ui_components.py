@@ -3,7 +3,8 @@ import gradio as gr
 
 class FormComponent:
     def get_expected_parent(self):
-        return gr.components.Form
+        # return gr.components.Form
+        return gr.layouts.Form
 
 # this was breaking regular dropdowns
 #gr.Dropdown.get_expected_parent = FormComponent.get_expected_parent

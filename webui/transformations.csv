@@ -1,9 +1,4 @@
 ﻿name,regex,replacement,flags,long_description
 Add ♪'s to Beginning and End of Each Line,^(.*)$,♪ \1 ♪,MULTILINE,Add a music note to the front and back of each line
 Remove Periods To Look Like Song Lyrics,[\.?],, MULTILINE,"Strip out periods, question marks, and commas. May help the text look more like a song lyrics."
-Save Dialogues in Quotation Marks,« (.*?) »,{QUOTES\1QUOTES},MULTILINE,Temporarily replace dialogues in quotation marks with unique placeholders
-Save Dialogues with Dashes,— (.*?)(?=\n|$),{DASHES\1DASHES},MULTILINE,Temporarily replace dialogues with dashes with unique placeholders
-Remove Non-dialogue Lines,^(?!{DASHES|{QUOTES).*,,MULTILINE,Remove all lines that don't start with dialog placeholders
-Restore Dialogues from Quotation Marks Placeholders,{QUOTES(.*?)QUOTES},« \1 »,MULTILINE,Restore dialogues from quotation marks placeholders
-Restore Dialogues from Dashes Placeholders,{DASHES(.*?)DASHES},\1,MULTILINE,Restore dialogues from dashes placeholders
 Remove Extra Blank Lines,"(\n\s*){2,}",\n\n,MULTILINE,Replace multiple consecutive newline characters with a single newline
