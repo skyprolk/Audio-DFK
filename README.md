@@ -96,7 +96,7 @@ conda update -y --all --solver=libmamba
 pip install ffmpeg_downloader
 ffdl install -U --add-path
 ```
-Now quit out of the terminal and restart. We need ffmpeg in the path, which means you need to be able to type `ffmpeg -v version` and have it work. If you close and restart, you should be able to do that.
+Now quit out of the terminal and restart. We need ffmpeg in the path, which means you need to be able to type `ffmpeg -version` and have it work. If you close and restart, you should be able to do that.
 
 So close the terminal, close all window command lines or terminals to be sure.
 Then go back start menu and start a new "Ananaconda Prompt". This should be same you started the install.
@@ -108,7 +108,7 @@ make sure you see (pydml) in the corner again. ***(pydml) C:\Users\YourName*** e
 
 Now try typing
 ```
-ffmpeg -v version
+ffmpeg -version
 ```
 
 Do you see ffmpeg 6.0? If it doesn't work you can keep going and you can use .wav file outputs, and fix it later.
