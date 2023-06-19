@@ -1,22 +1,200 @@
-# 🚀 BARK INFINITY Voice Cloning 🎶 🌈✨🚀 
-
-⚡ Low GPU memory? No problem. CPU offloading. ⚡ Somewhat easy install?
+# 🚀 BARK INFINITY, Voices are Just Sounds. 🎶 🌈✨🚀 
 
 [![Open Gradio In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1t84qbluQSg7V-YzKit8cD3btmgysT_8V?usp=sharing) Barebone Gradio Running in Google Colab
 
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Lebdbbq7xOvl9Q430ly6sYrmYoDvlglM?usp=sharing) Basic Colab Notebook
 
-
-# Now: 🎤 Clone a Voice
-
-![image](https://github.com/JonathanFly/bark/assets/163408/de392897-2428-4adf-87db-0db83ffc321c)
+# 🎉 Bark INFINITY Automatic Windows Installer, NVIDIA (CPU update soon) 🎉  
 
 
-# 🎉 Install Bark Infinity Any OS 🎉  
+### ⚠️ Note: make sure you fully extract the .zip file before running the .bat files. Check this image if you aren't sure: [install_help.PNG](https://raw.githubusercontent.com/JonathanFly/bark/main/one-click-bark-installer/install_help.PNG)
 
 
-## Mamba Install (Recommended for now) 
+## Install Prerequisites: 
+
+1. **Just the regular Windows NVIDIA drivers**. You don't need anything else installed ahead of time. Not Pytorch. Nothing with `Cuda` in the name. Not even Python. In fact if you installed anything on your Windows system without using a venv or conda, it may cause a problem.
+2. *(Optional But Recommended)* The Windows Terminal https://apps.microsoft.com/store/detail/windows-terminal/9N0DX20HK701 -- Bark still has a lot of text output and it's looks nicer and is easier to read in the Windows Terminal. But you can also use the regular Windows Command Prompt.
+
+## Install Steps
+
+1. Download this zip file: [barkinstall_06_17_23.zip](https://github.com/JonathanFly/bark/raw/main/one-click-bark-installer/barkinstall_06_17_23.zip)
+2. Extract the zip file into a directory. Choose a place where Bark will be installed. You will unzip about six small files.
+3. Click on `INSTALL_bark_infinity_windows.bat` (you should not need to be administrator)
+4. If the install finished with no errors, close that terminal window. Close any other open command line windows as well. 
+5. Click `LAUNCH_already_installed_bark_infinity_windows.bat`
+
+## Install Problems
+
+1. If you get a Windows permissions error, I seemed to get it randomly. Just trying again usually fixed it. Not even restarting from scratch, just click on the installer the launch bat.
+
+
+### Command Line: 
+Click `TROUBLESHOOT_bark_setup_manually_by_entering_the_conda_environment.bat`
+```
+cd bark
+python bark_perform.py
+python bark_perform.py --help
+```
+### Trouble Shooting: 
+Click `TROUBLESHOOT_bark_setup_manually_by_entering_the_conda_environment.bat`
+
+```
+-----Manual Updates-----
+Type `conda update -y -n base conda` to update conda.
+Type `conda update -y --all --solver=libmamba` to update all packages.
+Type `conda clean --all` to free up disk space from unused versions.
+Type `ffdl install -U --add-path` to try to fix ffmpeg not not problems.
+Type `pip install -r requirements-extra.txt` to try to manually install pip requirements.
+
+Type `conda env update -y -f environment-cuda-installer.yml --prune --solver=libmamba` to update your env manually, if the .yml changed.
+Type `cd bark` to enter the bark directory and then `git pull` to update the repo code.
+Type `git branch` to view branches and then
+Type `git checkout <branch_name>` to switch branches.
+(You can try `git checkout bark_amd_directml_test` branch if you have an AMD GPU)
+
+-----Still Not Working?-----
+Go ahead and @ me on Bark Official Discord, username "Jonathan Fly" jonathanfly. 
+Don't worry about waking me up with a message, my Discord never makes audible alerts.
+
+-----How do I get out of here?-----
+Type 'conda deactivate' to exit this environment and go back to normal terminal.
+```
+
+![LAUNCH_already_installed_bark_infinity_windows.bat](https://github.com/JonathanFly/bark/assets/163408/fcd91d15-6bee-44c7-8c99-95ca48fbc1d5)
+
+# 🎉 Bark AMD Install Test 🎉
+
+May or not work. I tried to get Bark working in DirectML so AMD Windows users can use it. I don't have an AMD GPU to test myself, but I did work around a lot of Bark DirectML errors. 
+
+To make it work I just replaced any pytorch functions which were causing DirectML errors, with CPU numpy equivalents. I don't know if that's why it's so slow, but with With DirectML in Bark, my 3090 is only about 2x faster than my (very fast) CPU in Bark, so this is really the bare minimum. (It doesn't use up 100% cpu though, at least.) I also couldn't figure out how to free GPU memory in DirectML, so I'm not sure this will work on AMD cards with 8GB of less memory. 
+
+Bark AMD DirectML Instructions.
+
+What is DirectML? 
+https://learn.microsoft.com/en-us/windows/ai/directml/gpu-pytorch-windows
+
+Install Miniconda. https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0-Windows-x86_64.exe
+
+Then go to start menu and start a new "Ananconda Prompt" not regular windows command line 
+
+```
+conda update -y conda
+conda update -y -n base conda
+conda install -y -n base conda-libmamba-solver
+conda create --name pydml -y python=3.10
+conda activate pydml
+```
+
+make sure you see (pydml) in the corner of of your prompt. 
+***(pydml) C:\Users\YourName***
+
+```
+conda install -y pip git --solver=libmamba
+conda update -y --all --solver=libmamba
+
+pip install ffmpeg_downloader
+ffdl install -U --add-path
+```
+Now quit out of the terminal and restart. We need ffmpeg in the path, which means you need to be able to type `ffmpeg -v version` and have it work. If you close and restart, you should be able to do that.
+
+So close the terminal, close all window command lines or terminals to be sure.
+Then go back start menu and start a new "Ananaconda Prompt". This should be same you started the install.
+
+```
+conda activate pydml
+```
+make sure you see (pydml) in the corner again. ***(pydml) C:\Users\YourName*** etc.
+
+Now try typing
+```
+ffmpeg -v version
+```
+
+Do you see ffmpeg 6.0? If it doesn't work you can keep going and you can use .wav file outputs, and fix it later.
+
+Now the big conda install command. This could take 5 to 15 minutes, and if you have a slow internet it could even take hours, because it downloads multiple gigabytes. So if looks like it's frozen, let it go. Check your task manager and see if it's downloading.
+
+```
+conda install -y pytorch==1.13.1 pygments numpy pandas tensorboard matplotlib tqdm pyyaml boto3 funcy torchvision==0.14.1 torchaudio==0.13.1 cpuonly transformers pydub pathvalidate rich nltk chardet av hydra-core>=1.1 einops scipy num2words pywin32 ffmpeg ffmpeg-python sentencepiece spacy==3.5.2 librosa jsonschema -c pytorch -c conda-forge --solver=libmamba
+```
+Now that's done a few more things we need, that are not in conda. So we have to use pip.
+
+This is where the instal can go wrong up. **We don't want anything to upgrade either torch or torchaudio to torch 2.0**, and it often happens by accident. (As far I know AMD DirectML Windows only works in Torch 1.13, not 2.0. If anyone knows different let me know!) 
+
+If you somehow end up installing torch 2.0. Try `pip uninstall torch torchaudio` and then redo the big long conda install command (the one with `pytorch==1.13.1` in it). 
+
+```
+pip install universal-startfile hydra_colorlog julius soundfile==0.12.1 gradio>=3.35.2 rich_argparse flashy>=0.0.1 ffmpeg_downloader rich_argparse devtools
+```
+
+
+```
+pip install encodec flashy>=0.0.1 audiolm_pytorch==1.1.4 demucs --no-dependencies
+
+pip install https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl --no-dependencies
+```
+
+And now finally the actual `torch-directml` that has GPU support. I found installing this last seems best, but you could try doing it earlier. 
+```
+pip install torch-directml==0.1.13.1.dev230413
+```
+If everything worked, you might be done.
+Now we install Bark. And then run one command line test first with bark_perform.py
+
+First set a SUNO_USE_DIRECTML variable. This tells Bark to use DirectML. If this doesn't work you can edit `/bark_infinity/config.py`` and set `SUNO_USE_DIRECTML`` to `True`` in the `DEFAULTS`` section.
+```
+set SUNO_USE_DIRECTML=1
+```
+
+Download Bark:
+```
+git clone https://github.com/JonathanFly/bark.git
+cd bark
+```
+Change to the AMD Test Version
+```
+git checkout bark_amd_directml_test
+```
+
+Now try running it. Bark has to download all the models the first time it runs, so it might look frozen for awhile. It's another 10 gigs of files. 
+```
+python bark_perform.py
+```
+When I tested this install, `bark_perform.py` seemed to freeze at downloading models without making progress. I don't know if was a fluke, but I ran `python bark_webui.py` and it downloaded them fine.
+
+Start the Bark UI
+```
+python bark_webui.py
+```
+
+Things that don't work:
+1. Voice Cloning
+2. Top_k and top_p
+3. Probably more things I haven't tested.
+
+### Start Back UI Later
+1. Click Anaconda Prompt in start menu
+2. `conda activate pydml`
+3. cd bark
+4. `python bark_webui.py`
+   
+### Make it faster? (Note for later, don't try yet)
+
+1. Install MKL exe https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-download.html
+```
+conda install -y mkl mkl-service mkl_fft libcblas liblapacke liblapack blas-devel mkl-include mkl_random mkl-devel mkl-include ibblas=*=*mkl mkl-static intel-openmp blas=*=*mkl -c intel -c conda-forge --solver=libmamba
+```
+
+
+⚡ Low GPU memory? No problem. CPU offloading. ⚡ Somewhat easy install?
+
+# 🎉 Install Bark Infinity Any OS With Mamba (or Conda) 🎉  
+
+
+## Mamba Install (Still Works) (out of date, hang on...)
+
+![cpic](https://github.com/JonathanFly/bark/assets/163408/65ad739d-552e-43d2-b937-8c83837bdf8b)
 
 (Mamba is a fast version of conda. They should work the same.)
 
@@ -24,7 +202,7 @@ Pip and conda/mamba are two _different_ ways of installing Bark Infinity. If you
 
 There is one exception, on Windows if you don't have the better Windows Terminal installed, that is a nice to have feature https://apps.microsoft.com/store/detail/windows-terminal/9N0DX20HK701
 
-You don't have to but it may dispaly the output from the bark commands better. When you start **Anaconda Prompt (miniconda3)** you can do it from the new Windows Terminal app, clicking on the down arrow next to the plus, should let you pick **Anaconda Prompt (miniconda3)**
+You don't have to but it may display the output from the bark commands better. When you start **Anaconda Prompt (miniconda3)** you can do it from the new Windows Terminal app, clicking on the down arrow next to the plus, should let you pick **Anaconda Prompt (miniconda3)**
 
 (There is a **requirements-pip.txt** file but I have not tested it currently. This is an alternative install.)
 
@@ -180,7 +358,7 @@ Usage: bark_perform.py [-h] [--text_prompt TEXT_PROMPT] [--list_speakers LIST_SP
                        [--split_character_jitter SPLIT_CHARACTER_JITTER] [--add_silence_between_segments ADD_SILENCE_BETWEEN_SEGMENTS]
                        [--process_text_by_each {word,line,sentence,char,string,random,regex}] [--group_text_by_counting {word,line,sentence,char,string,random,regex}]
                        [--in_groups_of_size IN_GROUPS_OF_SIZE] [--split_type_string SPLIT_TYPE_STRING] [--prompt_text_prefix PROMPT_TEXT_PREFIX]
-                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE] [--separate_prompts separate_prompts] [--semantic_history_only SEMANTIC_HISTORY_ONLY]
+                       [--extra_confused_travolta_mode EXTRA_CONFUSED_TRAVOLTA_MODE] [--seperate_prompts SEPERATE_PROMPTS] [--semantic_history_only SEMANTIC_HISTORY_ONLY]
                        [--absolute_semantic_history_only ABSOLUTE_SEMANTIC_HISTORY_ONLY] [--absolute_semantic_history_only_every_x ABSOLUTE_SEMANTIC_HISTORY_ONLY_EVERY_X]
                        [--semantic_history_starting_weight SEMANTIC_HISTORY_STARTING_WEIGHT] [--semantic_history_future_weight SEMANTIC_HISTORY_FUTURE_WEIGHT]
                        [--semantic_prev_segment_weight SEMANTIC_PREV_SEGMENT_WEIGHT] [--coarse_history_starting_weight COARSE_HISTORY_STARTING_WEIGHT]
