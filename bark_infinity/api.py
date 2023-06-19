@@ -1,3 +1,13 @@
+## ADDED
+import os
+
+os.environ["HF_HOME"] = os.getenv(
+    "HF_HOME",
+    os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "data", "models", "unclassified"
+    ),
+)
+
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -26,8 +36,7 @@ from huggingface_hub import scan_cache_dir
 import tempfile
 import copy
 
-## ADDED
-import os
+
 import re
 import torch
 import datetime
@@ -88,17 +97,23 @@ def gpu_status_report(quick=False, gpu_no_details=False):
             status_report_string += f"{torch.cuda.get_device_name(device)}\n"
         else:
             status_report_string += "=== GPU Information ===\n"
-            status_report_string += f"GPU Device: {torch.cuda.get_device_name(device)}\n"
+            status_report_string += (
+                f"GPU Device: {torch.cuda.get_device_name(device)}\n"
+            )
             if not quick:
                 status_report_string += f"Number of GPUs: {torch.cuda.device_count()}\n"
-                status_report_string += f"Current GPU id: {torch.cuda.current_device()}\n"
+                status_report_string += (
+                    f"Current GPU id: {torch.cuda.current_device()}\n"
+                )
                 status_report_string += (
                     f"GPU Capability: {torch.cuda.get_device_capability(device)}\n"
                 )
                 status_report_string += f"Supports Tensor Cores: {torch.cuda.get_device_properties(device).major >= 7}\n"
 
             props = torch.cuda.get_device_properties(device)
-            status_report_string += f"Total memory: {props.total_memory / (1024 ** 3)} GB\n"
+            status_report_string += (
+                f"Total memory: {props.total_memory / (1024 ** 3)} GB\n"
+            )
 
             if not quick:
                 status_report_string += f"GPU Cores: {props.multi_processor_count}\n"
@@ -106,7 +121,9 @@ def gpu_status_report(quick=False, gpu_no_details=False):
                 status_report_string += "\n=== Current GPU Memory ===\n"
 
                 current_memory_allocated = torch.cuda.memory_allocated(device) / 1e9
-                status_report_string += f"Current memory allocated: {current_memory_allocated} GB\n"
+                status_report_string += (
+                    f"Current memory allocated: {current_memory_allocated} GB\n"
+                )
 
                 max_memory_allocated = torch.cuda.max_memory_allocated(device) / 1e9
                 status_report_string += (
@@ -169,7 +186,11 @@ def text_to_semantic(
     """
 
     x_semantic = generate_text_semantic(
-        text, history_prompt=history_prompt, temp=temp, silent=silent, use_kv_caching=True
+        text,
+        history_prompt=history_prompt,
+        temp=temp,
+        silent=silent,
+        use_kv_caching=True,
     )
 
     return x_semantic
@@ -289,7 +310,7 @@ def set_seed(seed: int = 0):
 
     original_seed = seed
 
-    # See for more informations: https://pytorch.org/docs/stable/notes/randomness.html
+    # See for more information: https://pytorch.org/docs/stable/notes/randomness.html
     if seed == -1:
         # Disable deterministic
 
@@ -301,7 +322,7 @@ def set_seed(seed: int = 0):
         if "CUBLAS_WORKSPACE_CONFIG" in os.environ:
             del os.environ["CUBLAS_WORKSPACE_CONFIG"]
 
-        torch.use_deterministic_algorithms(False)  # not sure if needed, yes it is
+        torch.use_deterministic_algorithms(False)
 
     else:
         print("Enabling deterministic algorithms")
@@ -309,8 +330,8 @@ def set_seed(seed: int = 0):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # not sure if this is needed, yes it is,
-        torch.use_deterministic_algorithms(True)  # not sure if needed, yes it is
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        torch.use_deterministic_algorithms(True)
 
     if seed <= 0:
         # Generate random seed
@@ -356,11 +377,15 @@ def process_history_prompt(user_history_prompt):
                 history_prompt_returned = full_path_in_dir
 
     if history_prompt_returned is None:
-        logger.error(f"  >>! Can't find speaker file: {full_path} in: {valid_directories_to_check}")
+        logger.error(
+            f"  >>! Can't find speaker file: {full_path} in: {valid_directories_to_check}"
+        )
         return None
 
     if not history_prompt_is_valid(history_prompt_returned):
-        logger.error(f"  >>! Speaker file: {history_prompt_returned} is invalid, skipping.")
+        logger.error(
+            f"  >>! Speaker file: {history_prompt_returned} is invalid, skipping."
+        )
         return None
 
     return history_prompt_returned
@@ -521,7 +546,9 @@ def write_audiofile_old(output_filepath, audio_arr, **kwargs):
 
     output_format_bitrate = kwargs.get("output_format_bitrate", None)
 
-    output_format_ffmpeg_parameters = kwargs.get("output_format_ffmpeg_parameters", None)
+    output_format_ffmpeg_parameters = kwargs.get(
+        "output_format_ffmpeg_parameters", None
+    )
 
     if output_format is None or output_format == "":
         output_format = "mp3"
@@ -530,7 +557,10 @@ def write_audiofile_old(output_filepath, audio_arr, **kwargs):
         output_format_bitrate = "64k"
 
     ffmpeg_parameters = None
-    if output_format_ffmpeg_parameters is not None and output_format_ffmpeg_parameters != "":
+    if (
+        output_format_ffmpeg_parameters is not None
+        and output_format_ffmpeg_parameters != ""
+    ):
         ffmpeg_parameters = output_format_ffmpeg_parameters
 
     if output_format in ["mp3", "ogg", "flac", "mp4"]:
@@ -550,7 +580,10 @@ def write_audiofile_old(output_filepath, audio_arr, **kwargs):
 
             if output_format == "mp4":
                 audio.export(
-                    output_filepath, format="mp4", codec="aac", bitrate=output_format_bitrate
+                    output_filepath,
+                    format="mp4",
+                    codec="aac",
+                    bitrate=output_format_bitrate,
                 )
             else:
                 audio.export(output_filepath, format=output_format)
@@ -612,7 +645,10 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
     output_format_ffmpeg_parameters = kwargs.get("output_format_ffmpeg_parameters")
 
     ffmpeg_parameters = None
-    if output_format_ffmpeg_parameters is not None and output_format_ffmpeg_parameters != "":
+    if (
+        output_format_ffmpeg_parameters is not None
+        and output_format_ffmpeg_parameters != ""
+    ):
         ffmpeg_parameters = []
         parameters = parse_ffmpeg_parameters(output_format_ffmpeg_parameters)
 
@@ -623,7 +659,10 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
             audio = AudioSegment.from_wav(temp_wav)
             if output_format == "mp4":
                 audio.export(
-                    output_filepath, format="mp4", codec="aac", bitrate=output_format_bitrate
+                    output_filepath,
+                    format="mp4",
+                    codec="aac",
+                    bitrate=output_format_bitrate,
                 )
             elif output_format_ffmpeg_parameters:
                 audio.export(
@@ -633,7 +672,9 @@ def write_audiofile(output_filepath, audio_arr, **kwargs):
                     parameters=ffmpeg_parameters,
                 )
             else:
-                audio.export(output_filepath, format=output_format, bitrate=output_format_bitrate)
+                audio.export(
+                    output_filepath, format=output_format, bitrate=output_format_bitrate
+                )
             os.remove(temp_wav)
     elif not dry_run:
         write_wav(output_filepath, SAMPLE_RATE, audio_arr)
@@ -894,13 +935,19 @@ def generate_audio_sampling_mods_old(
         absolute_banned_tokens=kwargs.get("semantic_absolute_banned_tokens", None),
         outside_banned_penalty=kwargs.get("semantic_outside_banned_penalty", None),
         target_distribution=kwargs.get("semantic_target_distribution", None),
-        target_k_smoothing_factor=kwargs.get("semantic_target_k_smoothing_factor", None),
+        target_k_smoothing_factor=kwargs.get(
+            "semantic_target_k_smoothing_factor", None
+        ),
         target_scaling_factor=kwargs.get("semantic_target_scaling_factor", None),
-        history_prompt_distribution=kwargs.get("semantic_history_prompt_distribution", None),
+        history_prompt_distribution=kwargs.get(
+            "semantic_history_prompt_distribution", None
+        ),
         history_prompt_k_smoothing_factor=kwargs.get(
             "semantic_history_prompt_k_smoothing_factor", None
         ),
-        history_prompt_scaling_factor=kwargs.get("semantic_history_prompt_scaling_factor", None),
+        history_prompt_scaling_factor=kwargs.get(
+            "semantic_history_prompt_scaling_factor", None
+        ),
         history_prompt_average_distribution=kwargs.get(
             "semantic_history_prompt_average_distribution", None
         ),
@@ -910,12 +957,18 @@ def generate_audio_sampling_mods_old(
         history_prompt_average_scaling_factor=kwargs.get(
             "semantic_history_prompt_average_scaling_factor", None
         ),
-        target_outside_default_penalty=kwargs.get("semantic_target_outside_default_penalty", None),
-        target_outside_outlier_penalty=kwargs.get("semantic_target_outside_outlier_penalty", None),
+        target_outside_default_penalty=kwargs.get(
+            "semantic_target_outside_default_penalty", None
+        ),
+        target_outside_outlier_penalty=kwargs.get(
+            "semantic_target_outside_outlier_penalty", None
+        ),
         history_prompt_unique_voice_penalty=kwargs.get(
             "semantic_history_prompt_unique_voice_penalty", None
         ),
-        consider_common_threshold=kwargs.get("semantic_consider_common_threshold", None),
+        consider_common_threshold=kwargs.get(
+            "semantic_consider_common_threshold", None
+        ),
         history_prompt_unique_voice_threshold=kwargs.get(
             "semantic_history_prompt_unique_voice_threshold", None
         ),
@@ -1031,9 +1084,11 @@ def generate_audio_sampling_mods_old(
 def generate_audio_long_from_gradio(**kwargs):
     full_generation_segments, audio_arr_segments, final_filename_will_be = [], [], None
 
-    full_generation_segments, audio_arr_segments, final_filename_will_be = generate_audio_long(
-        **kwargs
-    )
+    (
+        full_generation_segments,
+        audio_arr_segments,
+        final_filename_will_be,
+    ) = generate_audio_long(**kwargs)
 
     return full_generation_segments, audio_arr_segments, final_filename_will_be
 
@@ -1227,7 +1282,9 @@ def generate_audio_long(
 
             this_segment_start_time = time.time()
 
-            full_generation, audio_arr = generate_audio_barki(text=segment_text, **kwargs)
+            full_generation, audio_arr = generate_audio_barki(
+                text=segment_text, **kwargs
+            )
 
             if gradio_try_to_cancel or full_generation is None or audio_arr is None:
                 # Hmn, cancelling and restarting seems to be a bit buggy
@@ -1286,11 +1343,17 @@ def generate_audio_long(
             full_generation_segments.append(full_generation)
             audio_arr_segments.append(audio_arr)
 
-            add_silence_between_segments = kwargs.get("add_silence_between_segments", 0.0)
+            add_silence_between_segments = kwargs.get(
+                "add_silence_between_segments", 0.0
+            )
             if add_silence_between_segments > 0.0:
-                print(f"Adding {add_silence_between_segments} seconds of silence between segments.")
+                print(
+                    f"Adding {add_silence_between_segments} seconds of silence between segments."
+                )
                 # silence = np.zeros(int(add_silence_between_segments * SAMPLE_RATE))
-                silence = np.zeros(int(add_silence_between_segments * SAMPLE_RATE), dtype=np.int16)
+                silence = np.zeros(
+                    int(add_silence_between_segments * SAMPLE_RATE), dtype=np.int16
+                )
 
                 audio_arr_segments.append(silence)
 
@@ -1375,9 +1438,15 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
 
             temp_coarse = random.uniform(0.3, 0.90)
             top_k_coarse = None if random.random() < 1 / 3 else random.randint(25, 400)
-            top_p_coarse = None if random.random() < 1 / 3 else random.uniform(0.90, 0.97)
+            top_p_coarse = (
+                None if random.random() < 1 / 3 else random.uniform(0.90, 0.97)
+            )
 
-            max_coarse_history_options = [630, random.randint(500, 630), random.randint(60, 500)]
+            max_coarse_history_options = [
+                630,
+                random.randint(500, 630),
+                random.randint(60, 500),
+            ]
             max_coarse_history = random.choice(max_coarse_history_options)
 
             coarse_tokens = generation.generate_coarse(
@@ -1399,7 +1468,9 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
 
             try:
                 audio_arr = generation.codec_decode(fine_tokens)
-                base_output_filename = os.path.splitext(npz_filename)[0] + f"_var_{i}.wav"
+                base_output_filename = (
+                    os.path.splitext(npz_filename)[0] + f"_var_{i}.wav"
+                )
                 output_filepath = os.path.join(npz_file_directory, base_output_filename)
                 output_filepath = generate_unique_filepath(output_filepath)
                 print(f"output_filepath {output_filepath}")
@@ -1467,7 +1538,9 @@ def render_npz_samples(
         if gen_minor_variants is None:
             if start_from == "pure_semantic":
                 # code removed for now
-                semantic_tokens = generate_text_semantic(text=None, history_prompt=history_prompt)
+                semantic_tokens = generate_text_semantic(
+                    text=None, history_prompt=history_prompt
+                )
                 coarse_tokens = generate_coarse(semantic_tokens, use_kv_caching=True)
                 fine_tokens = generate_fine(coarse_tokens)
 
@@ -1497,8 +1570,12 @@ def render_npz_samples(
             gen_minor_variants = gen_minor_variants or 1
             for i in range(gen_minor_variants):
                 temp_coarse = random.uniform(0.3, 0.9)
-                top_k_coarse = None if random.random() < 1 / 3 else random.randint(25, 400)
-                top_p_coarse = None if random.random() < 1 / 3 else random.uniform(0.8, 0.95)
+                top_k_coarse = (
+                    None if random.random() < 1 / 3 else random.randint(25, 400)
+                )
+                top_p_coarse = (
+                    None if random.random() < 1 / 3 else random.uniform(0.8, 0.95)
+                )
 
                 max_coarse_history_options = [
                     630,
@@ -1526,7 +1603,9 @@ def render_npz_samples(
 
                 try:
                     audio_arr = codec_decode(fine_tokens)
-                    base_output_filename = os.path.splitext(npz_file)[0] + f"_var_{i}.wav"
+                    base_output_filename = (
+                        os.path.splitext(npz_file)[0] + f"_var_{i}.wav"
+                    )
                     output_filepath = os.path.join(npz_directory, base_output_filename)
                     output_filepath = generate_unique_filepath(output_filepath)
                     print(
@@ -1551,7 +1630,9 @@ def render_npz_samples(
                     audio_arr = codec_decode(coarse_tokens)
                 else:
                     audio_arr = codec_decode(fine_tokens)
-                base_output_filename = os.path.splitext(npz_file)[0] + f"_{start_from_txt}_.wav"
+                base_output_filename = (
+                    os.path.splitext(npz_file)[0] + f"_{start_from_txt}_.wav"
+                )
                 output_filepath = os.path.join(npz_directory, base_output_filename)
                 output_filepath = generate_unique_filepath(output_filepath)
                 print(f"  Rendering audio for {npz_filepath} to {output_filepath}")
@@ -1577,7 +1658,10 @@ def render_npz_samples(
         output_filepath = generate_unique_filepath(output_filepath)
         with open(f"{output_filepath}", "wb") as f:
             np.savez_compressed(
-                f, **{f"dict_{i}": np.array([d]) for i, d in enumerate(compress_mode_data)}
+                f,
+                **{
+                    f"dict_{i}": np.array([d]) for i, d in enumerate(compress_mode_data)
+                },
             )
 
 
@@ -1637,7 +1721,10 @@ def chunk_up_text(**kwargs):
 
     if len(audio_segments) > 0:
         print_chunks_table(
-            audio_segments, left_column_header="Words", right_column_header=split_desc, **kwargs
+            audio_segments,
+            left_column_header="Words",
+            right_column_header=split_desc,
+            **kwargs,
         ) if not silent else None
     return audio_segments
 
@@ -1663,7 +1750,10 @@ def chunk_up_text_prev(**kwargs):
 
     if len(audio_segments) > 0:
         print_chunks_table(
-            audio_segments, left_column_header="Words", right_column_header=split_desc, **kwargs
+            audio_segments,
+            left_column_header="Words",
+            right_column_header=split_desc,
+            **kwargs,
         ) if not silent else None
     return audio_segments
 
@@ -1676,7 +1766,9 @@ def print_chunks_table(
 ):
     output_iterations = kwargs.get("output_iterations", "")
     history_prompt_string = kwargs.get("history_prompt_string", "random")
-    current_iteration = str(kwargs["current_iteration"]) if "current_iteration" in kwargs else ""
+    current_iteration = (
+        str(kwargs["current_iteration"]) if "current_iteration" in kwargs else ""
+    )
 
     iteration_text = ""
     if output_iterations and current_iteration:
@@ -1699,7 +1791,9 @@ def print_chunks_table(
             timeest = f"!{timeest}!"
         wordcount = f"{str(len(chunk.split()))}"
         charcount = f"{str(len(chunk))}"
-        table.add_row(str(i), f"{str(len(chunk.split()))}", f"{timeest}\n{charcount} chars", chunk)
+        table.add_row(
+            str(i), f"{str(len(chunk.split()))}", f"{timeest}\n{charcount} chars", chunk
+        )
         i += 1
     console.print(table)
 
@@ -1779,7 +1873,9 @@ def generate_text_semantic_report(history_prompt, token_samples=3):
         semantic_history, torch.Tensor
     ):
         report["valid"] = False
-        report["messages"].append(f"should be a numpy array but was {type(semantic_history)}.")
+        report["messages"].append(
+            f"should be a numpy array but was {type(semantic_history)}."
+        )
 
     elif len(semantic_history.shape) != 1:
         report["valid"] = False
@@ -1794,10 +1890,14 @@ def generate_text_semantic_report(history_prompt, token_samples=3):
     else:
         if semantic_history.min() < 0:
             report["valid"] = False
-            report["messages"].append(f"minimum value of 0, but it was {semantic_history.min()}.")
+            report["messages"].append(
+                f"minimum value of 0, but it was {semantic_history.min()}."
+            )
             index = np.argmin(semantic_history)
             surrounding = semantic_history[
-                max(0, index - token_samples) : min(len(semantic_history), index + token_samples)
+                max(0, index - token_samples) : min(
+                    len(semantic_history), index + token_samples
+                )
             ]
             report["messages"].append(f"Surrounding tokens: {surrounding}")
 
@@ -1808,7 +1908,9 @@ def generate_text_semantic_report(history_prompt, token_samples=3):
             )
             index = np.argmax(semantic_history)
             surrounding = semantic_history[
-                max(0, index - token_samples) : min(len(semantic_history), index + token_samples)
+                max(0, index - token_samples) : min(
+                    len(semantic_history), index + token_samples
+                )
             ]
             report["messages"].append(f"Surrounding tokens: {surrounding}")
 
@@ -1827,7 +1929,9 @@ def generate_coarse_report(history_prompt, token_samples=3):
         semantic_history, torch.Tensor
     ):
         report["valid"] = False
-        report["messages"].append(f"should be a numpy array but it's a {type(semantic_history)}.")
+        report["messages"].append(
+            f"should be a numpy array but it's a {type(semantic_history)}."
+        )
 
     elif len(semantic_history.shape) != 1:
         report["valid"] = False
@@ -1846,7 +1950,9 @@ def generate_coarse_report(history_prompt, token_samples=3):
             )
             index = np.argmin(semantic_history)
             surrounding = semantic_history[
-                max(0, index - token_samples) : min(len(semantic_history), index + token_samples)
+                max(0, index - token_samples) : min(
+                    len(semantic_history), index + token_samples
+                )
             ]
             report["messages"].append(f"Surrounding tokens: {surrounding}")
 
@@ -1857,13 +1963,17 @@ def generate_coarse_report(history_prompt, token_samples=3):
             )
             index = np.argmax(semantic_history)
             surrounding = semantic_history[
-                max(0, index - token_samples) : min(len(semantic_history), index + token_samples)
+                max(0, index - token_samples) : min(
+                    len(semantic_history), index + token_samples
+                )
             ]
             report["messages"].append(f"Surrounding tokens: {surrounding}")
 
     if not isinstance(coarse_history, np.ndarray):
         report["valid"] = False
-        report["messages"].append(f"should be a numpy array but it's a {type(coarse_history)}.")
+        report["messages"].append(
+            f"should be a numpy array but it's a {type(coarse_history)}."
+        )
 
     elif len(coarse_history.shape) != 2:
         report["valid"] = False
@@ -1893,7 +2003,9 @@ def generate_coarse_report(history_prompt, token_samples=3):
                     coarse_history.shape[1], indices[1] + token_samples
                 )
             ]
-            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+            report["messages"].append(
+                f"Surrounding tokens in row {indices[0]}: {surrounding}"
+            )
 
         elif coarse_history.max() >= CODEBOOK_SIZE:
             report["valid"] = False
@@ -1906,7 +2018,9 @@ def generate_coarse_report(history_prompt, token_samples=3):
                     coarse_history.shape[1], indices[1] + token_samples
                 )
             ]
-            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+            report["messages"].append(
+                f"Surrounding tokens in row {indices[0]}: {surrounding}"
+            )
 
         ratio = round(coarse_history.shape[1] / len(semantic_history), 1)
         if ratio != round(semantic_to_coarse_ratio / N_COARSE_CODEBOOKS, 1):
@@ -1957,7 +2071,9 @@ def generate_fine_report(history_prompt, token_samples=3):
                     fine_history.shape[1], indices[1] + token_samples
                 )
             ]
-            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+            report["messages"].append(
+                f"Surrounding tokens in row {indices[0]}: {surrounding}"
+            )
 
         elif fine_history.max() >= CODEBOOK_SIZE:
             report["valid"] = False
@@ -1970,7 +2086,9 @@ def generate_fine_report(history_prompt, token_samples=3):
                     fine_history.shape[1], indices[1] + token_samples
                 )
             ]
-            report["messages"].append(f"Surrounding tokens in row {indices[0]}: {surrounding}")
+            report["messages"].append(
+                f"Surrounding tokens in row {indices[0]}: {surrounding}"
+            )
 
     return report
 
@@ -2012,7 +2130,9 @@ def history_prompt_detailed_report(history_prompt, token_samples=3):
         print(f"\n>>{file_name}")
 
     try:
-        text_semantic_report = generate_text_semantic_report(history_prompt, token_samples)
+        text_semantic_report = generate_text_semantic_report(
+            history_prompt, token_samples
+        )
         print("\n  Semantic:")
         display_history_prompt_report(text_semantic_report)
     except Exception as e:
@@ -2041,10 +2161,10 @@ def startup_status_report(quick=True, gpu_no_details=False):
     status += f"\nGLOBAL_ENABLE_MPS (Apple): {generation.GLOBAL_ENABLE_MPS} (Default is False)"
     XDG = os.getenv("XDG_CACHE_HOME")
     if XDG is not None:
-        status += f"\nXDG_CACHE_HOME (Model Override Directory) {os.getenv('XDG_CACHE_HOME')}"
-    status += (
-        f"\nBark Model Location: {generation.CACHE_DIR} (Env var 'XDG_CACHE_HOME' to override)"
-    )
+        status += (
+            f"\nXDG_CACHE_HOME (Model Override Directory) {os.getenv('XDG_CACHE_HOME')}"
+        )
+    status += f"\nBark Model Location: {generation.CACHE_DIR} (Env var 'XDG_CACHE_HOME' to override)"
 
     hugging_face_home = os.getenv("HF_HOME")
     if hugging_face_home:

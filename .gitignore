@@ -3,6 +3,9 @@ __pycache__/
 # Ignore all directories
 */
 
+*.json
+*.mp4
+*.wav
 # But don't ignore these specific directories
 !/bark/
 !/bark_infinity/
@@ -14,6 +17,7 @@ bark_samples/
 bark/assets/prompts/*.wav
 bark_infinity/assets/prompts/*.wav
 *.wav
+
 custom_speakers/
 .vscode
 bark_infinity.egg-info/

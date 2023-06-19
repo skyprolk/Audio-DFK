@@ -22,9 +22,8 @@ from startfile import startfile
 import requests
 
 
-
 current_tab = "generate"
-
+barkdebug = False
 generation.OFFLOAD_CPU = True
 
 base_theme = gr.themes.Base()
@@ -61,7 +60,6 @@ def bot(history):
     response = "**That's cool!**"
     history[-1][1] = response
     return history
-
 
 
 from bark_infinity.clonevoice import clone_voice
@@ -244,12 +242,15 @@ import functools
 
 where_am_i = os.getcwd()
 
+
 def timeout(seconds):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             result = [None]
-            thread = threading.Thread(target=lambda: result.__setitem__(0, func(*args, **kwargs)))
+            thread = threading.Thread(
+                target=lambda: result.__setitem__(0, func(*args, **kwargs))
+            )
             thread.start()
             thread.join(seconds)
             if thread.is_alive():
@@ -327,6 +328,36 @@ def bot(history):
     return history
 
 
+def validate_and_update(prompt, kwargs, min_length=6, barkdebug=False):
+    try:
+        if not prompt:  # Checks if the prompt is not None and not an empty string
+            if barkdebug:
+                print(f"Skipping {prompt}: Null or Empty")
+            return kwargs
+        if isinstance(prompt, list):
+            if prompt:  # Checks if the list is not empty
+                selected = prompt[0]  # Gets first item from list
+                if barkdebug:
+                    print(f"Selected first item from list: {selected}")
+        else:
+            selected = prompt.strip()
+            if barkdebug:
+                print(f"Selected string after stripping: {selected}")
+        if (
+            len(selected) >= min_length
+        ):  # Checks if string length is greater than or equal to min_length
+            kwargs["history_prompt"] = selected
+            if barkdebug:
+                print(f"Updated kwargs[history_prompt] to {selected}")
+        else:
+            if barkdebug:
+                print(f"Skipping {selected}: Length less than {min_length}")
+    except Exception as e:
+        if barkdebug:
+            print(f"Error in validate_and_update function: {str(e)}")
+    return kwargs
+
+
 def generate_audio_long_gradio(
     input,
     audio_prompt_input,
@@ -388,7 +419,9 @@ def generate_audio_long_gradio(
     waiting = 0
     while api.gradio_try_to_cancel and not api.done_cancelling:
         waiting += 1
-        print("Waiting up to 10s current generation to finish before starting another...")
+        print(
+            "Waiting up to 10s current generation to finish before starting another..."
+        )
         progress(
             waiting,
             desc="Waiting up to 10s current generation to finish before starting another...",
@@ -410,36 +443,19 @@ def generate_audio_long_gradio(
         print("Shouldn't happen, just return for now.")
         return
 
-    # print(locals())
+    if barkdebug is True:
+        print(locals())
+
     kwargs = {}
     kwargs["text_prompt"] = input
 
-    # todo lookup actually how
-    if npz_dropdown != "" and npz_dropdown is not None:
-        if len(npz_dropdown.strip()) > 6:
-            kwargs["history_prompt"] = npz_dropdown
+    # Validate and update prompts
+    kwargs = validate_and_update(npz_dropdown, kwargs, barkdebug=barkdebug)
+    kwargs = validate_and_update(bark_infinity_voices, kwargs, barkdebug=barkdebug)
+    kwargs = validate_and_update(generated_voices, kwargs, barkdebug=barkdebug)
+    kwargs = validate_and_update(cloned_voices, kwargs, barkdebug=barkdebug)
 
-    if bark_infinity_voices != "" and bark_infinity_voices is not None:
-            kwargs["history_prompt"] = bark_infinity_voices
-
-    if generated_voices != "" and generated_voices is not None:
-        if len(generated_voices.strip()) > 6:
-            kwargs["history_prompt"] = generated_voices
-
-    if cloned_voices != "" and cloned_voices is not None:
-        if len(cloned_voices.strip()) > 6:
-            kwargs["history_prompt"] = cloned_voices
-
-    if confused_travolta_mode != "" and confused_travolta_mode is not None:
-        kwargs["confused_travolta_mode"] = confused_travolta_mode
-
-    kwargs["allow_blank"] = allow_blank
-
-    if specific_npz_file != "" and specific_npz_file is not None:
-        specific_npz_file_name = specific_npz_file.name
-        kwargs["history_prompt"] = specific_npz_file_name
-
-    # 
+    #
     if main_input_audio_filename != "" and main_input_audio_filename is not None:
         main_input_audio_filename_name = main_input_audio_filename.name
         kwargs["main_input_audio_filename"] = main_input_audio_filename_name
@@ -535,7 +551,6 @@ def generate_audio_long_gradio(
     if output_format is not None and output_format != "":
         kwargs["output_format"] = output_format
 
-
     if text_temp is not None and text_temp != "":
         kwargs["text_temp"] = float(text_temp)
 
@@ -561,7 +576,11 @@ def generate_audio_long_gradio(
 
     if text_splits_only:
         output_iterations = 1
-    full_generation_segments, audio_arr_segments, final_filename_will_be = None, None, None
+    full_generation_segments, audio_arr_segments, final_filename_will_be = (
+        None,
+        None,
+        None,
+    )
 
     kwargs["output_iterations"] = output_iterations
 
@@ -637,8 +656,10 @@ def generate_audio_long_gradio(
 
         return final_filename_will_be
 
+
 voice_directories = config.VALID_HISTORY_PROMPT_DIRS
-        
+
+
 def generate_audio_long_gradio_clones(
     input,
     audio_prompt_input,
@@ -676,10 +697,10 @@ def generate_audio_long_gradio_clones(
     coarse_top_k,
     coarse_top_p,
     specific_npz_file,
+    main_input_audio_filename,
     specific_npz_folder,
     split_character_jitter,
     extra_args_str,
-    output_voice,
     progress=gr.Progress(track_tqdm=True),
 ):
     if input is None or input == "":
@@ -729,6 +750,7 @@ def generate_audio_long_gradio_clones(
         coarse_top_k,
         coarse_top_p,
         specific_npz_file,
+        main_input_audio_filename,
         specific_npz_folder,
         split_character_jitter,
         extra_args_str,
@@ -736,11 +758,11 @@ def generate_audio_long_gradio_clones(
     )
 
 
-
 import os
 import pathlib
 
-def get_filename(x, debug=False):
+
+def get_filename(x, debug=barkdebug):
     if debug:
         print(f"Type of x: {type(x)}")
         print(f"Value of x: {x}")
@@ -785,7 +807,6 @@ def get_filename(x, debug=False):
                     break
             """
 
-
         if audio_speaker_preview:
             audio_preview_segment = gr.Audio.update(
                 audio_speaker_preview,
@@ -800,7 +821,6 @@ def get_filename(x, debug=False):
     return os.path.basename(filename), filename, audio_preview_segment
 
 
-
 def create_npz_dropdown_single(directory, label, info="", allow_custom_value=False):
     npz_files_by_subfolder = defaultdict(list)
 
@@ -813,17 +833,23 @@ def create_npz_dropdown_single(directory, label, info="", allow_custom_value=Fal
         sorted_npz_files.extend(sorted(npz_files_by_subfolder[subfolder]))
 
     # npz_dropdown = gr.Dropdown(sorted_npz_files, label=label, info=info, allow_custom_value=allow_custom_value)
-    npz_dropdown = gr.Dropdown(sorted_npz_files, label=label, info=info, allow_custom_value=True)
+    npz_dropdown = gr.Dropdown(
+        sorted_npz_files,
+        label=label,
+        info=info,
+        allow_custom_value=True,
+        multiselect=True,
+        max_choices=1,
+    )
 
     return npz_dropdown
 
 
-
-
-
-def create_npz_dropdown(directory_list, base_path=where_am_i, label="", info="", allow_custom_value=False):
+def create_npz_dropdown(
+    directory_list, base_path=where_am_i, label="", info="", allow_custom_value=False
+):
     npz_files_by_subfolder = defaultdict(list)
-    
+
     # Check if a single string is passed and convert to a single element list
     if isinstance(directory_list, str):
         directory_list = [directory_list]
@@ -831,7 +857,9 @@ def create_npz_dropdown(directory_list, base_path=where_am_i, label="", info="",
     for directory in directory_list:
         full_path = os.path.join(base_path, directory)  # Join with base directory
         if os.path.exists(full_path):
-            for npz_file in glob.glob(os.path.join(full_path, "**", "*.npz"), recursive=True):
+            for npz_file in glob.glob(
+                os.path.join(full_path, "**", "*.npz"), recursive=True
+            ):
                 if os.path.getsize(npz_file) > 0:  # Check if file is not empty
                     # Get the relative path from base_path
                     relative_path = os.path.relpath(npz_file, base_path)
@@ -846,7 +874,14 @@ def create_npz_dropdown(directory_list, base_path=where_am_i, label="", info="",
     for subfolder in sorted(npz_files_by_subfolder.keys()):
         sorted_npz_files.extend(sorted(npz_files_by_subfolder[subfolder]))
 
-    npz_dropdown = gr.Dropdown(sorted_npz_files, label=label, info=info, allow_custom_value=allow_custom_value)
+    npz_dropdown = gr.Dropdown(
+        sorted_npz_files,
+        label=label,
+        info=info,
+        allow_custom_value=allow_custom_value,
+        multiselect=True,
+        max_choices=1,
+    )
 
     return npz_dropdown
 
@@ -872,10 +907,18 @@ class Logger:
 
 
 sys.stdout = io.TextIOWrapper(
-    sys.stdout.buffer, encoding="utf-8", errors="replace", newline="", line_buffering=True
+    sys.stdout.buffer,
+    encoding="utf-8",
+    errors="replace",
+    newline="",
+    line_buffering=True,
 )
 sys.stderr = io.TextIOWrapper(
-    sys.stderr.buffer, encoding="utf-8", errors="replace", newline="", line_buffering=True
+    sys.stderr.buffer,
+    encoding="utf-8",
+    errors="replace",
+    newline="",
+    line_buffering=True,
 )
 
 sys.stdout = Logger("gradio_terminal_ouput.log")
@@ -892,16 +935,34 @@ def read_logs():
 
 
 model_options = [
-    ("text_use_gpu", {"value": True, "type": bool, "help": "Load the text model on the GPU."}),
-    ("text_use_small", {"value": False, "type": bool, "help": "Use a smaller/faster text model."}),
-    ("coarse_use_gpu", {"value": True, "type": bool, "help": "Load the coarse model on the GPU."}),
+    (
+        "text_use_gpu",
+        {"value": True, "type": bool, "help": "Load the text model on the GPU."},
+    ),
+    (
+        "text_use_small",
+        {"value": False, "type": bool, "help": "Use a smaller/faster text model."},
+    ),
+    (
+        "coarse_use_gpu",
+        {"value": True, "type": bool, "help": "Load the coarse model on the GPU."},
+    ),
     (
         "coarse_use_small",
         {"value": False, "type": bool, "help": "Use a smaller/faster coarse model."},
     ),
-    ("fine_use_gpu", {"value": True, "type": bool, "help": "Load the fine model on the GPU."}),
-    ("fine_use_small", {"value": False, "type": bool, "help": "Use a smaller/faster fine model."}),
-    ("codec_use_gpu", {"value": True, "type": bool, "help": "Load the codec model on the GPU."}),
+    (
+        "fine_use_gpu",
+        {"value": True, "type": bool, "help": "Load the fine model on the GPU."},
+    ),
+    (
+        "fine_use_small",
+        {"value": False, "type": bool, "help": "Use a smaller/faster fine model."},
+    ),
+    (
+        "codec_use_gpu",
+        {"value": True, "type": bool, "help": "Load the codec model on the GPU."},
+    ),
     (
         "force_reload",
         {
@@ -1095,7 +1156,9 @@ def format_defaults(defaults):
             formatted_text += f"    Default: {arg['value']}\n"
             formatted_text += f"    Help: {arg['help']}\n"
             if "choices" in arg:
-                formatted_text += f"    Choices: {', '.join(map(str, arg['choices']))}\n"
+                formatted_text += (
+                    f"    Choices: {', '.join(map(str, arg['choices']))}\n"
+                )
             formatted_text += "\n"
     return formatted_text
 
@@ -1172,8 +1235,6 @@ def trim_logs():
         f.writelines(lines)
 
 
-
-
 def get_refresh_gpu_report():
     full_gpu_report = api.gpu_status_report()
     # full_gpu_report += api.gpu_memory_report()
@@ -1188,7 +1249,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
     )
 
     with gr.Tabs(elem_id="main_top_ui_tabs") as main_top_tabs_block:
-        with gr.Tab("🧑‍🎤 Generate Audio", elem_id="main_tabs_1") as generate_audio_main_tab:
+        with gr.Tab(
+            "🧑‍🎤 Generate Audio", elem_id="main_tabs_1"
+        ) as generate_audio_main_tab:
             with gr.Row():
                 with gr.Column(variant="primary", scale=1):
                     with gr.Row():
@@ -1209,13 +1272,17 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                             label=f"Insert A Text Snippet",
                                             info=f"Add your commonly used text to {user_style_csv}",
                                             elem_id=f"styles",
-                                            choices=[k for k, v in prompt_styles.styles.items()],
+                                            choices=[
+                                                k
+                                                for k, v in prompt_styles.styles.items()
+                                            ],
                                             value=[],
                                             multiselect=True,
                                         )
                                         # create_refresh_button(prompt_styles_dropdown, prompt_styles.reload, lambda: {"choices": [k for k, v in prompt_styles.styles.items()]}, f"refresh_styles")
                                         prompt_style_apply = ToolButton(
-                                            value=apply_style_symbol, elem_id=f"style_apply"
+                                            value=apply_style_symbol,
+                                            elem_id=f"style_apply",
                                         )
                                         # save_style = ToolButton(value=save_style_symbol, elem_id=f"style_create")
                                     with gr.Column(variant="panel", scale=0.5):
@@ -1287,7 +1354,6 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                         with gr.Column(scale=1, variant="panel"):
                             m("## 🧑‍🎤 Bark Speaker.npz - Who Says It")
 
-
                             with gr.Tab("Simple"):
                                 gr.Markdown("## 🌱🎙️ Create A New Voice With Bark")
                                 m(
@@ -1303,18 +1369,16 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                             "You'll default to a random speaker if you don't select one. Check \"Save Every NPZ\" if you're actively looking for a voice."
                                         )
 
-
-                                gr.Markdown("""## 🧑‍🎤 ***OR:*** Choose An Existing Voice""")
-
+                                gr.Markdown(
+                                    """## 🧑‍🎤 ***OR:*** Choose An Existing Voice"""
+                                )
 
                                 with gr.Row():
-
-
                                     with gr.Column(scale=3, elem_classes="tiny_column"):
                                         npz_dropdown = create_npz_dropdown(
-                                        voice_directories,
-                                        label="🧑‍🎤 Built In Voice",
-                                        info="Speakers provided by Suno-ai, in many languages. The v2 ones are good for a basic clear voice. Also some I accidentally left in the github repo. Better ones incoming.",
+                                            voice_directories,
+                                            label="🧑‍🎤 Built In Voice",
+                                            info="Speakers provided by Suno-ai, in many languages. The v2 ones are good for a basic clear voice. Also some I accidentally left in the github repo. Better ones incoming.",
                                         )
                                     with gr.Column(scale=1, elem_classes="tiny_column"):
                                         specific_npz_file = gr.File(
@@ -1323,12 +1387,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                             elem_classes="bark_upload_file",
                                             show_label=True,
                                             elem_id="specific_npz_file",
-
                                         )
-
-  
-
-
 
                             with gr.Tab("Advanced"):
                                 with gr.Row():
@@ -1348,13 +1407,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                             "Bark will try and clone your audio clip, then the clone will speak the prompt. YOu will have two new voice .npzs after. MAIN.npz is just from the original audio. And others are saved after speaking the prompt. (Typically it improves the quality.) Try cloning music or sounds. Serious clones have a second tab."
                                         )
 
-
-
                                         bark_infinity_voices = gr.Textbox(visible=False)
 
-
                                     with gr.Tab("👥📁 Your Creations."):
-
                                         gr.Markdown(
                                             """#### 👥 Choose from your Cloned Voices Directory"""
                                         )
@@ -1366,7 +1421,6 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                             info="Clones you tried to make. This is just a temporary UI, we're gonna need a serious upgrade to select, organize, and rank numerous clones.",
                                         )
 
-    
                                         gr.Markdown(
                                             """#### Generate audio for every .npz voice in a directory. (For clone tests, also check "Save Every NPZ".)"""
                                         )
@@ -1378,7 +1432,6 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                             placeholder=f"Directory name or path.",
                                         )
 
-
                             with gr.Row():
                                 with gr.Column(scale=3, elem_classes="tiny_column"):
                                     selected_npz_file = gr.Textbox(
@@ -1387,12 +1440,17 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                         visible=True,
                                         show_label=False,
                                         elem_id=f"selected_npz_file",
+                                        interactive=False,
                                     )
 
-
-
                                     speaker_preview_audio = gr.Audio(
-                                        label="", show_label=False, type="filepath", elem_classes="bark_output_audio", elem_id="speaker_preview_audio", interactive=False, visible=False
+                                        label="",
+                                        show_label=False,
+                                        type="filepath",
+                                        elem_classes="bark_output_audio",
+                                        elem_id="speaker_preview_audio",
+                                        interactive=False,
+                                        visible=False,
                                     )
 
                             selected_npz_file_full = gr.Textbox(
@@ -1405,19 +1463,31 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                             specific_npz_file.change(
                                 get_filename,
                                 inputs=[specific_npz_file],
-                                outputs=[selected_npz_file, selected_npz_file_full, speaker_preview_audio],
+                                outputs=[
+                                    selected_npz_file,
+                                    selected_npz_file_full,
+                                    speaker_preview_audio,
+                                ],
                             )
 
                             main_input_audio_filename.change(
                                 get_filename,
                                 inputs=[main_input_audio_filename],
-                                outputs=[selected_npz_file, selected_npz_file_full, speaker_preview_audio],
+                                outputs=[
+                                    selected_npz_file,
+                                    selected_npz_file_full,
+                                    speaker_preview_audio,
+                                ],
                             )
 
                             npz_dropdown.change(
                                 get_filename,
                                 inputs=[npz_dropdown],
-                                outputs=[selected_npz_file, selected_npz_file_full, speaker_preview_audio],
+                                outputs=[
+                                    selected_npz_file,
+                                    selected_npz_file_full,
+                                    speaker_preview_audio,
+                                ],
                             )
 
                             # speaker_selection = gr.Textbox(label="Speakers Selected", lines=1, placeholder='', value='', info="")
@@ -1488,6 +1558,8 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                         ],
                                         label="Process the text in chunks of:",
                                         value=None,
+                                        # multiselect=True,
+                                        # max_choices=1,
                                     )
                                     group_text_by_counting = gr.Dropdown(
                                         [
@@ -1501,6 +1573,8 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                         ],
                                         label="Group the text by counting:",
                                         value=None,
+                                        # multiselect=True,
+                                        # max_choices=1,
                                     )
                                     in_groups_of_size = gr.Slider(
                                         label="And start a new audio clip with you have this many:",
@@ -1511,11 +1585,13 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                     )
 
                                     split_type_string = gr.Textbox(
-                                        label="(Optional String for string or regex.)", value=""
+                                        label="(Optional String for string or regex.)",
+                                        value="",
                                     )
 
                                 text_splits_only = gr.Checkbox(
-                                    label="🗺️✂️ No audio, just show me text splits.", value=False
+                                    label="🗺️✂️ No audio, just show me text splits.",
+                                    value=False,
                                 )
 
                             with gr.Column(variant="panel", scale=1):
@@ -1642,7 +1718,10 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                         step=1,
                                     )
                                     semantic_top_p = gr.Slider(
-                                        label="semantic_top_p", value=0.95, minimum=0.0, maximum=1.0
+                                        label="semantic_top_p",
+                                        value=0.95,
+                                        minimum=0.0,
+                                        maximum=1.0,
                                     )
                                     coarse_top_k = gr.Slider(
                                         label="coarse_top_k",
@@ -1652,7 +1731,10 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                         step=1,
                                     )
                                     coarse_top_p = gr.Slider(
-                                        label="coarse_top_p", value=0.95, minimum=0.0, maximum=1.0
+                                        label="coarse_top_p",
+                                        value=0.95,
+                                        minimum=0.0,
+                                        maximum=1.0,
                                     )
 
                             with gr.Column(variant="panel", scale=1):
@@ -1695,7 +1777,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
 
                     with gr.Row():
                         with gr.Column(scale=1):
-                            generate_button = gr.Button("Generate Audio", variant="primary")
+                            generate_button = gr.Button(
+                                "Generate Audio", variant="primary"
+                            )
 
                         with gr.Column(scale=1):
                             cancel_button = gr.Button(
@@ -1704,7 +1788,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                 variant="stop",
                             )
 
-        with gr.Tab("👨‍🔬🧬 Clone A Voice", elem_id="main_tabs_cloning") as clone_main_tab:
+        with gr.Tab(
+            "👨‍🔬🧬 Clone A Voice", elem_id="main_tabs_cloning"
+        ) as clone_main_tab:
             # Model Developed by from https://github.com/gitmylo/bark-voice-cloning-HuBERT-quantizer
             with gr.Row():
                 gr.Markdown("## 👨‍🔬🧬 Clone a Voice")
@@ -1737,7 +1823,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                     )
 
                     gr.Markdown(
-                        "### 3️⃣ Write two good text prompts that capture the speaking style of the voice clone."
+                        "### 3️⃣ (Optional) Write one or two good text prompts that capture the speaking style of the voice clone. You don't need to do this but it helps. You can use the main text input and splitting functions."
                     )
 
                     gr.Markdown(
@@ -1749,6 +1835,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                         placeholder="Text clearly in the style of your clone.",
                         label="3️⃣ One Clone Short Text Prompt",
                         info="Maybe a sentence or two. Feel free to experiment.",
+                        visible=False,
                     )
 
                     clone_prompt_2 = gr.Textbox(
@@ -1756,6 +1843,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                         placeholder="Text clearly in the style of your clone.",
                         label="3️⃣ One Clone Long Text Prompt",
                         info="At least 2 sentences, 3 or 4 is better, as long as it is still reasonable to say everything in less than 14 seconds.",
+                        visible=False,
                     )
 
                     gr.Markdown(
@@ -1851,7 +1939,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
 
             with gr.Row():
                 clone_voice_button = gr.Button(
-                    "Begin Generating Voice Clones", variant="primary", elem_id="cloning"
+                    "Begin Generating Voice Clones",
+                    variant="primary",
+                    elem_id="cloning",
                 )
                 dummy = gr.Text(label="Cloning Progress...")
 
@@ -1868,7 +1958,11 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                     )
                     model_checkboxes = generate_gradio_widgets(model_options)
 
-                    env_config_vars = ["OFFLOAD_CPU", "USE_SMALL_MODELS", "GLOBAL_ENABLE_MPS"]
+                    env_config_vars = [
+                        "OFFLOAD_CPU",
+                        "USE_SMALL_MODELS",
+                        "GLOBAL_ENABLE_MPS",
+                    ]
                     env_config_values = ["OFFLOAD_CPU", "", ""]
                     gr.Markdown("### 🐶 Bark Environment Variables")
                     env_config_group = gr.CheckboxGroup(
@@ -2032,10 +2126,13 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                     "Quickly generate a sample audio clip for each speaker file in a directory. Have a bunch of NPZ and want to get quick idea what they sound like? This is for you."
                                 )
                                 sample_gen_path = gr.Textbox(
-                                    label="Sample Directory", value="bark/assets/prompts/v2"
+                                    label="Sample Directory",
+                                    value="bark/assets/prompts/v2",
                                 )
 
-                                gr.Markdown("Recreate the exact audio file from the the NPZ files.")
+                                gr.Markdown(
+                                    "Recreate the exact audio file from the the NPZ files."
+                                )
                                 sample_gen_button = gr.Button(
                                     "Regenerate Original NPZ Audio Files",
                                     info="This is the exact audio of the original samples",
@@ -2049,7 +2146,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                     "Generate Slight Variations. These will sound almost but not quite the same as original. Not particularly useful honestly."
                                 )
                                 sample_gen_button_2 = gr.Button(
-                                    "Generate Slight Variations.", info="", variant="primary"
+                                    "Generate Slight Variations.",
+                                    info="",
+                                    variant="primary",
                                 )
                                 sample_gen_button_2.click(
                                     generate_sample_audio_coarse, inputs=sample_gen_path
@@ -2065,7 +2164,8 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                 )
 
                                 sample_gen_button_3.click(
-                                    generate_sample_audio_semantic, inputs=sample_gen_path
+                                    generate_sample_audio_semantic,
+                                    inputs=sample_gen_path,
                                 )
 
                                 gr.Markdown(
@@ -2141,7 +2241,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                 )
                             with gr.Column(scale=1, variant="panel"):
                                 extra_args_input = gr.TextArea(
-                                    lines=15, label="Extra Arguments", elem_classes="bark_console"
+                                    lines=15,
+                                    label="Extra Arguments",
+                                    elem_classes="bark_console",
                                 )
         with gr.Tab("aaa", elem_id="main_tabs_555"):
             loadsave.create_ui()
@@ -2156,7 +2258,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                             value=f'📁 Browse Current Output Folder: "{directory_to_open.value}"'
                         )
                         show_outputs_in_filesystem_button.click(
-                            output_filesystem_button, inputs=[directory_to_open], queue=False
+                            output_filesystem_button,
+                            inputs=[directory_to_open],
+                            queue=False,
                         )
 
                     with gr.Column(scale=1):
@@ -2186,7 +2290,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                     )
                                 )
 
-                            audio_list += [gr.Audio.update(visible=False)] * (max_audio_outputs - k)
+                            audio_list += [gr.Audio.update(visible=False)] * (
+                                max_audio_outputs - k
+                            )
 
                             return audio_list
 
@@ -2194,9 +2300,10 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                             global last_audio_samples
                             k = int(k)
 
-
                             audio_list = []
-                            for i in range(-1, -min(k, len(last_audio_samples)) - 1, -1):
+                            for i in range(
+                                -1, -min(k, len(last_audio_samples)) - 1, -1
+                            ):
                                 index = (
                                     len(last_audio_samples) + i
                                 )  # Calculate the index in the original list
@@ -2217,7 +2324,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                     )
                                 )
 
-                            audio_list += [gr.Audio.update(visible=False)] * (max_audio_outputs - k)
+                            audio_list += [gr.Audio.update(visible=False)] * (
+                                max_audio_outputs - k
+                            )
 
                             return audio_list
 
@@ -2245,12 +2354,17 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
                                 audio_outputs.append(t)
 
                             num_audio_to_show.change(
-                                variable_outputs, num_audio_to_show, audio_outputs, queue=False
+                                variable_outputs,
+                                num_audio_to_show,
+                                audio_outputs,
+                                queue=False,
                             )
 
             with gr.Column(scale=1, variant="panel"):
                 audio_output = gr.Audio(
-                    label="Last Audio Sample", type="filepath", elem_classes="bark_output_audio"
+                    label="Last Audio Sample",
+                    type="filepath",
+                    elem_classes="bark_output_audio",
                 )
 
                 output = gr.HTML(elem_classes="bark_console", interactive=True)
@@ -2286,7 +2400,10 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
 
         # is this the only way to know what tab you are on?
         clone_main_tab.select(
-            lambda: set_current_tab("clone"), None, show_outputs_in_filesystem_button, queue=False
+            lambda: set_current_tab("clone"),
+            None,
+            show_outputs_in_filesystem_button,
+            queue=False,
         )
         generate_audio_main_tab.select(
             lambda: set_current_tab("generate"),
@@ -2295,7 +2412,10 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
             queue=False,
         )
         settings_tab.select(
-            lambda: set_current_tab("settings_tab"), None, XDG_CACHE_HOME_textbox, queue=False
+            lambda: set_current_tab("settings_tab"),
+            None,
+            XDG_CACHE_HOME_textbox,
+            queue=False,
         )
 
     loadsave.add_block(main_top_tabs_block, "main_top_ui_tabs")
@@ -2363,7 +2483,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
     clone_button_event_success = clone_button_event.success(
         generate_audio_long_gradio_clones,
         inputs=[
-            clone_prompt_2,
+            input,
             audio_prompt_input,
             bark_speaker_as_the_prompt,
             npz_dropdown,
@@ -2391,7 +2511,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
             waveform_temp,
             semantic_min_eos_p,
             output_dir,
-            output_filename,
+            output_voice,
             output_format,
             add_silence_between_segments,
             semantic_top_k,
@@ -2403,7 +2523,6 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
             dummy,
             split_character_jitter,
             extra_args_input,
-            output_voice,
         ],
         outputs=[audio_output],
     )
@@ -2422,7 +2541,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style) as demo:
 
     logs = gr.HTML()
     demo.load(read_logs, None, output, every=2)
-    demo.load(variable_outputs, inputs=num_audio_to_show, outputs=audio_outputs, every=10)
+    demo.load(
+        variable_outputs, inputs=num_audio_to_show, outputs=audio_outputs, every=10
+    )
 
 
 parser = argparse.ArgumentParser(description="Gradio app command line options.")
@@ -2443,7 +2564,16 @@ parser.add_argument(
     default=False,
     help="Enable detailed error messages and extra outputs.",
 )
-parser.add_argument("--incolab", action="store_true", default=False, help="Default for Colab.")
+
+parser.add_argument(
+    "--barkdebug",
+    action="store_true",
+    default=False,
+    help="Misc Bark Debug.",
+)
+parser.add_argument(
+    "--incolab", action="store_true", default=False, help="Default for Colab."
+)
 
 
 parser.add_argument(
@@ -2453,10 +2583,16 @@ parser.add_argument(
     help="Do not offload models to the CPU when not in use.",
 )
 parser.add_argument(
-    "--use_small_models", action="store_true", default=False, help="Set to use small models."
+    "--use_small_models",
+    action="store_true",
+    default=False,
+    help="Set to use small models.",
 )
 parser.add_argument(
-    "--global_enable_mps", type=str, default=False, help="Set for enabling MPS on Apple M1."
+    "--global_enable_mps",
+    type=str,
+    default=False,
+    help="Set for enabling MPS on Apple M1.",
 )
 parser.add_argument("--xdg_cache_home", type=str, help="Model directory.")
 
@@ -2469,6 +2605,8 @@ auth = None
 
 share = args.share
 
+if args.barkdebug:
+    barkdebug = barkdebug
 
 if args.incolab:
     generation.OFFLOAD_CPU = False
@@ -2506,7 +2644,10 @@ print(f"python bark_webui.py --help for specific Gradio options.\n\n")
 # demo.queue(concurrency_count=2, max_size=2)
 demo.queue()
 
-do_not_launch = args.no_autolaunch
+do_not_launch = not args.no_autolaunch
+
+do_not_launch = True
+
 demo.launch(
     share=args.share,
     auth=auth,

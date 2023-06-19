@@ -1,4 +1,4 @@
-name: bark-infinity
+name: musicgen-infinity
 channels:
   - pytorch
   - nvidia
@@ -8,8 +8,6 @@ dependencies:
   - python=3.10
   - pip
   - setuptools
-  - conda-forge::ffmpeg
-  - conda-forge::ffmpeg-python
   - pytorch>=2.0
   - torchvision
   - torchaudio
@@ -27,20 +25,28 @@ dependencies:
   - nltk
   - blas=*=*mkl
   - libblas=*=*mkl
-  - faiss-cpu==1.7.0
   - pydub
-  - pywin32
+  # - pywin32 # windows
   - fairseq
   # sox is for linux, soundfile is for windows
   - sox
   - chardet
+  - ffmpeg
+  - ffmpeg-python
+  - av
+  - einops
+  - num2words
+  - numpy
+  - sentencepiece
+  - spacy==3.5.2
+  - librosa
   - pip:
     - encodec
     - rich-argparse
     - gradio>=3.34.0
     - audiolm_pytorch
     - universal-startfile
-    - ffmpeg-downloader
+
 
 
 

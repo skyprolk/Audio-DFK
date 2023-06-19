@@ -1,0 +1,6 @@
+demucs
+flashy>=0.0.1
+hydra-core==1.0.7
+hydra_colorlog
+julius
+

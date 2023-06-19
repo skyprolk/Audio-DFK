@@ -25,15 +25,17 @@ from .config import logger
 
 from huggingface_hub import hf_hub_url
 from collections import Counter
+
 if (
-    torch.cuda.is_available() and
-    hasattr(torch.cuda, "amp") and
-    hasattr(torch.cuda.amp, "autocast") and
-    hasattr(torch.cuda, "is_bf16_supported") and
-    torch.cuda.is_bf16_supported()
+    torch.cuda.is_available()
+    and hasattr(torch.cuda, "amp")
+    and hasattr(torch.cuda.amp, "autocast")
+    and hasattr(torch.cuda, "is_bf16_supported")
+    and torch.cuda.is_bf16_supported()
 ):
     autocast = funcy.partial(torch.cuda.amp.autocast, dtype=torch.bfloat16)
 else:
+
     @contextlib.contextmanager
     def autocast():
         yield
@@ -83,8 +85,6 @@ for _, lang in SUPPORTED_LANGS:
             ALLOWED_PROMPTS.add(f"{prefix}{lang}_speaker_{n}")
 
 
-
-
 SUPPORTED_LANGS = [
     ("English", "en"),
     ("German", "de"),
@@ -108,8 +108,6 @@ for _, lang in SUPPORTED_LANGS:
             ALLOWED_PROMPTS.add(f"{prefix}{lang}_speaker_{n}")
 
 
-
-
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -118,7 +116,7 @@ CACHE_DIR = os.path.join(os.getenv("XDG_CACHE_HOME", default_cache_dir), "suno",
 
 
 def _cast_bool_env_var(s):
-    return s.lower() in ('true', '1', 't')
+    return s.lower() in ("true", "1", "t")
 
 
 USE_SMALL_MODELS = _cast_bool_env_var(os.environ.get("SUNO_USE_SMALL_MODELS", "False"))
@@ -153,10 +151,10 @@ REMOTE_MODEL_PATHS = {
 }
 
 
-if not hasattr(torch.nn.functional, 'scaled_dot_product_attention') and torch.cuda.is_available():
+if not hasattr(torch.nn.functional, "scaled_dot_product_attention") and torch.cuda.is_available():
     logger.warning(
-        "torch version does not support flash attention. You will get faster" +
-        " inference speed by upgrade torch to newest nightly version."
+        "torch version does not support flash attention. You will get faster"
+        + " inference speed by upgrade torch to newest nightly version."
     )
 
 
@@ -224,7 +222,6 @@ def clean_models(model_key=None):
 
 
 # def _load_model(ckpt_path, device, use_small=False, model_type="text"):
-    
 
 
 def _load_codec_model(device):
@@ -234,9 +231,6 @@ def _load_codec_model(device):
     model.to(device)
     _clear_cuda_cache()
     return model
-
-
-
 
 
 def load_codec_model(use_gpu=True, force_reload=False):
@@ -256,6 +250,7 @@ def load_codec_model(use_gpu=True, force_reload=False):
         models[model_key] = model
     models[model_key].to(device)
     return models[model_key]
+
 
 """
 def preload_models(
@@ -286,6 +281,7 @@ def _detokenize(tokenizer, enc_text):
 def _normalize_whitespace(text):
     return re.sub(r"\s+", " ", text).strip()
 
+
 TEXT_ENCODING_OFFSET = 10_048
 SEMANTIC_PAD_TOKEN = 10_000
 TEXT_PAD_TOKEN = 129_595
@@ -304,13 +300,14 @@ def _load_history_prompt(history_prompt_input):
             os.path.join(CUR_PATH, "assets", "prompts", f"{history_prompt_input}.npz")
         )
     elif isinstance(history_prompt_input, dict):
-        assert("semantic_prompt" in history_prompt_input)
-        assert("coarse_prompt" in history_prompt_input)
-        assert("fine_prompt" in history_prompt_input)
+        assert "semantic_prompt" in history_prompt_input
+        assert "coarse_prompt" in history_prompt_input
+        assert "fine_prompt" in history_prompt_input
         history_prompt = history_prompt_input
     else:
         raise ValueError("history prompt format unrecognized")
     return history_prompt
+
 
 def compute_log_probs(token_list, smoothing_factor, scaling_factor):
     # Count the frequency of each token.
@@ -329,21 +326,19 @@ def compute_log_probs(token_list, smoothing_factor, scaling_factor):
     return log_probs
 
 
-
-
-
-
 def estimate_s_this_seems_wrong_so_many_math_crashes(prob):
     epsilon = 1e-10
     num = 0
     den = 0
-    for i in range(min(len(prob), 10000)): #apparently any number is fine here but they paper was on natural language so maybe not for us?
-    #for i in range(768):
-        b = prob[i] / (prob[i+1] + epsilon)
-        t = (i+2) / (i+1)
-        if b > 0 and t > 0: 
+    for i in range(
+        min(len(prob), 10000)
+    ):  # apparently any number is fine here but they paper was on natural language so maybe not for us?
+        # for i in range(768):
+        b = prob[i] / (prob[i + 1] + epsilon)
+        t = (i + 2) / (i + 1)
+        if b > 0 and t > 0:
             num += math.log(b) * math.log(t)
-            den += math.log(t)**2
+            den += math.log(t) ** 2
     return num / den if den != 0 else 0
 
 
@@ -352,31 +347,30 @@ def estimate_s(prob):
     num = 0
     den = 0
     # for i in range(3000):
-     # in the paper they say 100 is as good as any higher number? But it's not slow so maybe leave it higher?
-     # also in the paper they don't have catch divide by 0s though...
+    # in the paper they say 100 is as good as any higher number? But it's not slow so maybe leave it higher?
+    # also in the paper they don't have catch divide by 0s though...
     # also the paper was on natural language so maybe not for us. Let's just max it out
-    for i in range(min(len(prob), 10000)): 
-        b = prob[i] / (prob[i+1] + epsilon)
-        t = (i+2) / (i+1)
-        if b > 0 and t > 0: 
-            num += math.log(b if b>0 else 1) * math.log(t if t>0 else 1)
-            # den += math.log(t)**2 
-            den += math.log(t if t>0 else 1)**2
+    for i in range(min(len(prob), 10000)):
+        b = prob[i] / (prob[i + 1] + epsilon)
+        t = (i + 2) / (i + 1)
+        if b > 0 and t > 0:
+            num += math.log(b if b > 0 else 1) * math.log(t if t > 0 else 1)
+            # den += math.log(t)**2
+            den += math.log(t if t > 0 else 1) ** 2
             # ok NOW this should never be zero and feels more right
-            return num / den 
+            return num / den
     # return num / den if den != 0 else 0 # or should this be float("inf") ? doesn't seem right.
 
 
-def compute_k_original_paper(n,s,tau):
+def compute_k_original_paper(n, s, tau):
     print(f"n: {n}, s: {s}, tau: {tau}")
-    eps = s-1
-    k = ((eps*(2**(tau)))/(1-n**(-eps)))**(1/s)
+    eps = s - 1
+    k = ((eps * (2 ** (tau))) / (1 - n ** (-eps))) ** (1 / s)
     k = round(k)
     return k
 
 
 def compute_k(n, s, tau, max_k):
-
     try:
         eps = s - 1
         n_eps = n ** (-eps)
@@ -394,10 +388,11 @@ def compute_k(n, s, tau, max_k):
         # Return maximum possible k
         return max_k
 
-def compute_k_orig(n,s,tau):
+
+def compute_k_orig(n, s, tau):
     print(f"n: {n}, s: {s}, tau: {tau}")
-    eps = s-1
-    k = ((eps*(2**(tau)))/(1-n**(-eps)))**(1/s)
+    eps = s - 1
+    k = ((eps * (2 ** (tau))) / (1 - n ** (-eps))) ** (1 / s)
     k = round(k)
     return k
 
@@ -418,42 +413,49 @@ def compute_k_not_right(n, s, tau, max_k):
         return max_k
 
 
-
 def compute_k_log(n, s, tau):
     print(f"n: {n}, s: {s}, tau: {tau}")
     eps = s - 1
     try:
-        log_k = (math.log(eps) + tau*math.log(2) - math.log(1 - n ** (-eps))) / s
+        log_k = (math.log(eps) + tau * math.log(2) - math.log(1 - n ** (-eps))) / s
         k = round(math.exp(log_k))
     except OverflowError:
-        k = float('inf')  
+        k = float("inf")
     return k
 
 
 # https://github.com/basusourya/mirostat/blob/master/mirostat.py
 
+
 # try adjusting target tau dynamically based on just length even? Could you shape the "energy" of the clip?
-def mirostat_sampling_v1(logits = None, tau=5.0, learning_rate=1.0, max_surprise = None, vocab_size=SEMANTIC_VOCAB_SIZE, indices_surprise_history=[], running_tot_surprise=0, generated = []):
+def mirostat_sampling_v1(
+    logits=None,
+    tau=5.0,
+    learning_rate=1.0,
+    max_surprise=None,
+    vocab_size=SEMANTIC_VOCAB_SIZE,
+    indices_surprise_history=[],
+    running_tot_surprise=0,
+    generated=[],
+):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     prob_original = torch.softmax(sorted_logits, dim=-1).tolist()
 
-    
-
     s = estimate_s(prob_original)
-    
+
     max_k = len(sorted_logits) - 1
-    
-    k = compute_k(vocab_size, s, max_surprise, max_k)+1
+
+    k = compute_k(vocab_size, s, max_surprise, max_k) + 1
 
     print(f"\n\nK: {k} s: {s} tau: {max_surprise}")
 
     sorted_logits = sorted_logits[0:k]
     sorted_indices = sorted_indices[0:k]
 
-    prob_topk = torch.softmax(sorted_logits, dim = 0)
+    prob_topk = torch.softmax(sorted_logits, dim=0)
 
-    prev_i  = torch.multinomial(prob_topk, num_samples=1, replacement=True)
-    index_surprise = math.log2(1/prob_original[prev_i])
+    prev_i = torch.multinomial(prob_topk, num_samples=1, replacement=True)
+    index_surprise = math.log2(1 / prob_original[prev_i])
     print(f"index_surprise: {index_surprise}")
     indices_surprise_history.append(index_surprise)
 
@@ -465,12 +467,29 @@ def mirostat_sampling_v1(logits = None, tau=5.0, learning_rate=1.0, max_surprise
     max_surprise -= learning_rate * error_surprise
 
     # full_probs = torch.zeros_like(logits) # 0? or -inf?
-    full_probs = torch.empty_like(logits).fill_(-float('inf')) 
-    full_probs[sorted_indices] =  prob_topk.to(full_probs.dtype)
+    full_probs = torch.empty_like(logits).fill_(-float("inf"))
+    full_probs[sorted_indices] = prob_topk.to(full_probs.dtype)
 
-    return sorted_indices[prev_i], max_surprise, full_probs, indices_surprise_history, running_tot_surprise, generated
+    return (
+        sorted_indices[prev_i],
+        max_surprise,
+        full_probs,
+        indices_surprise_history,
+        running_tot_surprise,
+        generated,
+    )
 
-def mirostat_sampling_meh(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None, vocab_size=SEMANTIC_VOCAB_SIZE, indices_surprise_history=[], running_tot_surprise=0, generated=[]):
+
+def mirostat_sampling_meh(
+    logits=None,
+    tau=5.0,
+    learning_rate=1.0,
+    max_surprise=None,
+    vocab_size=SEMANTIC_VOCAB_SIZE,
+    indices_surprise_history=[],
+    running_tot_surprise=0,
+    generated=[],
+):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     prob_original = torch.softmax(sorted_logits, dim=-1).tolist()
 
@@ -478,7 +497,7 @@ def mirostat_sampling_meh(logits=None, tau=5.0, learning_rate=1.0, max_surprise=
 
     max_k = len(sorted_logits) - 1
 
-    k = compute_k(vocab_size, s, max_surprise, max_k)+1
+    k = compute_k(vocab_size, s, max_surprise, max_k) + 1
 
     print(f"\n\nK: {k} s: {s} tau: {max_surprise}")
 
@@ -489,24 +508,41 @@ def mirostat_sampling_meh(logits=None, tau=5.0, learning_rate=1.0, max_surprise=
 
     prev_i = torch.multinomial(prob_topk, num_samples=1, replacement=True)
 
-    index_surprise = math.log2(1/prob_original[sorted_indices[prev_i].item()])
+    index_surprise = math.log2(1 / prob_original[sorted_indices[prev_i].item()])
     print(f"index_surprise: {index_surprise}")
     indices_surprise_history.append(index_surprise)
 
     running_tot_surprise += index_surprise
     prev = sorted_indices[prev_i]
-    generated += prev.tolist() 
+    generated += prev.tolist()
     error_surprise = index_surprise - tau
     max_surprise -= learning_rate * error_surprise
 
-    full_probs = torch.empty_like(logits).fill_(-float('inf'))
+    full_probs = torch.empty_like(logits).fill_(-float("inf"))
     full_probs[sorted_indices] = prob_topk.to(full_probs.dtype)
 
     item_next = sorted_indices[prev_i]
 
-    return item_next, max_surprise, full_probs, indices_surprise_history, running_tot_surprise, generated
+    return (
+        item_next,
+        max_surprise,
+        full_probs,
+        indices_surprise_history,
+        running_tot_surprise,
+        generated,
+    )
 
-def mirostat_sampling_least(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None, vocab_size=SEMANTIC_VOCAB_SIZE, indices_surprise_history=[], running_tot_surprise=0, generated=[]):
+
+def mirostat_sampling_least(
+    logits=None,
+    tau=5.0,
+    learning_rate=1.0,
+    max_surprise=None,
+    vocab_size=SEMANTIC_VOCAB_SIZE,
+    indices_surprise_history=[],
+    running_tot_surprise=0,
+    generated=[],
+):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     prob_original = torch.softmax(sorted_logits, dim=-1).tolist()
 
@@ -514,7 +550,7 @@ def mirostat_sampling_least(logits=None, tau=5.0, learning_rate=1.0, max_surpris
 
     max_k = len(sorted_logits) - 1
 
-    k = compute_k(vocab_size, s, max_surprise, max_k)+1
+    k = compute_k(vocab_size, s, max_surprise, max_k) + 1
 
     print(f"\n\nK: {k} s: {s} tau: {max_surprise}")
 
@@ -525,7 +561,7 @@ def mirostat_sampling_least(logits=None, tau=5.0, learning_rate=1.0, max_surpris
 
     prev_i = torch.argmin(prob_topk).unsqueeze(0)
 
-    index_surprise = math.log2(1/prob_original[sorted_indices[prev_i].item()])
+    index_surprise = math.log2(1 / prob_original[sorted_indices[prev_i].item()])
     print(f"index_surprise: {index_surprise}")
     indices_surprise_history.append(index_surprise)
 
@@ -536,21 +572,30 @@ def mirostat_sampling_least(logits=None, tau=5.0, learning_rate=1.0, max_surpris
     error_surprise = index_surprise - tau
     max_surprise -= learning_rate * error_surprise
 
-    full_probs = torch.empty_like(logits).fill_(-float('inf'))
+    full_probs = torch.empty_like(logits).fill_(-float("inf"))
     full_probs[sorted_indices] = prob_topk.to(full_probs.dtype)
 
     # Return least likely token and reverse generated logits
     # return sorted_indices[prev_i], max_surprise, torch.flip(full_probs, dims=[0]), indices_surprise_history, running_tot_surprise, generated
-    return sorted_indices[prev_i], max_surprise, full_probs, indices_surprise_history, running_tot_surprise, generated
+    return (
+        sorted_indices[prev_i],
+        max_surprise,
+        full_probs,
+        indices_surprise_history,
+        running_tot_surprise,
+        generated,
+    )
+
 
 import math
+
 
 def sine_wave_temperaturesssss(current_token, max_token):
     return 3.0 + 2.1 * (math.sin(2 * math.pi * (current_token / 150)) / 2.1 + 0.2)
 
+
 def sine_wave_temperaturesss_(current_token, max_token, period=100, phase_shift=0):
     return 0.5 + 2.0 * (math.sin(2 * math.pi * (current_token / period) + phase_shift) / 2 + 0.5)
-
 
 
 def sine_wave_temperature(current_token, token_period, start_phase, temp_min, temp_max):
@@ -559,8 +604,17 @@ def sine_wave_temperature(current_token, token_period, start_phase, temp_min, te
     return temp_min + temp_range * ((math.sin(phase) / 2) + 0.5)
 
 
-
-def mirostat_sampling(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None, vocab_size=SEMANTIC_VOCAB_SIZE, indices_surprise_history=[], running_tot_surprise=0, generated=[], temperature_fn=None):
+def mirostat_sampling(
+    logits=None,
+    tau=5.0,
+    learning_rate=1.0,
+    max_surprise=None,
+    vocab_size=SEMANTIC_VOCAB_SIZE,
+    indices_surprise_history=[],
+    running_tot_surprise=0,
+    generated=[],
+    temperature_fn=None,
+):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     prob_original = torch.softmax(sorted_logits, dim=-1).tolist()
 
@@ -568,8 +622,7 @@ def mirostat_sampling(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None
 
     max_k = len(sorted_logits) - 1
 
-    k = compute_k(vocab_size, s, max_surprise, max_k)+1
-
+    k = compute_k(vocab_size, s, max_surprise, max_k) + 1
 
     sorted_logits = sorted_logits[0:k]
     sorted_indices = sorted_indices[0:k]
@@ -578,10 +631,9 @@ def mirostat_sampling(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None
     current_token = len(generated)
     max_token = 768  # Maximum sample length
 
-
     if temperature_fn is not None:
         temp = temperature_fn(current_token, max_token)
-        sorted_logits = torch.clamp(sorted_logits, -10000, 10000) 
+        sorted_logits = torch.clamp(sorted_logits, -10000, 10000)
         # Apply to logits before softmax
         prob_topk = torch.softmax(sorted_logits / temp, dim=0)
         prob_topk = torch.clamp(prob_topk, 1e-9, 1 - 1e-9)  # Ensures probabilities are valid
@@ -593,7 +645,6 @@ def mirostat_sampling(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None
     epsilon = 1e-10
     index_surprise = math.log2(1 / (prob_original[sorted_indices[prev_i].item()] + epsilon))
 
-
     indices_surprise_history.append(index_surprise)
 
     running_tot_surprise += index_surprise
@@ -603,7 +654,7 @@ def mirostat_sampling(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None
     error_surprise = index_surprise - tau
     max_surprise -= learning_rate * error_surprise
 
-    full_probs = torch.empty_like(logits).fill_(-float('inf'))
+    full_probs = torch.empty_like(logits).fill_(-float("inf"))
     full_probs[sorted_indices] = prob_topk.to(full_probs.dtype)
 
     if current_token % 25 == 0 and False:
@@ -611,7 +662,15 @@ def mirostat_sampling(logits=None, tau=5.0, learning_rate=1.0, max_surprise=None
         print(f"index_surprise: {index_surprise}")
         print(f"\n\nK: {k} s: {s} tau: {max_surprise}")
 
-    return sorted_indices[prev_i], max_surprise, full_probs, indices_surprise_history, running_tot_surprise, generated
+    return (
+        sorted_indices[prev_i],
+        max_surprise,
+        full_probs,
+        indices_surprise_history,
+        running_tot_surprise,
+        generated,
+    )
+
 
 def generate_text_semantic(
     text,
@@ -626,8 +685,8 @@ def generate_text_semantic(
     use_kv_caching=True,
     use_mirostat_sampling=False,
     # tau = 31100.0,
-    tau = 5.0,
-    miro_learning_rate = 1.0,
+    tau=5.0,
+    miro_learning_rate=1.0,
 ):
     """Generate semantic tokens from text."""
 
@@ -687,29 +746,27 @@ def generate_text_semantic(
     else:
         semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
     x = torch.from_numpy(
-        np.hstack([
-            encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])
-        ]).astype(np.int64)
+        np.hstack([encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])]).astype(
+            np.int64
+        )
     )[None]
     assert x.shape[1] == 256 + 256 + 1
     with _inference_mode():
         x = x.to(device)
         n_tot_steps = 768
-        
+
         # custom tqdm updates since we don't know when eos will occur
         pbar = tqdm.tqdm(disable=silent, total=100)
         pbar_state = 0
         tot_generated_duration_s = 0
         kv_cache = None
-        
-        
+
         # mirostat
         prev = None
-        max_surprise =  2 * tau 
+        max_surprise = 2 * tau
         indices_surprise_history = []
         running_tot_surprise = 0
-        miro_generated = [] #debug
-
+        miro_generated = []  # debug
 
         for n in range(n_tot_steps):
             if use_kv_caching and kv_cache is not None:
@@ -743,10 +800,26 @@ def generate_text_semantic(
 
             if use_mirostat_sampling:
                 logits_for_miro = relevant_logits / temp
-                item_next, max_surprise, probs, indices_surprise_history, running_tot_surprise, miro_generated = mirostat_sampling(logits = logits_for_miro, max_surprise = max_surprise, tau=tau,  learning_rate=miro_learning_rate, vocab_size=SEMANTIC_VOCAB_SIZE, indices_surprise_history = indices_surprise_history, running_tot_surprise = running_tot_surprise, generated = miro_generated, temperature_fn=None)
+                (
+                    item_next,
+                    max_surprise,
+                    probs,
+                    indices_surprise_history,
+                    running_tot_surprise,
+                    miro_generated,
+                ) = mirostat_sampling(
+                    logits=logits_for_miro,
+                    max_surprise=max_surprise,
+                    tau=tau,
+                    learning_rate=miro_learning_rate,
+                    vocab_size=SEMANTIC_VOCAB_SIZE,
+                    indices_surprise_history=indices_surprise_history,
+                    running_tot_surprise=running_tot_surprise,
+                    generated=miro_generated,
+                    temperature_fn=None,
+                )
                 # item_next = item_next.to(torch.int32)
-        
-            
+
             else:
                 probs = F.softmax(relevant_logits / temp, dim=-1)
                 item_next = torch.multinomial(probs, num_samples=1).to(torch.int32)
@@ -771,14 +844,12 @@ def generate_text_semantic(
                 pbar.update(req_pbar_state - pbar_state)
             pbar_state = req_pbar_state
 
-
-
         pbar.close()
         out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
         if use_mirostat_sampling and False:
             print(f"Target tau: {tau}")
             print("Total surprise value:", sum(indices_surprise_history))
-            print("Average surprise value:", sum(indices_surprise_history)/len(out))
+            print("Average surprise value:", sum(indices_surprise_history) / len(out))
             print(f"Generated Miro: {miro_generated}")
             print(f"out: {out}")
     if OFFLOAD_CPU:
@@ -786,7 +857,6 @@ def generate_text_semantic(
     assert all(0 <= out) and all(out < SEMANTIC_VOCAB_SIZE)
     _clear_cuda_cache()
     return out
-
 
 
 def generate_text_semantic_branching_not_batching(
@@ -859,11 +929,11 @@ def generate_text_semantic_branching_not_batching(
     # )[None]
 
     x = torch.from_numpy(
-        np.hstack([
-            encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])
-        ]).astype(np.int64)
-    ).repeat(num_sample_per_step, 1)  
-    
+        np.hstack([encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])]).astype(
+            np.int64
+        )
+    ).repeat(num_sample_per_step, 1)
+
     assert x.shape[1] == 256 + 256 + 1
     with _inference_mode():
         x = x.to(device)
@@ -938,8 +1008,6 @@ def generate_text_semantic_branching_not_batching(
     return out
 
 
-
-
 def generate_text_semantic_original(
     text,
     history_prompt=None,
@@ -953,7 +1021,6 @@ def generate_text_semantic_original(
     use_kv_caching=False,
 ):
     """Generate semantic tokens from text."""
-
 
     logger.debug(locals())
     assert isinstance(text, str)
@@ -1008,9 +1075,9 @@ def generate_text_semantic_original(
     else:
         semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
     x = torch.from_numpy(
-        np.hstack([
-            encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])
-        ]).astype(np.int64)
+        np.hstack([encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])]).astype(
+            np.int64
+        )
     )[None]
     assert x.shape[1] == 256 + 256 + 1
     with _inference_mode():
@@ -1081,7 +1148,6 @@ def generate_text_semantic_original(
     return out
 
 
-
 def generate_text_semantic_debug(
     text,
     history_prompt=None,
@@ -1093,8 +1159,7 @@ def generate_text_semantic_debug(
     max_gen_duration_s=None,
     allow_early_stop=True,
     history_prompt_magic=None,
-    history_prompt_magic_text=None, # nop
-
+    history_prompt_magic_text=None,  # nop
 ):
     """Generate semantic tokens from text."""
     logger.debug(locals())
@@ -1157,17 +1222,15 @@ def generate_text_semantic_debug(
             constant_values=SEMANTIC_PAD_TOKEN,
             mode="constant",
         )
- 
+
     else:
-        #print(f"No semantic history provided.")
+        # print(f"No semantic history provided.")
         semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
 
-
-
     x = torch.from_numpy(
-        np.hstack([
-            encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])
-        ]).astype(np.int64)
+        np.hstack([encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])]).astype(
+            np.int64
+        )
     )[None]
     assert x.shape[1] == 256 + 256 + 1
     with _inference_mode():
@@ -1245,9 +1308,6 @@ def generate_text_semantic_debug(
     return out
 
 
-
-
-
 def generate_coarse(
     x_semantic,
     history_prompt=None,
@@ -1258,7 +1318,7 @@ def generate_coarse(
     max_coarse_history=630,  # min 60 (faster), max 630 (more context)
     sliding_window_len=60,
     use_kv_caching=True,
-    x_coarse_history_alignment_hack = -2,
+    x_coarse_history_alignment_hack=-2,
 ):
     """Generate coarse audio codes from semantic tokens."""
 
@@ -1280,8 +1340,7 @@ def generate_coarse(
         x_semantic_history = history_prompt["semantic_prompt"]
         x_coarse_history = history_prompt["coarse_prompt"]
 
-
-        #print(f"Pre Trim sem coars: {x_semantic_history.shape} {x_coarse_history.shape}")
+        # print(f"Pre Trim sem coars: {x_semantic_history.shape} {x_coarse_history.shape}")
         assert (
             isinstance(x_semantic_history, np.ndarray)
             and len(x_semantic_history.shape) == 1
@@ -1313,13 +1372,12 @@ def generate_coarse(
         x_semantic_history = x_semantic_history[-n_semantic_hist_provided:].astype(np.int32)
         x_coarse_history = x_coarse_history[-n_coarse_hist_provided:].astype(np.int32)
         # TODO: bit of a hack for time alignment (sounds better)
-        #x_coarse_history = x_coarse_history[:-2]
+        # x_coarse_history = x_coarse_history[:-2]
         x_coarse_history = x_coarse_history[:x_coarse_history_alignment_hack]
-        
+
     else:
         x_semantic_history = np.array([], dtype=np.int32)
         x_coarse_history = np.array([], dtype=np.int32)
-
 
     # print(f"actual lengths we're using, x_semantic_history: {len(x_semantic_history)} x_coarse_history: {len(x_coarse_history)}")
 
@@ -1361,6 +1419,7 @@ def generate_coarse(
                 "constant",
                 COARSE_SEMANTIC_PAD_TOKEN,
             )
+
             x_in = torch.hstack(
                 [
                     x_in,
@@ -1380,12 +1439,8 @@ def generate_coarse(
                     x_input = x_in
 
                 logits, kv_cache = model(x_input, use_cache=use_kv_caching, past_kv=kv_cache)
-                logit_start_idx = (
-                    SEMANTIC_VOCAB_SIZE + (1 - int(is_major_step)) * CODEBOOK_SIZE
-                )
-                logit_end_idx = (
-                    SEMANTIC_VOCAB_SIZE + (2 - int(is_major_step)) * CODEBOOK_SIZE
-                )
+                logit_start_idx = SEMANTIC_VOCAB_SIZE + (1 - int(is_major_step)) * CODEBOOK_SIZE
+                logit_end_idx = SEMANTIC_VOCAB_SIZE + (2 - int(is_major_step)) * CODEBOOK_SIZE
                 relevant_logits = logits[0, 0, logit_start_idx:logit_end_idx]
                 if top_p is not None:
                     # faster to convert to numpy
@@ -1437,9 +1492,6 @@ def generate_fine(
     temp=0.5,
     silent=True,
 ):
-    
-
-    
     if temp == 0:
         temp = 0.001
 
@@ -1560,8 +1612,6 @@ COARSE_SEMANTIC_PAD_TOKEN = 12_048
 COARSE_INFER_TOKEN = 12_050
 
 
-
-
 def codec_decode(fine_tokens):
     """Turn quantized audio codes into audio array using encodec."""
     # load models if not yet exist
@@ -1587,9 +1637,9 @@ def codec_decode(fine_tokens):
 
 ## Added:
 
+
 # Just overriding this because somehow I keep loading the wrong models?
 def load_model(use_gpu=True, use_small=False, force_reload=False, model_type="text"):
-
     logger.debug(locals())
 
     _load_model_f = funcy.partial(_load_model, model_type=model_type, use_small=use_small)
@@ -1634,10 +1684,12 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
 
         ## added, actually screw logging, just print, rest easy always knowing which model is loaded
         remote_filename = hf_hub_url(model_info["repo_id"], model_info["file_name"])
-        print(f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")  # added
+        print(
+            f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}"
+        )  # added
         _download(model_info["repo_id"], model_info["file_name"])
     ## added
-    print(f"Loading {model_key} model from {ckpt_path} to {device} ('cpu' here OK)") # added
+    print(f"Loading {model_key} model from {ckpt_path} to {device} ('cpu' here OK)")  # added
     checkpoint = torch.load(ckpt_path, map_location=device)
 
     # this is a hack
@@ -1691,23 +1743,28 @@ def preload_models(
 ):
     """Load all the necessary models for the pipeline."""
 
-
-
     # What is going on here
-    logger.debug(f"USE_SMALL_MODELS = {USE_SMALL_MODELS} GLOBAL_ENABLE_MPS = {GLOBAL_ENABLE_MPS}, OFFLOAD_CPU = {OFFLOAD_CPU}")
-    logger.debug(f"text_use_gpu = {text_use_gpu}, text_use_small = {text_use_small}, coarse_use_gpu = {coarse_use_gpu}, coarse_use_small = {coarse_use_small}, fine_use_gpu = {fine_use_gpu}, fine_use_small = {fine_use_small}, codec_use_gpu = {codec_use_gpu}, force_reload = {force_reload}") 
+    logger.debug(
+        f"USE_SMALL_MODELS = {USE_SMALL_MODELS} GLOBAL_ENABLE_MPS = {GLOBAL_ENABLE_MPS}, OFFLOAD_CPU = {OFFLOAD_CPU}"
+    )
+    logger.debug(
+        f"text_use_gpu = {text_use_gpu}, text_use_small = {text_use_small}, coarse_use_gpu = {coarse_use_gpu}, coarse_use_small = {coarse_use_small}, fine_use_gpu = {fine_use_gpu}, fine_use_small = {fine_use_small}, codec_use_gpu = {codec_use_gpu}, force_reload = {force_reload}"
+    )
 
     if USE_SMALL_MODELS:
         text_use_small = True
         coarse_use_small = True
         fine_use_small = True
-    
+
     if _grab_best_device() == "cpu" and (
         text_use_gpu or coarse_use_gpu or fine_use_gpu or codec_use_gpu
     ):
         logger.warning("No GPU being used. Careful, inference might be very slow!")
     _ = load_model(
-        model_type="text", use_gpu=text_use_gpu, use_small=text_use_small, force_reload=force_reload
+        model_type="text",
+        use_gpu=text_use_gpu,
+        use_small=text_use_small,
+        force_reload=force_reload,
     )
     _ = load_model(
         model_type="coarse",
@@ -1716,9 +1773,9 @@ def preload_models(
         force_reload=force_reload,
     )
     _ = load_model(
-        model_type="fine", use_gpu=fine_use_gpu, use_small=fine_use_small, force_reload=force_reload
+        model_type="fine",
+        use_gpu=fine_use_gpu,
+        use_small=fine_use_small,
+        force_reload=force_reload,
     )
     _ = load_codec_model(use_gpu=codec_use_gpu, force_reload=force_reload)
-
-
-
