@@ -21,7 +21,12 @@ from bark_infinity import api
 from startfile import startfile
 import requests
 
+import torch
 
+pytorch_version = float(".".join(torch.__version__.split(".")[:2]))
+print(f"Pytorch version: {pytorch_version}")
+
+ENABLE_DIRECTML_CLONE = os.environ.get("ENABLE_DIRECTML_CLONE", "0")
 
 current_tab = "generate"
 barkdebug = False
@@ -65,9 +70,8 @@ def bot(history):
     return history
 
 
-if generation.get_SUNO_USE_DIRECTML() is not True:
+if generation.get_SUNO_USE_DIRECTML() is True and ENABLE_DIRECTML_CLONE != "1":
     from bark_infinity.clonevoice import clone_voice
-
 
 
 print(api.startup_status_report(True))
@@ -300,22 +304,20 @@ def clone_voice_gradio(
     extra_blurry_clones,
     even_more_clones,
 ):
-
-    if generation.get_SUNO_USE_DIRECTML() is not True:
-
+    if generation.get_SUNO_USE_DIRECTML() is not True and ENABLE_DIRECTML_CLONE != True:
         clone_dir = clone_voice(
             audio_filepath,
             input_audio_filename_secondary,
             dest_filename,
             speaker_as_clone_content,
-            progress=gr.Progress(track_tqdm=True),  
+            progress=gr.Progress(track_tqdm=True),
             max_retries=2,
             even_more_clones=even_more_clones,
             extra_blurry_clones=extra_blurry_clones,
         )
         return clone_dir
     else:
-        printf("Using DirectML for cloning not yet supported")
+        print("Using DirectML for cloning not yet supported")
     # if extra_blurry_clones is True:
     #    return clone_dir
     # else:
@@ -539,10 +541,8 @@ def generate_audio_long_gradio(
     if hoarder_mode != "" and hoarder_mode is not None:
         kwargs["hoarder_mode"] = hoarder_mode
 
-
     # I didn't fix all the code
     if generation.get_SUNO_USE_DIRECTML() is True:
-
         semantic_top_k = None
         semantic_top_p = None
         coarse_top_k = None
@@ -559,10 +559,6 @@ def generate_audio_long_gradio(
 
     if coarse_top_p is not None and coarse_top_p != "" and coarse_top_p > 0:
         kwargs["coarse_top_p"] = float(coarse_top_p)
-
-
-
-
 
     if output_dir is not None and output_dir != "":
         kwargs["output_dir"] = output_dir

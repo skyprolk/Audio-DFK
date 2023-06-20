@@ -63,14 +63,11 @@ Type 'conda deactivate' to exit this environment and go back to normal terminal.
 
 ![LAUNCH_already_installed_bark_infinity_windows.bat](https://github.com/JonathanFly/bark/assets/163408/fcd91d15-6bee-44c7-8c99-95ca48fbc1d5)
 
+# 🎉 Bark AMD Install Test 🎉
 
+May or not work. I tried to get Bark working in DirectML so AMD Windows users can use it. I don't have an AMD GPU to test myself, but I did work around a lot of Bark DirectML errors. 
 
-# 🎉 Pytorch 2.0 Bark AMD Install Test Pytorch 2.0 Experimental 🎉
-
-
-DirectML works on AMD in Pytorch 1.13 works. It's not super fast but it's a lot faster than CPU.
-
-Now testing 2.0.
+To make it work I just replaced any pytorch functions which were causing DirectML errors, with CPU numpy equivalents. I don't know if that's why it's so slow, but with With DirectML in Bark, my 3090 is only about 2x faster than my (very fast) CPU in Bark, so this is really the bare minimum. (It doesn't use up 100% cpu though, at least.) I also couldn't figure out how to free GPU memory in DirectML, so I'm not sure this will work on AMD cards with 8GB of less memory. 
 
 Bark AMD DirectML Instructions.
 
@@ -81,106 +78,11 @@ Install Miniconda. https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0
 
 Then go to start menu and start a new "Ananconda Prompt" not regular windows command line 
 
-
 ```
 conda update -y conda
 conda update -y -n base conda
 conda install -y -n base conda-libmamba-solver
-conda create --name pydml -y python=3.10.6
-conda activate pydml
-```
-
-make sure you see (pydml) in the corner of of your prompt. 
-***(pydml) C:\Users\YourName***
-
-```
-conda install -y pip git --solver=libmamba
-conda update -y --all --solver=libmamba
-
-pip install ffmpeg_downloader
-ffdl install -U --add-path
-```
-Now quit out of the terminal and restart. We need ffmpeg in the path, which means you need to be able to type `ffmpeg -version` and have it work. If you close and restart, you should be able to do that.
-
-So close the terminal, close all window command lines or terminals to be sure.
-Then go back start menu and start a new "Ananaconda Prompt". This should be same you started the install.
-
-```
-conda activate pydml
-```
-make sure you see (pydml) in the corner again. ***(pydml) C:\Users\YourName*** etc.
-
-Now try typing
-```
-ffmpeg -version
-```
-
-Do you see ffmpeg 6.0? If it doesn't work you can keep going and you can use .wav file outputs, and fix it later.
-
-Now the big conda install command. This could take 5 to 15 minutes, and if you have a slow internet it could even take hours, because it downloads multiple gigabytes. So if looks like it's frozen, let it go. Check your task manager and see if it's downloading.
-
-## Giant pip, no conda, quick test
-```
-pip install torch==2.0.0 torchvision==0.15.1 torch-directml==0.2.0.dev230426 opencv-python torchvision==0.15.1 wget torch-directml==0.2.0.dev230426 pygments numpy pandas tensorboard matplotlib tqdm pyyaml boto3 funcy torchaudio transformers pydub pathvalidate rich nltk chardet av hydra-core>=1.1 einops scipy num2words pywin32 ffmpeg ffmpeg-python sentencepiece spacy==3.5.2 librosa jsonschema pytorch_lightning==1.9.4
-
-pip install encodec flashy>=0.0.1 audiolm_pytorch==1.1.4 demucs 
-
-pip install universal-startfile hydra_colorlog julius soundfile==0.12.1 gradio>=3.35.2 rich_argparse flashy>=0.0.1 ffmpeg_downloader rich_argparse devtools vector_quantize_pytorch
-
-pip install https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl 
-
-
-First set a SUNO_USE_DIRECTML variable. This tells Bark to use DirectML. If this doesn't work you can edit `/bark_infinity/config.py`` and set `SUNO_USE_DIRECTML`` to `True`` in the `DEFAULTS`` section.
-```
-set SUNO_USE_DIRECTML=1
-```
-
-Download Bark:
-```
-git clone https://github.com/JonathanFly/bark.git
-cd bark
-```
-Change to the AMD Test Version
-```
-git checkout bark_amd_directml_test
-```
-
-Now try running it. Bark has to download all the models the first time it runs, so it might look frozen for awhile. It's another 10 gigs of files. 
-```
-python bark_perform.py
-```
-When I tested this install, `bark_perform.py` seemed to freeze at downloading models without making progress. I don't know if was a fluke, but I ran `python bark_webui.py` and it downloaded them fine.
-
-Start the Bark UI
-```
-python bark_webui.py
-```
-
-Things that don't work:
-1. Voice Cloning (might work?)
-2. Top_k and top_p
-3. Probably more things I haven't tested.
-
-### Start Back UI Later
-1. Click Anaconda Prompt in start menu
-2. `conda activate pydml`
-3. cd bark
-4. `python bark_webui.py`
-   
-### Make it faster? (Note for later, don't try yet)
-
-1. Install MKL exe https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-download.html
-```
-conda install -y mkl mkl-service mkl_fft libcblas liblapacke liblapack blas-devel mkl-include mkl_random mkl-devel mkl-include libblas=*=*mkl mkl-static intel-openmp blas=*=*mkl -c intel -c conda-forge --solver=libmamba
-```
-
-
-# DirectML Pytorch 1.13.1
-```
-conda update -y conda
-conda update -y -n base conda
-conda install -y -n base conda-libmamba-solver
-conda create --name pydml -y python=3.10.6
+conda create --name pydml -y python=3.10
 conda activate pydml
 ```
 

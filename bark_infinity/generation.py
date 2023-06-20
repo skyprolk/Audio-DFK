@@ -247,7 +247,7 @@ if torch.cuda.is_available():
 @contextlib.contextmanager
 def _inference_mode():
     if SUNO_USE_DIRECTML is True:
-        with InferenceContext(), torch.no_grad(), autocast():
+        with InferenceContext(),  torch.inference_mode(mode=False), torch.no_grad(), autocast():
             yield
     else:
         with InferenceContext(), torch.inference_mode(), torch.no_grad(), autocast():
@@ -2133,6 +2133,11 @@ def preload_models(
     load_one_model_type=None,
 ):
     """Load all the necessary models for the pipeline."""
+
+    # Junklont Add this one line to def preload_models()
+    coarse_use_small=True
+
+
 
     if SUNO_USE_DIRECTML is True:
         text_use_gpu = False
