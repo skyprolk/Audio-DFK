@@ -86,12 +86,12 @@ Then go to start menu and start a new "Ananconda Prompt" not regular windows com
 conda update -y conda
 conda update -y -n base conda
 conda install -y -n base conda-libmamba-solver
-conda create --name pydml -y python=3.10.6
-conda activate pydml
+conda create --name pydml_torch2 -y python=3.10.6
+conda activate pydml_torch2
 ```
 
-make sure you see (pydml) in the corner of of your prompt. 
-***(pydml) C:\Users\YourName***
+make sure you see (pydml_torch2) in the corner of of your prompt. 
+***(pydml_torch2) C:\Users\YourName***
 
 ```
 conda install -y pip git --solver=libmamba
@@ -106,9 +106,9 @@ So close the terminal, close all window command lines or terminals to be sure.
 Then go back start menu and start a new "Ananaconda Prompt". This should be same you started the install.
 
 ```
-conda activate pydml
+conda activate pydml_torch2
 ```
-make sure you see (pydml) in the corner again. ***(pydml) C:\Users\YourName*** etc.
+make sure you see (pydml_torch2) in the corner again. ***(pydml_torch2) C:\Users\YourName*** etc.
 
 Now try typing
 ```
@@ -163,7 +163,7 @@ Things that don't work:
 
 ### Start Back UI Later
 1. Click Anaconda Prompt in start menu
-2. `conda activate pydml`
+2. `conda activate pydml_torch2`
 3. cd bark
 4. `python bark_webui.py`
    
