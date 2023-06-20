@@ -119,7 +119,7 @@ Do you see ffmpeg 6.0? If it doesn't work you can keep going and you can use .wa
 
 Now the big conda install command. This could take 5 to 15 minutes, and if you have a slow internet it could even take hours, because it downloads multiple gigabytes. So if looks like it's frozen, let it go. Check your task manager and see if it's downloading.
 
-## Giant pip, no conda, quick test
+### For testing torch 2.0, just some giant pip installs:
 ```
 pip install torch==2.0.0 torchvision==0.15.1 torch-directml==0.2.0.dev230426 opencv-python torchvision==0.15.1 wget torch-directml==0.2.0.dev230426 pygments numpy pandas tensorboard matplotlib tqdm pyyaml boto3 funcy torchaudio transformers pydub pathvalidate rich nltk chardet av hydra-core>=1.1 einops scipy num2words pywin32 ffmpeg ffmpeg-python sentencepiece spacy==3.5.2 librosa jsonschema pytorch_lightning==1.9.4
 
@@ -128,7 +128,7 @@ pip install encodec flashy>=0.0.1 audiolm_pytorch==1.1.4 demucs
 pip install universal-startfile hydra_colorlog julius soundfile==0.12.1 gradio>=3.35.2 rich_argparse flashy>=0.0.1 ffmpeg_downloader rich_argparse devtools vector_quantize_pytorch
 
 pip install https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl 
-
+``````
 
 First set a SUNO_USE_DIRECTML variable. This tells Bark to use DirectML. If this doesn't work you can edit `/bark_infinity/config.py`` and set `SUNO_USE_DIRECTML`` to `True`` in the `DEFAULTS`` section.
 ```
@@ -174,8 +174,8 @@ Things that don't work:
 conda install -y mkl mkl-service mkl_fft libcblas liblapacke liblapack blas-devel mkl-include mkl_random mkl-devel mkl-include libblas=*=*mkl mkl-static intel-openmp blas=*=*mkl -c intel -c conda-forge --solver=libmamba
 ```
 
+# 🏹↗️ This AMD Pytorch 1.13.1 confirms works.
 
-# DirectML Pytorch 1.13.1
 ```
 conda update -y conda
 conda update -y -n base conda
