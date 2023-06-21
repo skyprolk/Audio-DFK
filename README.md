@@ -18,7 +18,7 @@
 
 ## Install Steps
 
-1. Download this zip file: [barkinstall_06_17_23.zip](https://github.com/JonathanFly/bark/raw/main/one-click-bark-installer/barkinstall_06_17_23.zip)
+1. Download the latest zip file from the releases page: https://github.com/JonathanFly/bark/releases
 2. Extract the zip file into a directory. Choose a place where Bark will be installed. You will unzip about six small files.
 3. Click on `INSTALL_bark_infinity_windows.bat` (you should not need to be administrator)
 4. If the install finished with no errors, close that terminal window. Close any other open command line windows as well. 
