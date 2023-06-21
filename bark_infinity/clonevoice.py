@@ -98,9 +98,7 @@ def validate_prompt_ratio(history_prompt):
 import os
 
 
-def write_clone_npz(
-    filepath, full_generation, regen_fine=False, gen_raw_coarse=False, **kwargs
-):
+def write_clone_npz(filepath, full_generation, regen_fine=False, gen_raw_coarse=False, **kwargs):
     gen_raw_coarse = False
 
     filepath = api.generate_unique_filepath(filepath)
@@ -129,9 +127,7 @@ def write_clone_npz(
         filename, extension = os.path.splitext(base)
         suffix = "_blurryhistory_"
         new_filename = filename + suffix
-        new_filepath = os.path.join(
-            os.path.dirname(new_filepath), new_filename + extension
-        )
+        new_filepath = os.path.join(os.path.dirname(new_filepath), new_filename + extension)
         new_filepath = api.generate_unique_filepath(new_filepath)
         np.savez(
             new_filepath,
@@ -141,16 +137,12 @@ def write_clone_npz(
         )
         quick_codec_render(new_filepath)
 
-        fine_tokens = generation.generate_fine(
-            history_prompt["coarse_prompt"], history_prompt=None
-        )
+        fine_tokens = generation.generate_fine(history_prompt["coarse_prompt"], history_prompt=None)
         base = os.path.basename(filepath)
         filename, extension = os.path.splitext(base)
         suffix = "_blurrynohitory_"
         new_filename = filename + suffix
-        new_filepath = os.path.join(
-            os.path.dirname(new_filepath), new_filename + extension
-        )
+        new_filepath = os.path.join(os.path.dirname(new_filepath), new_filename + extension)
         new_filepath = api.generate_unique_filepath(new_filepath)
         np.savez(
             new_filepath,
@@ -162,9 +154,7 @@ def write_clone_npz(
 
     if gen_raw_coarse:
         show_history_prompt_size(history_prompt)
-        new_history = resize_history_prompt(
-            history_prompt, tokens=128, from_front=False
-        )
+        new_history = resize_history_prompt(history_prompt, tokens=128, from_front=False)
         # print(api.history_prompt_detailed_report(full_generation))
         # show_history_prompt_size(full_generation)
 
@@ -179,9 +169,7 @@ def write_clone_npz(
         filename, extension = os.path.splitext(base)
         suffix = "coarse_yes_his_"
         new_filename = filename + suffix
-        new_filepath = os.path.join(
-            os.path.dirname(new_filepath), new_filename + extension
-        )
+        new_filepath = os.path.join(os.path.dirname(new_filepath), new_filename + extension)
         new_filepath = api.generate_unique_filepath(new_filepath)
         np.savez(
             new_filepath,
@@ -201,9 +189,7 @@ def write_clone_npz(
         filename, extension = os.path.splitext(base)
         suffix = "_course_no_his_"
         new_filename = filename + suffix
-        new_filepath = os.path.join(
-            os.path.dirname(new_filepath), new_filename + extension
-        )
+        new_filepath = os.path.join(os.path.dirname(new_filepath), new_filename + extension)
         new_filepath = api.generate_unique_filepath(new_filepath)
         np.savez(
             new_filepath,
@@ -264,10 +250,9 @@ def segment_these_semantics_smartly_and_smoothly(
             last_token_was_split = False
 
         # Add the check for repetition_threshold here
-        if (
-            split_counter == split_threshold
-            or repetition_counter == repetition_threshold
-        ) and len(segment) >= minimum_segment_size:
+        if (split_counter == split_threshold or repetition_counter == repetition_threshold) and len(
+            segment
+        ) >= minimum_segment_size:
             segments.append(segment)
             segment = []
             split_counter = 0
@@ -303,9 +288,7 @@ def clone_voice(
 ):
     if audio_filepath is None or not os.path.exists(audio_filepath):
         print(f"The audio file {audio_filepath} does not exist. Please check the path.")
-        progress(
-            f"The audio file {audio_filepath} does not exist. Please check the path."
-        )
+        progress(f"The audio file {audio_filepath} does not exist. Please check the path.")
         return
 
     old = generation.OFFLOAD_CPU
@@ -402,22 +385,16 @@ def clone_voice(
         progress(4, desc="\nSegmenting A Little More Smoothy Now...\n")
         print(f"Segmenting A Little More Smoothy Now...")
 
-        full_output_path = output_path.with_stem(
-            output_path.stem + "_FULL_Audio_Tokens"
-        )
+        full_output_path = output_path.with_stem(output_path.stem + "_FULL_Audio_Tokens")
         write_clone_npz(str(full_output_path), history_prompt)
 
         # The back of clip generally the best speaker, as the user specifically chose this audio clip and it likely has a natural ending.
 
         clip_full_semantic_length = len(semantic_prompt)
 
-        back_history_prompt = resize_history_prompt(
-            history_prompt, tokens=768, from_front=False
-        )
+        back_history_prompt = resize_history_prompt(history_prompt, tokens=768, from_front=False)
         back_output_path = output_path.with_stem(output_path.stem + "__ENDCLIP")
-        write_clone_npz(
-            str(back_output_path), back_history_prompt, regen_fine=extra_blurry_clones
-        )
+        write_clone_npz(str(back_output_path), back_history_prompt, regen_fine=extra_blurry_clones)
         all_completed_clones.append(
             (
                 back_history_prompt,
@@ -457,9 +434,7 @@ def clone_voice(
             )
             if api.history_prompt_is_valid(sliced_history_prompt):
                 # segment_output_path = output_path.with_stem(output_path.stem + f"_s_{current_slice}")
-                segment_output_path = output_path.with_stem(
-                    output_path.stem + f"_{segment_number}"
-                )
+                segment_output_path = output_path.with_stem(output_path.stem + f"_{segment_number}")
             else:
                 print(f"segment {segment_number} potentially problematic:")
                 # print(api.history_prompt_detailed_report(sliced_history_prompt))
@@ -490,9 +465,7 @@ def clone_voice(
 
     if attempts == 1 and False:
         original_audio_filepath_ext = Path(audio_filepath).suffix
-        copy_of_original_target_audio_file = (
-            dir_path / f"{dest_filename}_TARGET_ORIGINAL_audio.wav"
-        )
+        copy_of_original_target_audio_file = dir_path / f"{dest_filename}_TARGET_ORIGINAL_audio.wav"
         copy_of_original_target_audio_file = api.generate_unique_filepath(
             str(copy_of_original_target_audio_file)
         )
@@ -509,9 +482,10 @@ def clone_voice(
 
     import random
 
-    # if even_more_clones or input_audio_filename_secondary is not None:
-    if False:
-        progress(5, desc="Generative Clones, Long Clip")
+    print(f"input_audio_filename_secondary: {input_audio_filename_secondary}")
+
+    if input_audio_filename_secondary is not None:
+        progress(5, desc="Generative Clones, Long Clip, Lots of randomness")
 
         second_sample_prompt = None
         if input_audio_filename_secondary is not None:
@@ -524,9 +498,13 @@ def clone_voice(
             if len(second_sample_prompt) > 850:
                 second_sample_prompt = second_sample_prompt[
                     :850
-                ]  # Actuall from front, makes sense
+                ]  # Actually from front, makes sense
 
         orig_semantic_prompt_len = len(orig_semantic_prompt)
+
+        generation.OFFLOAD_CPU = old
+        generation.clean_models()
+        generation.preload_models()
 
         total_clones = len(all_completed_clones)
         clone_num = 0
@@ -556,7 +534,11 @@ def clone_voice(
                     if len(semantic_next_segment) > 800:
                         semantic_next_segment = semantic_next_segment[:800]
 
-                    chop_sizes = [32, 64, 96, 128, 192, 256]
+                    chop1 = random.randint(32, 128)
+                    chop2 = random.randint(64, 192)
+                    chop3 = random.randint(128, 256)
+
+                    chop_sizes = [chop1, chop2, chop3]
 
                     chop = random.choice(chop_sizes)
 
@@ -632,9 +614,7 @@ def clone_voice(
                 print(f"Clone {filepath} was invalid, skipping")
                 print(api.history_prompt_detailed_report(clone_history))
 
-    print(
-        f"Generation 0 clones completed. You'll find your clones at: {base_clone_subdir}"
-    )
+    print(f"Generation 0 clones completed. You'll find your clones at: {base_clone_subdir}")
 
     # restore previous CPU offload state
 
@@ -648,18 +628,12 @@ def quick_codec_render(filepath):
     reload = load_npz(filepath)  # lazy
     if "fine_prompt" in reload:
         fine_prompt = reload["fine_prompt"]
-        if (
-            fine_prompt is not None
-            and fine_prompt.shape[0] >= 8
-            and fine_prompt.shape[1] >= 1
-        ):
+        if fine_prompt is not None and fine_prompt.shape[0] >= 8 and fine_prompt.shape[1] >= 1:
             audio_arr = generation.codec_decode(fine_prompt)
 
             base = os.path.basename(filepath)
             filename, extension = os.path.splitext(base)
-            new_filepath = os.path.join(
-                os.path.dirname(filepath), filename + "_fine.mp3"
-            )
+            new_filepath = os.path.join(os.path.dirname(filepath), filename + "_f.mp3")
             new_filepath = api.generate_unique_filepath(new_filepath)
             api.write_audiofile(new_filepath, audio_arr, output_format="mp3")
 
@@ -677,9 +651,7 @@ def quick_codec_render(filepath):
                     audio_arr = generation.codec_decode(coarse_prompt)
                     base = os.path.basename(filepath)
                     filename, extension = os.path.splitext(base)
-                    new_filepath = os.path.join(
-                        os.path.dirname(filepath), filename + "_coar.mp3"
-                    )
+                    new_filepath = os.path.join(os.path.dirname(filepath), filename + "_coar.mp3")
                     new_filepath = api.generate_unique_filepath(new_filepath)
                     api.write_audiofile(new_filepath, audio_arr, output_format="mp3")
             else:
@@ -834,9 +806,7 @@ def resize_history_prompt(history_prompt, tokens=128, from_front=False):
     fine_prompt = history_prompt["fine_prompt"]
 
     new_semantic_len = min(tokens, len(semantic_prompt))
-    new_coarse_len = min(
-        int(new_semantic_len * semantic_to_coarse_ratio), coarse_prompt.shape[1]
-    )
+    new_coarse_len = min(int(new_semantic_len * semantic_to_coarse_ratio), coarse_prompt.shape[1])
 
     new_fine_len = new_coarse_len
 
@@ -890,9 +860,7 @@ def show_history_prompt_size(
 
     print(f"\n{text}")
     print(f"  {text} semantic_prompt: {semantic_prompt.shape}")
-    print(
-        f"    Tokens: {show_array_front_back(semantic_prompt, token_samples, semantic_back_n)}"
-    )
+    print(f"    Tokens: {show_array_front_back(semantic_prompt, token_samples, semantic_back_n)}")
     print(f"    Most common tokens: {most_common_tokens(semantic_prompt)}")
 
     print(f"  {text} coarse_prompt: {coarse_prompt.shape}")
@@ -911,8 +879,7 @@ def show_history_prompt_size(
 def split_array_equally(array, num_parts):
     split_indices = np.linspace(0, len(array), num_parts + 1, dtype=int)
     return [
-        array[split_indices[i] : split_indices[i + 1]].astype(np.int32)
-        for i in range(num_parts)
+        array[split_indices[i] : split_indices[i + 1]].astype(np.int32) for i in range(num_parts)
     ]
 
 
@@ -926,7 +893,9 @@ def measure_time(text=None, index=None):
     elif text is None:
         text = "Operation"
 
-    time_finished = f"{text} Finished at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}"
+    time_finished = (
+        f"{text} Finished at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}"
+    )
     print(f"  -->{time_finished} in {elapsed_time} seconds")
 
 
@@ -934,9 +903,7 @@ def compare_history_prompts(hp1, hp2, text="history_prompt"):
     print(f"\nComparing {text}")
     for key in hp1.keys():
         if hp1[key].shape != hp2[key].shape:
-            print(
-                f"  {key} arrays have different shapes: {hp1[key].shape} vs {hp2[key].shape}."
-            )
+            print(f"  {key} arrays have different shapes: {hp1[key].shape} vs {hp2[key].shape}.")
             min_size = min(hp1[key].shape[0], hp2[key].shape[0])
 
             if hp1[key].ndim == 1:
@@ -956,9 +923,7 @@ def compare_history_prompts(hp1, hp2, text="history_prompt"):
             print(f"    {key} arrays are exactly the same.")
         elif np.allclose(hp1_part, hp2_part):
             diff = np.linalg.norm(hp1_part - hp2_part)
-            print(
-                f"    {key} arrays are almost equal with a norm of difference: {diff}"
-            )
+            print(f"    {key} arrays are almost equal with a norm of difference: {diff}")
         else:
             diff = np.linalg.norm(hp1_part - hp2_part)
             print(f"    {key} arrays are not equal. Norm of difference: {diff}")
@@ -1009,9 +974,7 @@ def merge_history_prompts(left_history_prompt, right_history_prompt, right_size=
     right_history_prompt = resize_history_prompt(
         right_history_prompt, tokens=right_size, from_front=False
     )
-    combined_history_prompts = concat_history_prompts(
-        left_history_prompt, right_history_prompt
-    )
+    combined_history_prompts = concat_history_prompts(left_history_prompt, right_history_prompt)
     combined_history_prompts = resize_history_prompt(
         combined_history_prompts, tokens=341, from_front=False
     )

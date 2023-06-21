@@ -40,6 +40,12 @@ monochrome_theme = gr.themes.Monochrome()
 soft_theme = gr.themes.Soft()
 glass_theme = gr.themes.Glass()
 
+
+def close_gradio(self):
+    print("Shutdown request received")
+    gr.close()
+
+
 gradio_hf_hub_themes = [
     "gradio/glass",
     "gradio/monochrome",
@@ -70,7 +76,7 @@ def bot(history):
     return history
 
 
-if generation.get_SUNO_USE_DIRECTML() is True and ENABLE_DIRECTML_CLONE != "1":
+if not generation.get_SUNO_USE_DIRECTML() is True or ENABLE_DIRECTML_CLONE != "1":
     from bark_infinity.clonevoice import clone_voice
 
 
@@ -304,7 +310,7 @@ def clone_voice_gradio(
     extra_blurry_clones,
     even_more_clones,
 ):
-    if generation.get_SUNO_USE_DIRECTML() is not True and ENABLE_DIRECTML_CLONE != True:
+    if not generation.get_SUNO_USE_DIRECTML() or ENABLE_DIRECTML_CLONE != "0":
         clone_dir = clone_voice(
             audio_filepath,
             input_audio_filename_secondary,
@@ -729,7 +735,7 @@ def generate_audio_long_gradio_clones(
     output_dir = specific_npz_folder
 
     print(f"output_dir: {output_dir}")
-    output_dir = f"cloned_voices/{output_voice}_samples"
+    output_dir = f"cloned_voices/{output_filename}_samples"
 
     return generate_audio_long_gradio(
         input,
@@ -902,7 +908,7 @@ def create_npz_dropdown(
     return npz_dropdown
 
 
-outputs_dirs = ["bark_samples/"]
+outputs_dirs = ["bark_samples"]
 
 
 class Logger:
@@ -1140,6 +1146,8 @@ def output_filesystem_button(directory):
     # i can't get this
     if current_tab == "clone":
         directory = "cloned_voices"
+
+    directory = os.path.join(where_am_i, directory)
 
     if not os.path.isdir(directory):
         print(f"Error: The directory {directory} does not exist.")
@@ -1756,7 +1764,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                         value=False,
                                     )
                                     output_dir = gr.Textbox(
-                                        label="Output directory", value="bark_samples/"
+                                        label="Output directory", value="bark_samples"
                                     )
                                     clone_output_dir = gr.Textbox(
                                         label="Output directory",
@@ -1918,12 +1926,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                             elem_classes="bark_upload_file",
                         )
 
+                        gr.Markdown("""Secondary Audio Sample For Cloning:""")
                         gr.Markdown(
-                            """(Clone Blender. Throw in your favorites, hopes something better comes out.)"""
-                        )
-                        gr.Markdown("""Secondary Audo Sample For Cloning:""")
-                        gr.Markdown(
-                            """Secondary audio file, between 7 and 13 seconds only. Try to choose the most iconic clips."""
+                            """Secondary audio file, generally between 7 and 13 seconds, but longer can be okay. Try to choose the most iconic clips. Using this field activated a bunch of randomization that takes a long time and generates a lot of clones. I thought it didn't work, but I have heard from some people it did *sometimes* make a really nice clone."""
                         )
 
                         input_audio_filename_secondary = gr.Audio(
@@ -1932,6 +1937,10 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                             source="upload",
                             type="filepath",
                             elem_classes="bark_upload_audio",
+                        )
+
+                        gr.Markdown(
+                            """(Clone Blender. Throw in your favorites, hopes something better comes out.) (Not yet operational.)"""
                         )
 
                         # speaker_as_clone_content = gr.Slider(label="Space between audio clones segments in the files", info="If you've only got a short sample or you feel like you just just barely missing a good voice, you can try lower values. On the default each speak already overlaps a lot. For very long clips, very high numbers will just take a few samples.", step=1, value=164, maximum=10000, minimum=32, interactive=False)
@@ -2257,12 +2266,15 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
 
         with gr.Row():
             with gr.Column(scale=1, variant="panel"):
+                directory_to_open = output_dir
+                output_dir_display = f"{where_am_i} / {directory_to_open.value}"
+                with gr.Row():
+                    gr.Markdown(f"""Output Folder {output_dir_display}""")
+
                 with gr.Row():
                     with gr.Column(scale=1):
-                        directory_to_open = output_dir
-
                         show_outputs_in_filesystem_button = gr.Button(
-                            value=f'📁 Browse Current Output Folder: "{directory_to_open.value}"'
+                            value=f'📁 Browse Output Folder: "{directory_to_open.value}"'
                         )
                         show_outputs_in_filesystem_button.click(
                             output_filesystem_button,
@@ -2387,14 +2399,12 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                 # print("Setting current tab to clone")
                 directory_to_open = clone_output_dir
                 return gr.Button.update(
-                    value=f'📁 Browse Clone General Folder: "{directory_to_open.value}"'
+                    value=f"📁 Browse Clone General Folder: {directory_to_open.value}"
                 )
             elif current_tab == "generate":
                 # print("Setting current tab to generate")
                 directory_to_open = output_dir
-                return gr.Button.update(
-                    value=f'📁 Browse Current Output Folder: "{directory_to_open.value}"'
-                )
+                return gr.Button.update(value=f"📁 Browse Output Folder: {directory_to_open.value}")
             elif current_tab == "settings_tab":
                 # print("Setting current tab to settings_tab")
                 return get_XDG_CACHE_HOME()

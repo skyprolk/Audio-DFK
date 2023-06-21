@@ -105,7 +105,7 @@ DEFAULTS = {
                 "help": "Output filename. If not provided, a unique filename will be generated based on the text prompt and other parameters.",
             },
         ),
-        ("output_dir", {"value": "bark_samples", "type": str, "help": "Output directory."}),
+        ("output_dir", {"value": "bark_samples/", "type": str, "help": "Output directory."}),
         (
             "hoarder_mode",
             {
@@ -319,6 +319,26 @@ DEFAULTS = {
                 "help": "Split text, but into completely separate prompts. Great for generating a bunch of different samples from a single text file to explore the space of possibilities.",
             },
         ),
+        ("semantic_history_only", {"value": False, "type": bool, "help": ""}),
+        ("absolute_semantic_history_only", {"value": False, "type": bool, "help": ""}),
+        ("absolute_semantic_history_only_every_x", {"value": None, "type": int, "help": ""}),
+        ("semantic_history_starting_weight", {"value": 1.0, "type": float, "help": ""}),
+        ("semantic_history_future_weight", {"value": 1.0, "type": float, "help": ""}),
+        ("semantic_prev_segment_weight", {"value": 0.5, "type": float, "help": ""}),
+        ("coarse_history_starting_weight", {"value": 1.0, "type": float, "help": ""}),
+        ("coarse_history_future_weight", {"value": 0.5, "type": float, "help": ""}),
+        ("coarse_prev_segment_weight", {"value": 0.5, "type": float, "help": ""}),
+        ("fine_history_starting_weight", {"value": 1.0, "type": float, "help": ""}),
+        ("fine_history_future_weight", {"value": 0.0, "type": float, "help": ""}),
+        ("fine_prev_segment_weight", {"value": 0.0, "type": float, "help": ""}),
+        (
+            "custom_audio_processing_function",
+            {
+                "value": None,
+                "type": int,
+                "help": "Specify a python function callback which determines when and how much of the speaker context to keep or remove or reset. (Not in this version.)",
+            },
+        ),
     ],
     "convenience": [
         (
@@ -328,6 +348,12 @@ DEFAULTS = {
                 "type": bool,
                 "help": "Use all small models. Overrides --text_use_small, --coarse_use_small, --fine_use_small. You can probably use big models just fine by default in the latest version though!",
             },
+        ),
+    ],
+    "cloning": [
+        (
+            "bark_cloning_large_model",
+            {"value": True, "type": bool, "help": "Use larger model for cloning."},
         ),
     ],
     "advanced": [

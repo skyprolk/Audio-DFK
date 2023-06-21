@@ -12,6 +12,7 @@ __pycache__/
 !/notebooks/
 !/webui/
 !/bark_infinity/hubert/
+!/one-click-bark-installer/
 
 bark_samples/
 bark/assets/prompts/*.wav

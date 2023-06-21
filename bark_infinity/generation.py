@@ -38,16 +38,15 @@ from collections import Counter
 
 from devtools import debug
 
+
 def _cast_bool_env_var(s):
     return s.lower() in ("true", "1", "t")
 
 
-
 def get_SUNO_USE_DIRECTML():
-
     if _cast_bool_env_var(os.environ.get("SUNO_USE_DIRECTML", "False")):
         return True
-    
+
     kwargs = {}
     defaults = load_all_defaults(*kwargs)
     if defaults["SUNO_USE_DIRECTML"] is True:
@@ -56,17 +55,16 @@ def get_SUNO_USE_DIRECTML():
         return False
 
 
-
 SUNO_USE_DIRECTML = get_SUNO_USE_DIRECTML()
 
 dml = None
 if SUNO_USE_DIRECTML is True:
     print(f"   --->> Experimental AMD DirectML support enabled.")
     import torch_directml
+
     torch.cuda.is_available = lambda: False
 
     dml = torch_directml.device()
-
 
 
 if (
@@ -193,13 +191,12 @@ REMOTE_MODEL_PATHS = {
         "file_name": "fine_2.pt",
     },
 }
-  
+
 if not hasattr(torch.nn.functional, "scaled_dot_product_attention") and torch.cuda.is_available():
     logger.warning(
         "torch version does not support flash attention. You will get faster"
         + " inference speed by upgrade torch to newest nightly version."
     )
-
 
 
 def _grab_best_device(use_gpu=True):
@@ -238,7 +235,6 @@ class InferenceContext:
         torch.backends.cudnn.benchmark = self._cudnn_benchmark
 
 
-
 if torch.cuda.is_available():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
@@ -247,7 +243,7 @@ if torch.cuda.is_available():
 @contextlib.contextmanager
 def _inference_mode():
     if SUNO_USE_DIRECTML is True:
-        with InferenceContext(),  torch.inference_mode(mode=False), torch.no_grad(), autocast():
+        with InferenceContext(), torch.inference_mode(mode=False), torch.no_grad(), autocast():
             yield
     else:
         with InferenceContext(), torch.inference_mode(), torch.no_grad(), autocast():
@@ -268,8 +264,6 @@ def clean_models(model_key=None):
             del models[k]
     _clear_cuda_cache()
     gc.collect()
-
-
 
 
 def _load_codec_model(device):
@@ -300,14 +294,15 @@ def load_codec_model(use_gpu=True, force_reload=False):
 
         model = _load_codec_model(device)
         models[model_key] = model
-    
-    if SUNO_USE_DIRECTML is True:   
+
+    if SUNO_USE_DIRECTML is True:
+        print(f"Codec model to: {dml}")
         models[model_key].to(dml)
     else:
-         models[model_key].to(device)
+        print(f"Codec model to {device}")
+        models[model_key].to(device)
+
     return models[model_key]
-
-
 
 
 ####
@@ -632,8 +627,6 @@ def mirostat_sampling_least(
     )
 
 
-
-
 def sine_wave_temperature(current_token, max_token):
     return 3.0 + 2.1 * (math.sin(2 * math.pi * (current_token / 150)) / 2.1 + 0.2)
 
@@ -733,7 +726,7 @@ def generate_text_semantic(
     miro_learning_rate=1.0,
 ):
     """Generate semantic tokens from text."""
-    
+
     if temp == 0:
         temp = 0.001
     # debug(locals())
@@ -877,14 +870,18 @@ def generate_text_semantic(
                 or (min_eos_p is not None and probs[-1] >= min_eos_p)
             ):
                 # eos found, so break
+                pbar.total = n
                 pbar.update(n - pbar_state)
+
                 break
             x = torch.cat((x, item_next[None]), dim=1)
             tot_generated_duration_s += 1 / SEMANTIC_RATE_HZ
             if max_gen_duration_s is not None and tot_generated_duration_s > max_gen_duration_s:
+                pbar.total = n
                 pbar.update(n - pbar_state)
                 break
             if n == n_tot_steps - 1:
+                pbar.total = n
                 pbar.update(n - pbar_state)
                 break
             del logits, relevant_logits, probs, item_next
@@ -912,7 +909,6 @@ def generate_text_semantic(
     if SUNO_USE_DIRECTML is True:
         clean_models()
     return out
-
 
 
 def generate_text_semantic_branching_not_batching(
@@ -1568,8 +1564,6 @@ def generate_coarse(
     return gen_coarse_audio_arr
 
 
-
-
 def generate_coarse_amd_directml(
     x_semantic,
     history_prompt=None,
@@ -1627,12 +1621,8 @@ def generate_coarse_amd_directml(
                 int(np.floor(len(x_coarse_history) / semantic_to_coarse_ratio)),
             ]
         )
-        n_coarse_hist_provided = int(
-            round(n_semantic_hist_provided * semantic_to_coarse_ratio)
-        )
-        x_semantic_history = x_semantic_history[-n_semantic_hist_provided:].astype(
-            np.int32
-        )
+        n_coarse_hist_provided = int(round(n_semantic_hist_provided * semantic_to_coarse_ratio))
+        x_semantic_history = x_semantic_history[-n_semantic_hist_provided:].astype(np.int32)
         x_coarse_history = x_coarse_history[-n_coarse_hist_provided:].astype(np.int32)
         # TODO: bit of a hack for time alignment (sounds better)
         x_coarse_history = x_coarse_history[:-2]
@@ -1672,16 +1662,10 @@ def generate_coarse_amd_directml(
             x_coarse_in_np = x_coarse[None]
             n_window_steps = int(np.ceil(n_steps / sliding_window_len))
             n_step = 0
-            for _ in tqdm.tqdm(
-                range(n_window_steps), total=n_window_steps, disable=silent
-            ):
-                semantic_idx = base_semantic_idx + int(
-                    round(n_step / semantic_to_coarse_ratio)
-                )
+            for _ in tqdm.tqdm(range(n_window_steps), total=n_window_steps, disable=silent):
+                semantic_idx = base_semantic_idx + int(round(n_step / semantic_to_coarse_ratio))
                 # pad from right side
-                x_in_np = x_semantic_in_np[
-                    :, np.max([0, semantic_idx - max_semantic_history]) :
-                ]
+                x_in_np = x_semantic_in_np[:, np.max([0, semantic_idx - max_semantic_history]) :]
                 x_in_np = x_in_np[:, :256]
                 """
                 x_in_np = F.pad(
@@ -1736,31 +1720,21 @@ def generate_coarse_amd_directml(
                         x_input_tensor, use_cache=use_kv_caching, past_kv=kv_cache
                     )
 
-                    logit_start_idx = (
-                        SEMANTIC_VOCAB_SIZE + (1 - int(is_major_step)) * CODEBOOK_SIZE
-                    )
-                    logit_end_idx = (
-                        SEMANTIC_VOCAB_SIZE + (2 - int(is_major_step)) * CODEBOOK_SIZE
-                    )
+                    logit_start_idx = SEMANTIC_VOCAB_SIZE + (1 - int(is_major_step)) * CODEBOOK_SIZE
+                    logit_end_idx = SEMANTIC_VOCAB_SIZE + (2 - int(is_major_step)) * CODEBOOK_SIZE
                     relevant_logits = logits[0, 0, logit_start_idx:logit_end_idx]
 
                     if top_p is not None:
                         # faster to convert to numpy
                         # original_device = relevant_logits.device
-                        relevant_logits = (
-                            relevant_logits.detach().cpu().type(torch.float32).numpy()
-                        )
+                        relevant_logits = relevant_logits.detach().cpu().type(torch.float32).numpy()
                         sorted_indices = np.argsort(relevant_logits)[::-1]
                         sorted_logits = relevant_logits[sorted_indices]
                         cumulative_probs = np.cumsum(softmax(sorted_logits))
                         sorted_indices_to_remove = cumulative_probs > top_p
-                        sorted_indices_to_remove[1:] = sorted_indices_to_remove[
-                            :-1
-                        ].copy()
+                        sorted_indices_to_remove[1:] = sorted_indices_to_remove[:-1].copy()
                         sorted_indices_to_remove[0] = False
-                        relevant_logits[
-                            sorted_indices[sorted_indices_to_remove]
-                        ] = -np.inf
+                        relevant_logits[sorted_indices[sorted_indices_to_remove]] = -np.inf
                         relevant_logits = torch.from_numpy(relevant_logits)
                         # relevant_logits = relevant_logits.to(original_device)
                         # stay as numpy, since we converted for directml anyway...
@@ -1823,9 +1797,7 @@ def generate_coarse_amd_directml(
         except RuntimeError as e:
             print(f"RuntimeError: {e}")
             # show all possble details and traceback, print to output
-            print(
-                f"Traceback: {traceback.format_exc()}"
-            )  # and print(sys.exc_info()[2])
+            print(f"Traceback: {traceback.format_exc()}")  # and print(sys.exc_info()[2])
             print(f"Exception: {sys.exc_info()[2]}")
 
     if OFFLOAD_CPU:
@@ -1833,9 +1805,7 @@ def generate_coarse_amd_directml(
     gen_coarse_arr = x_coarse_in_np.squeeze()[len(x_coarse_history) :]
     del x_coarse_in_np
     assert len(gen_coarse_arr) == n_steps
-    gen_coarse_audio_arr = (
-        gen_coarse_arr.reshape(-1, N_COARSE_CODEBOOKS).T - SEMANTIC_VOCAB_SIZE
-    )
+    gen_coarse_audio_arr = gen_coarse_arr.reshape(-1, N_COARSE_CODEBOOKS).T - SEMANTIC_VOCAB_SIZE
     for n in range(1, N_COARSE_CODEBOOKS):
         gen_coarse_audio_arr[n, :] -= n * CODEBOOK_SIZE
     _clear_cuda_cache()
@@ -1994,6 +1964,8 @@ def codec_decode(fine_tokens):
     arr = torch.from_numpy(fine_tokens)[None]
     if SUNO_USE_DIRECTML is True:
         arr = arr.to(dml)
+    else:
+        arr = arr.to(device)
     arr = arr.transpose(0, 1)
     emb = model.quantizer.decode(arr)
     out = model.decoder(emb)
@@ -2028,10 +2000,8 @@ def load_model(use_gpu=True, use_small=False, force_reload=False, model_type="te
         clean_models(model_key=model_key)
         model = _load_model_f(ckpt_path, device)
         models[model_key] = model
-    
     if model_type == "text":
         if SUNO_USE_DIRECTML is True:
-
             models[model_key]["model"].to(dml)
         else:
             models[model_key]["model"].to(device)
@@ -2121,6 +2091,7 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
         }
     return model
 
+
 def preload_models(
     text_use_gpu=True,
     text_use_small=False,
@@ -2133,11 +2104,6 @@ def preload_models(
     load_one_model_type=None,
 ):
     """Load all the necessary models for the pipeline."""
-
-    # Junklont Add this one line to def preload_models()
-    coarse_use_small=True
-
-
 
     if SUNO_USE_DIRECTML is True:
         text_use_gpu = False
@@ -2167,9 +2133,8 @@ def preload_models(
         if GLOBAL_ENABLE_MPS:
             warning_string = "-->cpu/mps: Partial Apple Support"
 
-        #logger.warning(warning_string)
+        # logger.warning(warning_string)
         print(f"{warning_string}")
-
 
     if load_one_model_type is not None:
         if load_one_model_type == "text":
