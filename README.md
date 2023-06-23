@@ -1,4 +1,4 @@
-# 🚀 BARK INFINITY, Voices are Just Sounds. 🎶 🌈✨🚀 
+`# 🚀 BARK INFINITY, Voices are Just Sounds. 🎶 🌈✨🚀 
 
 [![Open Gradio In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1t84qbluQSg7V-YzKit8cD3btmgysT_8V?usp=sharing) Barebone Gradio Running in Google Colab
 
@@ -303,8 +303,10 @@ There is one exception, on Windows if you don't have the better Windows Terminal
 
 You don't have to but it may display the output from the bark commands better. When you start **Anaconda Prompt (miniconda3)** you can do it from the new Windows Terminal app, clicking on the down arrow next to the plus, should let you pick **Anaconda Prompt (miniconda3)**
 
-1. [Go here: https://github.com/conda-forge/miniforge#mambaforge](https://docs.conda.io/en/latest/miniconda.html)
-2. Download a **Python 3.10 Miniconda3** installer for your OS.  Windows 64-bit, macOS, and Linux probably don't need a guide. 
+1. Go here: [https://github.com/conda-forge/miniforge#mambaforge](https://github.com/conda-forge/miniforge#mambaforge)
+
+2. 
+3. Download a **Python 3.10 Miniconda3** installer for your OS.  Windows 64-bit, macOS, and Linux probably don't need a guide. 
   a. Install the **Mambaforge** for your OS, not specifically Windows. OSX for OSX etc.
   b. Don't install Mambaforge-pypy3. (It probably works fine, it is just not what I tested.) Install the one above that, just plain **Mambaforge**. Or you can use **Conda**, Mamba should faster but sometimes Conda may be more compatible. 
   
