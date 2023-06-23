@@ -162,6 +162,9 @@ OFFLOAD_CPU = _cast_bool_env_var(os.environ.get("SUNO_OFFLOAD_CPU", "False"))
 
 DISABLE_COMPILE = _cast_bool_env_var(os.environ.get("SUNO_DISABLE_COMPILE", "False"))
 
+if sys.platform == "win32":
+	DISABLE_COMPILE = True
+    
 if SUNO_USE_DIRECTML is True:
     OFFLOAD_CPU = False
 
