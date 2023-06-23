@@ -343,7 +343,7 @@ pip install torch torchvision torchaudio
 
 
 ## WINDOWS ONLY fairseq
-pip install fairseq @ https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl
+pip install fairseq@https://github.com/Sharrnah/fairseq/releases/download/v0.12.4/fairseq-0.12.4-cp310-cp310-win_amd64.whl
 
 ## NON-WINDOWS fairseq
 mamba install fairseq
@@ -354,6 +354,7 @@ git clone https://github.com/JonathanFly/bark.git
 cd bark
 
 pip install -r barki-allpip.txt --upgrade
+ffdl install -U --add-path
 ```
 
 # Run Bark Infinity
