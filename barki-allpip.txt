@@ -53,3 +53,7 @@ accelerate
 nbformat
 fastjsonschema
 jupyter-client
+beartype
+ema-pytorch
+lion-pytorch
+local-attention
