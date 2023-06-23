@@ -59,6 +59,14 @@ DEFAULTS = {
             {"value": None, "type": str, "help": "Text prompt to generate audio from."},
         ),
         (
+            "audio_file_as_history_prompt",
+            {
+                "value": None,
+                "type": str,
+                "help": "Use an audio file as the history prompt. Do a quick clone, then proceed normally.",
+            },
+        ),
+        (
             "prompt_file",
             {"value": None, "type": str, "help": "Text prompt to generate audio from."},
         ),
@@ -379,7 +387,7 @@ DEFAULTS = {
             {
                 "value": None,
                 "type": int,
-                "help": "Maximum size of semantic history, hardcoded to 256. Increasing seems terrible but descreasing it may be useful to lower the value and get variations on existing speakers, or try to fine-tune a bit.",
+                "help": "Maximum size of semantic history, hardcoded to 256. Increasing seems terrible but decreasing it may be useful to lower the value and get variations on existing speakers, or try to fine-tune a bit.",
             },
         ),
         ("coarse_temp", {"value": 0.7, "type": float, "help": "Temperature for fine function."}),
@@ -417,7 +425,7 @@ DEFAULTS = {
             {
                 "value": False,
                 "type": bool,
-                "help": "Give this a directory of .npz files and it generaates sample audio clips from them.",
+                "help": "Give this a directory of .npz files and it generates sample audio clips from them.",
             },
         ),
         (
@@ -427,6 +435,22 @@ DEFAULTS = {
                 "type": str,
                 "help": "Logging level. Choices are DEBUG, INFO, WARNING, ERROR, CRITICAL.",
                 "choices": CHOICES["log_levels"],
+            },
+        ),
+        (
+            "absolute_semantic_history_only",
+            {
+                "value": False,
+                "type": bool,
+                "help": "Only use semantic history in generation. Generates voices that are based on original speaker, but different.",
+            },
+        ),
+        (
+            "absolute_semantic_history_only_every_x",
+            {
+                "value": None,
+                "type": int,
+                "help": "Only use semantic history in generation every X segments. Generates voices that are based on original speaker, but different.",
             },
         ),
     ],

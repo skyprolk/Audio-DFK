@@ -348,6 +348,7 @@ def bot(history):
 
 
 def validate_and_update(prompt, kwargs, min_length=6, barkdebug=False):
+    barkdebug = True
     try:
         if not prompt:  # Checks if the prompt is not None and not an empty string
             if barkdebug:
@@ -358,10 +359,13 @@ def validate_and_update(prompt, kwargs, min_length=6, barkdebug=False):
                 selected = prompt[0]  # Gets first item from list
                 if barkdebug:
                     print(f"Selected first item from list: {selected}")
-        else:
+        elif isinstance(prompt, str):
             selected = prompt.strip()
             if barkdebug:
                 print(f"Selected string after stripping: {selected}")
+
+        elif hasattr(prompt, "name"):
+            selected = prompt.name
         if (
             len(selected) >= min_length
         ):  # Checks if string length is greater than or equal to min_length
@@ -373,7 +377,7 @@ def validate_and_update(prompt, kwargs, min_length=6, barkdebug=False):
                 print(f"Skipping {selected}: Length less than {min_length}")
     except Exception as e:
         if barkdebug:
-            print(f"Error in validate_and_update function: {str(e)}")
+            print(f"Error in validate_and_update function: {str(e)} {prompt} {type(prompt)}")
     return kwargs
 
 
@@ -414,7 +418,7 @@ def generate_audio_long_gradio(
     coarse_top_k,
     coarse_top_p,
     specific_npz_file,
-    main_input_audio_filename,
+    audio_file_as_history_prompt,
     specific_npz_folder,
     split_character_jitter,
     extra_args_str,
@@ -471,15 +475,16 @@ def generate_audio_long_gradio(
     kwargs = validate_and_update(bark_infinity_voices, kwargs, barkdebug=barkdebug)
     kwargs = validate_and_update(generated_voices, kwargs, barkdebug=barkdebug)
     kwargs = validate_and_update(cloned_voices, kwargs, barkdebug=barkdebug)
+    kwargs = validate_and_update(specific_npz_file, kwargs, barkdebug=barkdebug)
 
     #
-    if main_input_audio_filename != "" and main_input_audio_filename is not None:
-        main_input_audio_filename_name = main_input_audio_filename.name
-        kwargs["main_input_audio_filename"] = main_input_audio_filename_name
+    if audio_file_as_history_prompt != "" and audio_file_as_history_prompt is not None:
+        # audio_file_as_history_prompt_name = audio_file_as_history_prompt.name
+        kwargs["audio_file_as_history_prompt"] = audio_file_as_history_prompt
 
     if bark_speaker_as_the_prompt != "" and bark_speaker_as_the_prompt is not None:
-        bark_speaker_as_the_prompt_name = bark_speaker_as_the_prompt.name
-        kwargs["bark_speaker_as_the_prompt"] = bark_speaker_as_the_prompt_name
+        # bark_speaker_as_the_prompt_name = bark_speaker_as_the_prompt.name
+        kwargs["bark_speaker_as_the_prompt"] = bark_speaker_as_the_prompt
 
     if audio_prompt_input is not None and audio_prompt_input != "":
         kwargs["audio_prompt"] = audio_prompt_input
@@ -546,6 +551,9 @@ def generate_audio_long_gradio(
 
     if hoarder_mode != "" and hoarder_mode is not None:
         kwargs["hoarder_mode"] = hoarder_mode
+
+    if confused_travolta_mode != "" and confused_travolta_mode is not None:
+        kwargs["confused_travolta_mode"] = confused_travolta_mode
 
     # I didn't fix all the code
     if generation.get_SUNO_USE_DIRECTML() is True:
@@ -622,6 +630,7 @@ def generate_audio_long_gradio(
                 f"Found {len(npz_files)} npz files in {specific_npz_folder} so will generate {total_iterations} total outputs"
             )
 
+    print(f"kargs: {kwargs}")
     if npz_files is not None and len(npz_files) > 0:
         for i, npz_file in enumerate(npz_files):
             print(f"Using npz file {i+1} of {len(npz_files)}: {npz_file}")
@@ -721,7 +730,7 @@ def generate_audio_long_gradio_clones(
     coarse_top_k,
     coarse_top_p,
     specific_npz_file,
-    main_input_audio_filename,
+    audio_file_as_history_prompt,
     specific_npz_folder,
     split_character_jitter,
     extra_args_str,
@@ -774,7 +783,7 @@ def generate_audio_long_gradio_clones(
         coarse_top_k,
         coarse_top_p,
         specific_npz_file,
-        main_input_audio_filename,
+        audio_file_as_history_prompt,
         specific_npz_folder,
         split_character_jitter,
         extra_args_str,
@@ -1413,7 +1422,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                 with gr.Row():
                                     with gr.Tab("🎵🔊 An Audio Sample"):
                                         gr.Markdown("A Quick Voice Clone. Or A Song Continued.")
-                                        main_input_audio_filename = gr.Audio(
+                                        audio_file_as_history_prompt = gr.Audio(
                                             label="Create a Speaker From An Audio File + Text Prompt",
                                             info="",
                                             source="upload",
@@ -1422,12 +1431,12 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                         )
 
                                         gr.Markdown(
-                                            "Bark will try and clone your audio clip, then the clone will speak the prompt. YOu will have two new voice .npzs after. MAIN.npz is just from the original audio. And others are saved after speaking the prompt. (Typically it improves the quality.) Try cloning music or sounds. Serious clones have a second tab."
+                                            "Bark will try and clone your audio clip, then the clone will be used as your speaker.npz and will speak the prompt. You will have two new voice .npzs after. MAIN.npz is just from the original audio. And others are saved after speaking the prompt. (Typically it improves the quality.) Try cloning music or sounds. Serious clones have a second tab."
                                         )
 
                                         bark_infinity_voices = gr.Textbox(visible=False)
 
-                                    with gr.Tab("👥📁 Your Creations."):
+                                    with gr.Tab("👥📁 Your Creations"):
                                         gr.Markdown(
                                             """#### 👥 Choose from your Cloned Voices Directory"""
                                         )
@@ -1488,9 +1497,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                 ],
                             )
 
-                            main_input_audio_filename.change(
+                            audio_file_as_history_prompt.change(
                                 get_filename,
-                                inputs=[main_input_audio_filename],
+                                inputs=[audio_file_as_history_prompt],
                                 outputs=[
                                     selected_npz_file,
                                     selected_npz_file_full,
@@ -2470,7 +2479,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
             coarse_top_k,
             coarse_top_p,
             specific_npz_file,
-            main_input_audio_filename,
+            audio_file_as_history_prompt,
             specific_npz_folder,
             split_character_jitter,
             extra_args_input,
@@ -2530,7 +2539,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
             coarse_top_k,
             coarse_top_p,
             specific_npz_file,
-            main_input_audio_filename,
+            audio_file_as_history_prompt,
             dummy,
             split_character_jitter,
             extra_args_input,

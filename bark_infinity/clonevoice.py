@@ -276,6 +276,23 @@ def segment_these_semantics_smartly_and_smoothly(
     return segments
 
 
+def quick_clone(file):
+    # file_name = ".".join(file.replace("\\", "/").split("/")[-1].split(".")[:-1])
+    # out_file = f"data/bark_custom_speakers/{file_name}.npz"
+
+    semantic_prompt = wav_to_semantics(file)
+    fine_prompt = generate_fine_from_wav(file)
+    coarse_prompt = generate_course_history(fine_prompt)
+
+    full_generation = {
+        "semantic_prompt": semantic_prompt,
+        "coarse_prompt": coarse_prompt,
+        "fine_prompt": fine_prompt,
+    }
+
+    return full_generation
+
+
 def clone_voice(
     audio_filepath,
     input_audio_filename_secondary,

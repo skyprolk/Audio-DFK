@@ -160,6 +160,8 @@ USE_SMALL_MODELS = _cast_bool_env_var(os.environ.get("SUNO_USE_SMALL_MODELS", "F
 GLOBAL_ENABLE_MPS = _cast_bool_env_var(os.environ.get("SUNO_ENABLE_MPS", "False"))
 OFFLOAD_CPU = _cast_bool_env_var(os.environ.get("SUNO_OFFLOAD_CPU", "False"))
 
+DISABLE_COMPILE = _cast_bool_env_var(os.environ.get("SUNO_DISABLE_COMPILE", "False"))
+
 if SUNO_USE_DIRECTML is True:
     OFFLOAD_CPU = False
 
@@ -270,10 +272,22 @@ def _load_codec_model(device):
     model = EncodecModel.encodec_model_24khz()
     model.set_target_bandwidth(6.0)
     model.eval()
+
+    print_loading_info("codec", "EncodecModelPath", device)
+
     if SUNO_USE_DIRECTML is True:
         model.to(dml)
     else:
         model.to(device)
+
+    if callable(getattr(torch, "compile")) and not DISABLE_COMPILE:
+        logger.info("torch.compile available, compiling codec model.")
+        model = torch.compile(model)
+    else:
+        logger.info(
+            "torch.compile *not* available, you will get better performance if you use pytorch >= 2.0."
+        )
+
     _clear_cuda_cache()
     return model
 
@@ -296,10 +310,8 @@ def load_codec_model(use_gpu=True, force_reload=False):
         models[model_key] = model
 
     if SUNO_USE_DIRECTML is True:
-        print(f"Codec model to: {dml}")
         models[model_key].to(dml)
     else:
-        print(f"Codec model to {device}")
         models[model_key].to(device)
 
     return models[model_key]
@@ -760,6 +772,9 @@ def generate_text_semantic(
     tokenizer = model_container["tokenizer"]
     encoded_text = np.array(_tokenize(tokenizer, text)) + TEXT_ENCODING_OFFSET
     if OFFLOAD_CPU:
+        if GLOBAL_ENABLE_MPS:
+            device = _grab_best_device(use_gpu=False)
+            models_devices["text"] = device
         model.to(models_devices["text"])
     device = next(model.parameters()).device
     if len(encoded_text) > 256:
@@ -797,6 +812,10 @@ def generate_text_semantic(
         x = x.to(device)
         n_tot_steps = 768
 
+        # preallocate tensor
+        x_initial = x.shape[1]
+        x = torch.hstack([x, torch.empty([1, n_tot_steps], dtype=torch.int32, device=device)])
+
         # custom tqdm updates since we don't know when eos will occur
         pbar = tqdm.tqdm(disable=silent, total=n_tot_steps)
         pbar_state = 0
@@ -811,10 +830,16 @@ def generate_text_semantic(
         miro_generated = []  # debug
 
         for n in range(n_tot_steps):
-            if use_kv_caching and kv_cache is not None:
-                x_input = x[:, [-1]]
-            else:
-                x_input = x
+            # if use_kv_caching and kv_cache is not None:
+            #    x_input = x[:, [-1]]
+            # else:
+            #    x_input = x
+
+            x_input = (
+                x[:, [x_initial + n - 1]]
+                if use_kv_caching and kv_cache is not None
+                else x[:, : x_initial + n]
+            )
             logits, kv_cache = model(
                 x_input, merge_context=True, use_cache=use_kv_caching, past_kv=kv_cache
             )
@@ -869,12 +894,14 @@ def generate_text_semantic(
                 item_next == SEMANTIC_VOCAB_SIZE
                 or (min_eos_p is not None and probs[-1] >= min_eos_p)
             ):
+                n -= 1  # backtrack 1
                 # eos found, so break
                 pbar.total = n
                 pbar.update(n - pbar_state)
 
                 break
-            x = torch.cat((x, item_next[None]), dim=1)
+            # x = torch.cat((x, item_next[None]), dim=1)
+            x[0][x_initial + n] = item_next
             tot_generated_duration_s += 1 / SEMANTIC_RATE_HZ
             if max_gen_duration_s is not None and tot_generated_duration_s > max_gen_duration_s:
                 pbar.total = n
@@ -884,7 +911,7 @@ def generate_text_semantic(
                 pbar.total = n
                 pbar.update(n - pbar_state)
                 break
-            del logits, relevant_logits, probs, item_next
+            # del logits, relevant_logits, probs, item_next
             if n > pbar_state:
                 if n > pbar.total:
                     pbar.total = n
@@ -894,7 +921,8 @@ def generate_text_semantic(
         pbar.refresh()
 
         pbar.close()
-        out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
+        # out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
+        out = x.detach().cpu().numpy().squeeze()[x_initial : x_initial + n + 1]
         if use_mirostat_sampling and False:
             print(f"Target tau: {tau}")
             print("Total surprise value:", sum(indices_surprise_history))
@@ -1066,318 +1094,6 @@ def generate_text_semantic_branching_not_batching(
     return out
 
 
-def generate_text_semantic_original(
-    text,
-    history_prompt=None,
-    temp=0.7,
-    top_k=None,
-    top_p=None,
-    silent=False,
-    min_eos_p=0.2,
-    max_gen_duration_s=None,
-    allow_early_stop=True,
-    use_kv_caching=True,
-):
-    """Generate semantic tokens from text."""
-
-    logger.debug(locals())
-    assert isinstance(text, str)
-    text = _normalize_whitespace(text)
-    # assert len(text.strip()) > 0
-
-    if history_prompt is not None:
-        history_prompt = _load_history_prompt(history_prompt)
-        semantic_history = history_prompt["semantic_prompt"]
-        assert (
-            isinstance(semantic_history, np.ndarray)
-            and len(semantic_history.shape) == 1
-            and len(semantic_history) > 0
-            and semantic_history.min() >= 0
-            and semantic_history.max() <= SEMANTIC_VOCAB_SIZE - 1
-        )
-    else:
-        semantic_history = None
-    # load models if not yet exist
-    global models
-    global models_devices
-    if "text" not in models:
-        if SUNO_USE_DIRECTML is True:
-            preload_models(load_one_model_type="text")
-        else:
-            preload_models()
-    model_container = models["text"]
-    model = model_container["model"]
-    tokenizer = model_container["tokenizer"]
-    encoded_text = np.array(_tokenize(tokenizer, text)) + TEXT_ENCODING_OFFSET
-    if OFFLOAD_CPU:
-        model.to(models_devices["text"])
-    device = next(model.parameters()).device
-    if len(encoded_text) > 256:
-        p = round((len(encoded_text) - 256) / len(encoded_text) * 100, 1)
-        logger.warning(f"warning, text too long, lopping of last {p}%")
-        encoded_text = encoded_text[:256]
-    encoded_text = np.pad(
-        encoded_text,
-        (0, 256 - len(encoded_text)),
-        constant_values=TEXT_PAD_TOKEN,
-        mode="constant",
-    )
-    if semantic_history is not None:
-        semantic_history = semantic_history.astype(np.int64)
-        # print(f"Actual length of semantic input: {len(semantic_history)}")
-        # lop off if history is too long, pad if needed
-        semantic_history = semantic_history[-256:]
-        semantic_history = np.pad(
-            semantic_history,
-            (0, 256 - len(semantic_history)),
-            constant_values=SEMANTIC_PAD_TOKEN,
-            mode="constant",
-        )
-    else:
-        semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
-    x = torch.from_numpy(
-        np.hstack([encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])]).astype(
-            np.int64
-        )
-    )[None]
-    assert x.shape[1] == 256 + 256 + 1
-    with _inference_mode():
-        x = x.to(device)
-        n_tot_steps = 768
-        # custom tqdm updates since we don't know when eos will occur
-        pbar = tqdm.tqdm(disable=silent, total=n_tot_steps)
-        pbar_state = 0
-        tot_generated_duration_s = 0
-        kv_cache = None
-        for n in range(n_tot_steps):
-            if use_kv_caching and kv_cache is not None:
-                x_input = x[:, [-1]]
-            else:
-                x_input = x
-            logits, kv_cache = model(
-                x_input, merge_context=True, use_cache=use_kv_caching, past_kv=kv_cache
-            )
-            relevant_logits = logits[0, 0, :SEMANTIC_VOCAB_SIZE]
-            if allow_early_stop:
-                relevant_logits = torch.hstack(
-                    (relevant_logits, logits[0, 0, [SEMANTIC_PAD_TOKEN]])  # eos
-                )
-            if top_p is not None:
-                # faster to convert to numpy
-                original_device = relevant_logits.device
-                relevant_logits = relevant_logits.detach().cpu().type(torch.float32).numpy()
-                sorted_indices = np.argsort(relevant_logits)[::-1]
-                sorted_logits = relevant_logits[sorted_indices]
-                cumulative_probs = np.cumsum(softmax(sorted_logits))
-                sorted_indices_to_remove = cumulative_probs > top_p
-                sorted_indices_to_remove[1:] = sorted_indices_to_remove[:-1].copy()
-                sorted_indices_to_remove[0] = False
-                relevant_logits[sorted_indices[sorted_indices_to_remove]] = -np.inf
-                relevant_logits = torch.from_numpy(relevant_logits)
-                relevant_logits = relevant_logits.to(original_device)
-            if top_k is not None:
-                v, _ = torch.topk(relevant_logits, min(top_k, relevant_logits.size(-1)))
-                relevant_logits[relevant_logits < v[-1]] = -float("Inf")
-            probs = F.softmax(relevant_logits / temp, dim=-1)
-            item_next = torch.multinomial(probs, num_samples=1).to(torch.int32)
-            if allow_early_stop and (
-                item_next == SEMANTIC_VOCAB_SIZE
-                or (min_eos_p is not None and probs[-1] >= min_eos_p)
-            ):
-                # eos found, so break
-                pbar.update(n - pbar_state)
-                break
-            x = torch.cat((x, item_next[None]), dim=1)
-            tot_generated_duration_s += 1 / SEMANTIC_RATE_HZ
-            if max_gen_duration_s is not None and tot_generated_duration_s > max_gen_duration_s:
-                pbar.update(n - pbar_state)
-                break
-            if n == n_tot_steps - 1:
-                pbar.update(n - pbar_state)
-                break
-            del logits, relevant_logits, probs, item_next
-            if n > pbar_state:
-                if n > pbar.total:
-                    pbar.total = n
-                pbar.update(n - pbar_state)
-            pbar_state = n
-        pbar.total = n
-        pbar.refresh()
-        pbar.close()
-        out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
-    if OFFLOAD_CPU:
-        model.to("cpu")
-    assert all(0 <= out) and all(out < SEMANTIC_VOCAB_SIZE)
-    _clear_cuda_cache()
-    return out
-
-
-def generate_text_semantic_debug(
-    text,
-    history_prompt=None,
-    temp=0.7,
-    top_k=None,
-    top_p=None,
-    silent=False,
-    min_eos_p=0.2,
-    max_gen_duration_s=None,
-    allow_early_stop=True,
-    history_prompt_magic=None,
-    history_prompt_magic_text=None,  # nop
-):
-    """Generate semantic tokens from text."""
-    logger.debug(locals())
-    assert isinstance(text, str)
-    text = _normalize_whitespace(text)
-    assert len(text.strip()) > 0
-    if history_prompt is not None:
-        history_prompt = _load_history_prompt(history_prompt)
-        semantic_history = history_prompt["semantic_prompt"]
-        assert (
-            isinstance(semantic_history, np.ndarray)
-            and len(semantic_history.shape) == 1
-            and len(semantic_history) > 0
-            and semantic_history.min() >= 0
-            and semantic_history.max() <= SEMANTIC_VOCAB_SIZE - 1
-        )
-    else:
-        semantic_history = None
-
-    if history_prompt_magic is not None:
-        assert (
-            isinstance(history_prompt_magic, np.ndarray)
-            and len(history_prompt_magic.shape) == 1
-            and len(history_prompt_magic) > 0
-            and history_prompt_magic.min() >= 0
-            and history_prompt_magic.max() <= SEMANTIC_VOCAB_SIZE - 1
-        )
-    else:
-        history_prompt_magic = None
-    # load models if not yet exist
-    global models
-    global models_devices
-    if "text" not in models:
-        if SUNO_USE_DIRECTML is True:
-            preload_models(load_one_model_type="text")
-        else:
-            preload_models()
-    model_container = models["text"]
-    model = model_container["model"]
-    tokenizer = model_container["tokenizer"]
-    encoded_text = np.array(_tokenize(tokenizer, text)) + TEXT_ENCODING_OFFSET
-    if OFFLOAD_CPU:
-        model.to(models_devices["text"])
-    device = next(model.parameters()).device
-    if len(encoded_text) > 256:
-        p = round((len(encoded_text) - 256) / len(encoded_text) * 100, 1)
-        logger.warning(f"warning, text too long, lopping of last {p}%")
-        encoded_text = encoded_text[:256]
-    encoded_text = np.pad(
-        encoded_text,
-        (0, 256 - len(encoded_text)),
-        constant_values=TEXT_PAD_TOKEN,
-        mode="constant",
-    )
-    if semantic_history is not None:
-        semantic_history = semantic_history.astype(np.int64)
-        logger.debug(f"Actual length of semantic input: {len(semantic_history)}")
-        # lop off if history is too long, pad if needed
-        semantic_history = semantic_history[-256:]
-        semantic_history = np.pad(
-            semantic_history,
-            (0, 256 - len(semantic_history)),
-            constant_values=SEMANTIC_PAD_TOKEN,
-            mode="constant",
-        )
-
-    else:
-        # print(f"No semantic history provided.")
-        semantic_history = np.array([SEMANTIC_PAD_TOKEN] * 256)
-
-    x = torch.from_numpy(
-        np.hstack([encoded_text, semantic_history, np.array([SEMANTIC_INFER_TOKEN])]).astype(
-            np.int64
-        )
-    )[None]
-    assert x.shape[1] == 256 + 256 + 1
-    with _inference_mode():
-        x = x.to(device)
-        n_tot_steps = 768
-        # custom tqdm updates since we don't know when eos will occur
-        pbar = tqdm.tqdm(disable=silent, total=n_tot_steps)
-        pbar_state = 0
-        tot_generated_duration_s = 0
-        kv_cache = None
-        for n in range(n_tot_steps):
-            if use_kv_caching and kv_cache is not None:
-                x_input = x[:, [-1]]
-            else:
-                x_input = x
-            logits, kv_cache = model(
-                x_input, merge_context=True, use_cache=use_kv_caching, past_kv=kv_cache
-            )
-            relevant_logits = logits[0, 0, :SEMANTIC_VOCAB_SIZE]
-            if allow_early_stop:
-                relevant_logits = torch.hstack(
-                    (relevant_logits, logits[0, 0, [SEMANTIC_PAD_TOKEN]])  # eos
-                )
-            if top_p is not None:
-                # faster to convert to numpy
-                logits_device = relevant_logits.device
-                logits_dtype = relevant_logits.type()
-                relevant_logits = relevant_logits.detach().cpu().type(torch.float32).numpy()
-                sorted_indices = np.argsort(relevant_logits)[::-1]
-                sorted_logits = relevant_logits[sorted_indices]
-                cumulative_probs = np.cumsum(softmax(sorted_logits))
-                sorted_indices_to_remove = cumulative_probs > top_p
-                sorted_indices_to_remove[1:] = sorted_indices_to_remove[:-1].copy()
-                sorted_indices_to_remove[0] = False
-                relevant_logits[sorted_indices[sorted_indices_to_remove]] = -np.inf
-                relevant_logits = torch.from_numpy(relevant_logits)
-                relevant_logits = relevant_logits.to(logits_device).type(logits_dtype)
-            if top_k is not None:
-                v, _ = torch.topk(relevant_logits, min(top_k, relevant_logits.size(-1)))
-                relevant_logits[relevant_logits < v[-1]] = -float("Inf")
-            probs = F.softmax(relevant_logits / temp, dim=-1)
-            # multinomial bugged on mps: shuttle to cpu if necessary
-            inf_device = probs.device
-            if probs.device.type == "mps":
-                probs = probs.to("cpu")
-            item_next = torch.multinomial(probs, num_samples=1)
-            probs = probs.to(inf_device)
-            item_next = item_next.to(inf_device)
-            if allow_early_stop and (
-                item_next == SEMANTIC_VOCAB_SIZE
-                or (min_eos_p is not None and probs[-1] >= min_eos_p)
-            ):
-                # eos found, so break
-                pbar.update(n - pbar_state)
-                break
-            x = torch.cat((x, item_next[None]), dim=1)
-            tot_generated_duration_s += 1 / SEMANTIC_RATE_HZ
-            if max_gen_duration_s is not None and tot_generated_duration_s > max_gen_duration_s:
-                pbar.update(n - pbar_state)
-                break
-            if n == n_tot_steps - 1:
-                pbar.update(n - pbar_state)
-                break
-            del logits, relevant_logits, probs, item_next
-            if n > pbar_state:
-                if n > pbar.total:
-                    pbar.total = n
-                pbar.update(n - pbar_state)
-            pbar_state = n
-        pbar.total = n
-        pbar.refresh()
-        pbar.close()
-        out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
-    if OFFLOAD_CPU:
-        model.to("cpu")
-    assert all(0 <= out) and all(out < SEMANTIC_VOCAB_SIZE)
-    _clear_cuda_cache()
-    return out
-
-
 def generate_coarse(
     x_semantic,
     history_prompt=None,
@@ -1461,6 +1177,9 @@ def generate_coarse(
             preload_models()
     model = models["coarse"]
     if OFFLOAD_CPU:
+        if GLOBAL_ENABLE_MPS:
+            device = _grab_best_device(use_gpu=False)
+            models_devices["coarse"] = device
         model.to(models_devices["coarse"])
 
     device = next(model.parameters()).device
@@ -1639,6 +1358,9 @@ def generate_coarse_amd_directml(
             preload_models()
     model = models["coarse"]
     if OFFLOAD_CPU:
+        if GLOBAL_ENABLE_MPS:
+            device = _grab_best_device(use_gpu=False)
+            models_devices["coarse"] = device
         model.to(models_devices["coarse"])
     # device = next(model.parameters()).device
 
@@ -1856,6 +1578,9 @@ def generate_fine(
             preload_models()
     model = models["fine"]
     if OFFLOAD_CPU:
+        if GLOBAL_ENABLE_MPS:
+            device = _grab_best_device(use_gpu=False)
+            models_devices["fine"] = device
         model.to(models_devices["fine"])
     device = next(model.parameters()).device
     # make input arr
@@ -1959,6 +1684,9 @@ def codec_decode(fine_tokens):
             preload_models()
     model = models["codec"]
     if OFFLOAD_CPU:
+        if GLOBAL_ENABLE_MPS:
+            device = _grab_best_device(use_gpu=False)
+            models_devices["codec"] = device
         model.to(models_devices["codec"])
     device = next(model.parameters()).device
     arr = torch.from_numpy(fine_tokens)[None]
@@ -2014,6 +1742,18 @@ def load_model(use_gpu=True, use_small=False, force_reload=False, model_type="te
     return models[model_key]
 
 
+def print_loading_info(model_key, ckpt_path, device):
+    device_str = str(device)
+    if SUNO_USE_DIRECTML is True:
+        device_str = "directml (partial AMD GPU support)"
+    if GLOBAL_ENABLE_MPS:
+        device_str = "cpu/mps: Partial Apple Support"
+    if OFFLOAD_CPU:
+        device_str = "cpu/gpu: Offloading, cpu until needed, then gpu"
+
+    print(f"--Loading {model_key} model from {ckpt_path} to {device_str}")
+
+
 def _load_model(ckpt_path, device, use_small=False, model_type="text"):
     if model_type == "text":
         ConfigClass = GPTConfig
@@ -2036,16 +1776,8 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
             f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}"
         )  # added
         _download(model_info["repo_id"], model_info["file_name"])
-    ## added
-    device_str = str(device)
-    if SUNO_USE_DIRECTML is True:
-        device_str = "directml (partial AMD GPU support)"
-    if GLOBAL_ENABLE_MPS:
-        device_str = "cpu/mps: Partial Apple Support"
-    if OFFLOAD_CPU:
-        device_str = "cpu/gpu: Offloading, cpu until needed, then gpu"
 
-    print(f"--Loading {model_key} model from {ckpt_path} to {device_str}")  # added
+    print_loading_info(model_key, ckpt_path, device)
 
     # If I try to load straight to DML, I get a strange error. So doing in two steps.
     checkpoint = torch.load(ckpt_path, map_location=device)

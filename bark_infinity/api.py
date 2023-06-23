@@ -27,6 +27,7 @@ else:
         generate_text_semantic,
         SAMPLE_RATE,
     )
+    from .clonevoice import wav_to_semantics, generate_fine_from_wav, quick_clone
 from .config import (
     logger,
     console,
@@ -392,6 +393,11 @@ def process_history_prompt(user_history_prompt):
 
 def log_params(log_filepath, **kwargs):
     from rich.console import Console
+    import os
+
+    if not isinstance(log_filepath, str) or not os.path.isdir(os.path.dirname(log_filepath)):
+        print(f"Invalid log_filepath: {log_filepath}. Log file was not created.")
+        return
 
     file_console = Console(color_system=None)
     with file_console.capture() as capture:
@@ -401,11 +407,12 @@ def log_params(log_filepath, **kwargs):
         file_console.print(kwargs)
     str_output = capture.get()
 
-    log_filepath = generate_unique_filepath(log_filepath)
-    with open(log_filepath, "wt") as log_file:
-        log_file.write(str_output)
-
-    return
+    try:
+        log_filepath = generate_unique_filepath(log_filepath)
+        with open(log_filepath, "wt", encoding="utf-8") as log_file:
+            log_file.write(str_output)
+    except Exception as e:
+        print(f"An error occurred while trying to log generation parameters: {e}")
 
 
 def determine_output_filename(special_one_off_path=None, **kwargs):
@@ -482,8 +489,10 @@ def write_one_segment(audio_arr=None, full_generation=None, **kwargs):
 
     hoarder_mode = kwargs.get("hoarder_mode", False)
     dry_run = kwargs.get("dry_run", False)
-    if hoarder_mode and not dry_run:
+    # if hoarder_mode and not dry_run:
+    if not dry_run:
         log_params(f"{filepath}_info.txt", **kwargs)
+    return filepath
 
 
 def generate_unique_dirpath(dirpath):
@@ -513,7 +522,7 @@ def write_seg_npz(filepath, full_generation, **kwargs):
     if kwargs.get("segment_number", 1) == "base_history":
         filepath = f"{filepath}_orig_speaker.npz"
 
-    if not kwargs.get("dry_run", False) and kwargs.get("always_save_speaker", True):
+    if not kwargs.get("dry_run", False):
         filepath = generate_unique_filepath(filepath)
         # np.savez_compressed(filepath, semantic_prompt = full_generation["semantic_prompt"], coarse_prompt = full_generation["coarse_prompt"], fine_prompt = full_generation["fine_prompt"])
         if "semantic_prompt" in full_generation:
@@ -525,6 +534,7 @@ def write_seg_npz(filepath, full_generation, **kwargs):
             )
         else:
             print("No semantic prompt to save")
+    return filepath
 
 
 def write_seg_wav(filepath, audio_arr, **kwargs):
@@ -1093,6 +1103,19 @@ def generate_audio_long(
     history_prompt = kwargs.get("history_prompt", None)
     kwargs["history_prompt"] = None
 
+    audio_file_as_history_prompt = None
+    audio_file_as_history_prompt = kwargs.get("audio_file_as_history_prompt", None)
+
+    if audio_file_as_history_prompt is not None:
+        print(f"Audio File as the history_prompt: {audio_file_as_history_prompt}")
+        quick_voice_clone = quick_clone(audio_file_as_history_prompt)
+        kwargs_clone = copy.deepcopy(kwargs)
+        kwargs_clone["output_filename"] = audio_file_as_history_prompt
+        clone_filepath = f"{determine_output_filename(**kwargs)}_audio"
+
+        quick_clone_filename = write_seg_npz(clone_filepath, quick_voice_clone, **kwargs_clone)
+        history_prompt = f"{quick_clone_filename}.npz"
+
     print(f"history_prompt: {history_prompt}")
 
     silent = kwargs.get("silent", None)
@@ -1198,6 +1221,9 @@ def generate_audio_long(
     all_segments_start_time = time.time()
 
     history_prompt_flipper = False
+    if len(audio_segments) < 1:
+        audio_segments.append("")
+
     for i, segment_text in enumerate(audio_segments):
         estimated_time = estimate_spoken_time(segment_text)
         print(f"segment_text: {segment_text}")

@@ -1,0 +1,55 @@
+setuptools
+transformers
+diffusers
+ffmpeg-downloader
+ffmpeg
+ffmpeg-python
+sox ; platform_system == 'Linux'
+sox ; platform_system == 'Darwin'
+soundfile==0.12.1 ; platform_system == 'Windows'
+librosa
+boto3
+funcy
+numpy
+scipy
+tokenizers
+tqdm
+ipython
+huggingface_hub>=0.15.1
+rich
+pathvalidate
+rich-argparse
+encodec
+chardet
+pydub
+requests
+audio2numpy
+faiss-cpu
+joblib
+universal-startfile
+gradio>=3.35.1
+pywin32 ; platform_system == 'Windows'
+hydra_colorlog
+julius
+spacy==3.5.2
+demucs
+flashy>=0.0.1
+av
+einops
+hydra-core>=1.1
+num2words
+sentencepiece
+python-dotenv
+vector_quantize_pytorch
+devtools
+jsonschema
+ffprobe
+pygments
+tensorboard
+pyyaml
+numba
+matplotlib
+accelerate
+nbformat
+fastjsonschema
+jupyter-client
