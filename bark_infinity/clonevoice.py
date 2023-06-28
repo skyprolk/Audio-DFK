@@ -31,7 +31,6 @@ from encodec.utils import convert_audio
 from bark_infinity.hubert.customtokenizer import CustomTokenizer
 from bark_infinity.hubert.hubert_manager import HuBERTManager
 from bark_infinity.hubert.pre_kmeans_hubert import CustomHubert
-import torchaudio
 
 
 def sanitize_filename(filename):
@@ -201,7 +200,7 @@ def write_clone_npz(filepath, full_generation, regen_fine=False, gen_raw_coarse=
 
 
 # missing at least two good tokens
-soft_semantic = [3, 4, 5, 10]
+soft_semantic = [2, 3, 4, 5, 10, 206]
 # allowed_splits = [3,4,5,10]
 
 
@@ -249,7 +248,6 @@ def segment_these_semantics_smartly_and_smoothly(
             max_split_counter += 1
             last_token_was_split = False
 
-        # Add the check for repetition_threshold here
         if (split_counter == split_threshold or repetition_counter == repetition_threshold) and len(
             segment
         ) >= minimum_segment_size:
@@ -302,163 +300,189 @@ def clone_voice(
     max_retries=2,
     even_more_clones=False,
     extra_blurry_clones=False,
+    audio_filepath_directory=None,
+    simple_clones_only=False,
 ):
-    if audio_filepath is None or not os.path.exists(audio_filepath):
-        print(f"The audio file {audio_filepath} does not exist. Please check the path.")
-        progress(f"The audio file {audio_filepath} does not exist. Please check the path.")
-        return
-
     old = generation.OFFLOAD_CPU
     generation.OFFLOAD_CPU = False
-    progress(0, desc="HuBERT Quantizer, Quantizing.")
 
     dest_filename = sanitize_filename(dest_filename)
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     dir_path = Path("cloned_voices") / f"{dest_filename}_{timestamp}"
     dir_path.mkdir(parents=True, exist_ok=True)
 
-    default_prompt_width = 512
-
-    budget_prompt_width = 512
-
-    attempts = 0
-
-    orig_semantic_prompt = None
-    all_completed_clones = []
-
     base_clone_subdir = Path(dir_path) / f"gen_0_clones"
     base_clone_subdir.mkdir(parents=True, exist_ok=True)
 
-    base_output_path = base_clone_subdir
+    starting_base_output_path = base_clone_subdir
 
-    base_output_path = base_output_path / f"{dest_filename}.npz"
-    print(f"Cloning voice from {audio_filepath} to {dest_filename}")
+    starting_base_output_path = starting_base_output_path / f"{dest_filename}"
 
-    if even_more_clones is True:
-        max_retries = 2
+    audio_filepath_files = []
+
+    if audio_filepath_directory is not None:
+        audio_filepath_files = os.listdir(audio_filepath_directory)
+        audio_filepath_files = [file for file in audio_filepath_files if file.endswith(".wav")]
+
+        audio_filepath_files = [
+            os.path.join(audio_filepath_directory, file) for file in audio_filepath_files
+        ]
+
+        print(f"Found {len(audio_filepath_files)} audio files in {audio_filepath_directory}")
+
     else:
-        max_retries = 1
+        audio_filepath_files = [audio_filepath]
 
-    while attempts < max_retries:
-        attempts += 1
-
-        # Step 1: Converting WAV to Semantics
-        progress(1, desc="Step 1 of 4: Converting WAV to Semantics")
-
-        print(f"attempt {attempts} of {max_retries}")
-        if attempts == 2:
-            semantic_prompt_tensor = wav_to_semantics(audio_filepath, alt_model)
+    for audio_num, audio_filepath in enumerate(audio_filepath_files):
+        if audio_filepath is None or not os.path.exists(audio_filepath):
+            print(f"The audio file {audio_filepath} does not exist. Please check the path.")
+            progress(0, f"The audio file {audio_filepath} does not exist. Please check the path.")
+            return
         else:
-            semantic_prompt_tensor = wav_to_semantics(audio_filepath)
+            print(f"Found the audio file {audio_filepath}.")
 
-        orig_semantic_prompt = semantic_prompt_tensor
-        # semantic_prompt = semantic_prompt_tensor.numpy()
-        semantic_prompt = semantic_prompt_tensor
+        base_output_path = Path(f"{starting_base_output_path}_file{audio_num}.npz")
 
-        # Step 2: Generating Fine from WAV
-        progress(2, desc="Step 2 of 4: Generating Fine from WAV")
-        try:
-            fine_prompt = generate_fine_from_wav(audio_filepath)
-        except Exception as e:
-            print(f"Failed at step 2 with error: {e}")
-            continue
+        progress(0, desc="HuBERT Quantizer, Quantizing.")
 
-        # Step 3: Generating Coarse History
-        progress(3, desc="Step 3 of 4: Generating Coarse History")
-        coarse_prompt = generate_course_history(fine_prompt)
-        # coarse_prompt = coarse_prompt.numpy()
+        default_prompt_width = 512
 
-        # Building the history prompt
-        history_prompt = {
-            "semantic_prompt": semantic_prompt,
-            "coarse_prompt": coarse_prompt,
-            "fine_prompt": fine_prompt,
-        }
+        budget_prompt_width = 512
 
-        # print types of each
-        # print(f"semantic_prompt type: {type(semantic_prompt)}")
-        # print(f"coarse_prompt type: {type(coarse_prompt)}")
-        # print(f"fine_prompt type: {type(fine_prompt)}")
+        attempts = 0
 
-        if not api.history_prompt_is_valid(history_prompt):
-            print("Primary prompt potentially problematic:")
-            print(api.history_prompt_detailed_report(history_prompt))
+        orig_semantic_prompt = None
+        all_completed_clones = []
 
-        attempt_string = f"_{attempts}"
-        attempt_string = f""
-        if attempts == 2:
-            # attempt_string = f"{attempt_string}a"
-            attempt_string = f"_x"
+        print(f"Cloning voice from {audio_filepath} to {dest_filename}")
 
-        output_path = base_output_path.with_stem(base_output_path.stem + attempt_string)
+        if even_more_clones is True:
+            max_retries = 2
+        else:
+            max_retries = 1
 
-        # full_output_path = output_path.with_stem(output_path.stem + "_FULLAUDIOCLIP")
-        # write_clone_npz(str(full_output_path), history_prompt)
+        while attempts < max_retries:
+            attempts += 1
 
-        # The back of audio is generally the best speaker by far, as the user specifically chose this audio clip and it likely has a natural ending.
-        # If you had to choose one the front of the clip is bit different style and decent, though cutting randomly so
-        # it has a high chance of being terrible.
+            # Step 1: Converting WAV to Semantics
+            progress(1, desc="Step 1 of 4: Converting WAV to Semantics")
 
-        progress(4, desc="\nSegmenting A Little More Smoothy Now...\n")
-        print(f"Segmenting A Little More Smoothy Now...")
-
-        full_output_path = output_path.with_stem(output_path.stem + "_FULL_Audio_Tokens")
-        write_clone_npz(str(full_output_path), history_prompt)
-
-        # The back of clip generally the best speaker, as the user specifically chose this audio clip and it likely has a natural ending.
-
-        clip_full_semantic_length = len(semantic_prompt)
-
-        back_history_prompt = resize_history_prompt(history_prompt, tokens=768, from_front=False)
-        back_output_path = output_path.with_stem(output_path.stem + "__ENDCLIP")
-        write_clone_npz(str(back_output_path), back_history_prompt, regen_fine=extra_blurry_clones)
-        all_completed_clones.append(
-            (
-                back_history_prompt,
-                str(back_output_path),
-                clip_full_semantic_length - 768,
-            )
-        )
-
-        # thoughtt this would need to be more sophisticated, maybe not
-        split_semantic_segments = segment_these_semantics_smartly_and_smoothly(
-            semantic_prompt,
-            soft_semantic,
-            split_threshold=3,
-            minimum_segment_size=64,
-            maximum_segment_size=768,
-            maximum_segment_size_split_threshold=1,
-            require_consecutive_split_tokens=True,
-            repetition_threshold=12,
-        )
-
-        clone_start = 0
-
-        segment_number = 1
-
-        # while clone_end < clip_full_semantic_length + semantic_step_interval:
-        for idx, semantic_segment_smarter_seg in enumerate(split_semantic_segments):
-            semantic_segment_smarter_seg_len = len(semantic_segment_smarter_seg)
-            current_slice = clone_start + semantic_segment_smarter_seg_len
-            # segment_movement_so_far = current_slice
-
-            clone_start = current_slice
-            sliced_history_prompt = resize_history_prompt(
-                history_prompt, tokens=current_slice, from_front=True
-            )
-            sliced_history_prompt = resize_history_prompt(
-                sliced_history_prompt, tokens=budget_prompt_width, from_front=False
-            )
-            if api.history_prompt_is_valid(sliced_history_prompt):
-                # segment_output_path = output_path.with_stem(output_path.stem + f"_s_{current_slice}")
-                segment_output_path = output_path.with_stem(output_path.stem + f"_{segment_number}")
+            print(f"attempt {attempts} of {max_retries}")
+            if attempts == 2:
+                semantic_prompt_tensor = wav_to_semantics(audio_filepath, alt_model)
             else:
-                print(f"segment {segment_number} potentially problematic:")
-                # print(api.history_prompt_detailed_report(sliced_history_prompt))
+                semantic_prompt_tensor = wav_to_semantics(audio_filepath)
+
+            orig_semantic_prompt = semantic_prompt_tensor
+            # semantic_prompt = semantic_prompt_tensor.numpy()
+            semantic_prompt = semantic_prompt_tensor
+
+            # Step 2: Generating Fine from WAV
+            progress(2, desc="Step 2 of 4: Generating Fine from WAV")
+            try:
+                fine_prompt = generate_fine_from_wav(audio_filepath)
+            except Exception as e:
+                print(f"Failed at step 2 with error: {e}")
+                continue
+
+            # Step 3: Generating Coarse History
+            progress(3, desc="Step 3 of 4: Generating Coarse History")
+            coarse_prompt = generate_course_history(fine_prompt)
+            # coarse_prompt = coarse_prompt.numpy()
+
+            # Building the history prompt
+            history_prompt = {
+                "semantic_prompt": semantic_prompt,
+                "coarse_prompt": coarse_prompt,
+                "fine_prompt": fine_prompt,
+            }
+
+            # print types of each
+            # print(f"semantic_prompt type: {type(semantic_prompt)}")
+            # print(f"coarse_prompt type: {type(coarse_prompt)}")
+            # print(f"fine_prompt type: {type(fine_prompt)}")
+
+            if not api.history_prompt_is_valid(history_prompt):
+                print("Primary prompt potentially problematic:")
+                print(api.history_prompt_detailed_report(history_prompt))
+
+            attempt_string = f"_{attempts}"
+            attempt_string = f""
+            if attempts == 2:
+                # attempt_string = f"{attempt_string}a"
+                attempt_string = f"_x"
+
+            output_path = base_output_path.with_stem(base_output_path.stem + attempt_string)
+
+            # full_output_path = output_path.with_stem(output_path.stem + "_FULLAUDIOCLIP")
+            # write_clone_npz(str(full_output_path), history_prompt)
+
+            # The back of audio is generally the best speaker by far, as the user specifically chose this audio clip and it likely has a natural ending.
+            # If you had to choose one the front of the clip is bit different style and decent, though cutting randomly so
+            # it has a high chance of being terrible.
+
+            progress(4, desc="\nSegmenting A Little More Smoothy Now...\n")
+            print(f"Segmenting A Little More Smoothy Now...")
+
+            full_output_path = output_path.with_stem(output_path.stem + "_FULL_LENGTH_AUDIO")
+            write_clone_npz(str(full_output_path), history_prompt)
+
+            full = load_npz(str(full_output_path))
+            # print(f"{show_history_prompt_size(full, token_samples=128)}")
+
+            # The back of clip generally the best speaker, as the user specifically chose this audio clip and it likely has a natural ending.
+
+            clip_full_semantic_length = len(semantic_prompt)
+
+            back_history_prompt = resize_history_prompt(
+                history_prompt, tokens=768, from_front=False
+            )
+            back_output_path = output_path.with_stem(output_path.stem + "__ENDCLIP")
+            write_clone_npz(
+                str(back_output_path), back_history_prompt, regen_fine=extra_blurry_clones
+            )
+            all_completed_clones.append(
+                (
+                    back_history_prompt,
+                    str(back_output_path),
+                    clip_full_semantic_length - 768,
+                )
+            )
+
+            # thought this would need to be more sophisticated, maybe this is ok
+
+            split_semantic_segments = [semantic_prompt]
+
+            if not simple_clones_only:
+                split_semantic_segments = segment_these_semantics_smartly_and_smoothly(
+                    semantic_prompt,
+                    soft_semantic,
+                    split_threshold=3,
+                    minimum_segment_size=96,
+                    maximum_segment_size=768,
+                    maximum_segment_size_split_threshold=1,
+                    require_consecutive_split_tokens=True,
+                    repetition_threshold=9,
+                )
+            else:
+                print(f"Skipping smart segmentation, using single file instead.")
+
+            clone_start = 0
+
+            segment_number = 1
+
+            # while clone_end < clip_full_semantic_length + semantic_step_interval:
+            for idx, semantic_segment_smarter_seg in enumerate(split_semantic_segments):
+                semantic_segment_smarter_seg_len = len(semantic_segment_smarter_seg)
+                current_slice = clone_start + semantic_segment_smarter_seg_len
+                # segment_movement_so_far = current_slice
+
+                clone_start = current_slice
                 sliced_history_prompt = resize_history_prompt(
-                    sliced_history_prompt,
-                    tokens=budget_prompt_width - 1,
-                    from_front=False,
+                    history_prompt, tokens=current_slice, from_front=True
+                )
+                sliced_history_prompt = resize_history_prompt(
+                    sliced_history_prompt, tokens=budget_prompt_width, from_front=False
                 )
                 if api.history_prompt_is_valid(sliced_history_prompt):
                     # segment_output_path = output_path.with_stem(output_path.stem + f"_s_{current_slice}")
@@ -466,177 +490,193 @@ def clone_voice(
                         output_path.stem + f"_{segment_number}"
                     )
                 else:
-                    print(f"segment {segment_number} still potentially problematic:")
+                    print(f"segment {segment_number} potentially problematic:")
                     # print(api.history_prompt_detailed_report(sliced_history_prompt))
-                    continue
+                    sliced_history_prompt = resize_history_prompt(
+                        sliced_history_prompt,
+                        tokens=budget_prompt_width - 1,
+                        from_front=False,
+                    )
+                    if api.history_prompt_is_valid(sliced_history_prompt):
+                        # segment_output_path = output_path.with_stem(output_path.stem + f"_s_{current_slice}")
+                        segment_output_path = output_path.with_stem(
+                            output_path.stem + f"_{segment_number}"
+                        )
+                    else:
+                        print(f"segment {segment_number} still potentially problematic:")
+                        # print(api.history_prompt_detailed_report(sliced_history_prompt))
+                        continue
 
-            write_clone_npz(
-                str(segment_output_path),
-                sliced_history_prompt,
-                regen_fine=extra_blurry_clones,
+                write_clone_npz(
+                    str(segment_output_path),
+                    sliced_history_prompt,
+                    regen_fine=extra_blurry_clones,
+                )
+                segment_number += 1
+                all_completed_clones.append(
+                    (sliced_history_prompt, str(segment_output_path), current_slice)
+                )
+
+        if attempts == 1 and False:
+            original_audio_filepath_ext = Path(audio_filepath).suffix
+            copy_of_original_target_audio_file = (
+                dir_path / f"{dest_filename}_TARGET_ORIGINAL_audio.wav"
             )
-            segment_number += 1
-            all_completed_clones.append(
-                (sliced_history_prompt, str(segment_output_path), current_slice)
+            copy_of_original_target_audio_file = api.generate_unique_filepath(
+                str(copy_of_original_target_audio_file)
             )
+            print(
+                f"Copying original clone audio sample from {audio_filepath} to {copy_of_original_target_audio_file}"
+            )
+            shutil.copyfile(audio_filepath, str(copy_of_original_target_audio_file))
 
-    if attempts == 1 and False:
-        original_audio_filepath_ext = Path(audio_filepath).suffix
-        copy_of_original_target_audio_file = dir_path / f"{dest_filename}_TARGET_ORIGINAL_audio.wav"
-        copy_of_original_target_audio_file = api.generate_unique_filepath(
-            str(copy_of_original_target_audio_file)
-        )
-        print(
-            f"Copying original clone audio sample from {audio_filepath} to {copy_of_original_target_audio_file}"
-        )
-        shutil.copyfile(audio_filepath, str(copy_of_original_target_audio_file))
+        progress(5, desc="Base Voice Clones Done")
+        print(f"Finished cloning voice from {audio_filepath} to {dest_filename}")
 
-    progress(5, desc="Base Voice Clones Done")
-    print(f"Finished cloning voice from {audio_filepath} to {dest_filename}")
+        # TODO just an experiment, doesn't seem to help though
+        orig_semantic_prompt = orig_semantic_prompt.numpy()
 
-    # TODO just an experiment, doesn't seem to help though
-    orig_semantic_prompt = orig_semantic_prompt.numpy()
+        import random
 
-    import random
+        print(f"input_audio_filename_secondary: {input_audio_filename_secondary}")
 
-    print(f"input_audio_filename_secondary: {input_audio_filename_secondary}")
-
-    if input_audio_filename_secondary is not None:
-        progress(5, desc="Generative Clones, Long Clip, Lots of randomness")
-
-        second_sample_prompt = None
         if input_audio_filename_secondary is not None:
-            progress(
-                5,
-                desc="Step 5 of 5: Converting Secondary Audio sample to Semantic Prompt",
-            )
-            second_sample_tensor = wav_to_semantics(input_audio_filename_secondary)
-            second_sample_prompt = second_sample_tensor.numpy()
-            if len(second_sample_prompt) > 850:
-                second_sample_prompt = second_sample_prompt[
-                    :850
-                ]  # Actually from front, makes sense
+            progress(5, desc="Generative Clones, Long Clip, Lots of randomness")
 
-        orig_semantic_prompt_len = len(orig_semantic_prompt)
+            second_sample_prompt = None
+            if input_audio_filename_secondary is not None:
+                progress(
+                    5,
+                    desc="Step 5 of 5: Converting Secondary Audio sample to Semantic Prompt",
+                )
+                second_sample_tensor = wav_to_semantics(input_audio_filename_secondary)
+                second_sample_prompt = second_sample_tensor.numpy()
+                if len(second_sample_prompt) > 850:
+                    second_sample_prompt = second_sample_prompt[
+                        :850
+                    ]  # Actually from front, makes sense
 
-        generation.OFFLOAD_CPU = old
-        generation.clean_models()
-        generation.preload_models()
+            orig_semantic_prompt_len = len(orig_semantic_prompt)
 
-        total_clones = len(all_completed_clones)
-        clone_num = 0
-        for clone, filepath, end_slice in all_completed_clones:
-            clone_num += 1
-            clone_history = load_npz(filepath)  # lazy tensor to numpy...
-            progress(5, desc=f"Generating {clone_num} of {total_clones}")
-            if api.history_prompt_is_valid(clone_history):
-                end_of_prompt = end_slice + budget_prompt_width
-                if end_of_prompt > orig_semantic_prompt_len:
-                    semantic_next_segment = orig_semantic_prompt  # use beginning
+            generation.OFFLOAD_CPU = old
+
+            generation.preload_models()
+            generation.clean_models()
+
+            total_clones = len(all_completed_clones)
+            clone_num = 0
+            for clone, filepath, end_slice in all_completed_clones:
+                clone_num += 1
+                clone_history = load_npz(filepath)  # lazy tensor to numpy...
+                progress(5, desc=f"Generating {clone_num} of {total_clones}")
+                if api.history_prompt_is_valid(clone_history):
+                    end_of_prompt = end_slice + budget_prompt_width
+                    if end_of_prompt > orig_semantic_prompt_len:
+                        semantic_next_segment = orig_semantic_prompt  # use beginning
+                    else:
+                        semantic_next_segment = orig_semantic_prompt[
+                            -(orig_semantic_prompt_len - end_slice) :
+                        ]
+
+                    prompts = []
+                    if second_sample_prompt is not None:
+                        prompts.append(second_sample_prompt)
+
+                    if even_more_clones:
+                        prompts.append(semantic_next_segment)
+
+                    for semantic_next_segment in prompts:
+                        # print(f"Shape of semantic_next_segment: {semantic_next_segment.shape}")
+
+                        if len(semantic_next_segment) > 800:
+                            semantic_next_segment = semantic_next_segment[:800]
+
+                        chop1 = random.randint(32, 128)
+                        chop2 = random.randint(64, 192)
+                        chop3 = random.randint(128, 256)
+
+                        chop_sizes = [chop1, chop2, chop3]
+
+                        chop = random.choice(chop_sizes)
+
+                        if chop == 0:
+                            chop_his = None
+                        else:
+                            chop_his = resize_history_prompt(
+                                clone_history, tokens=chop, from_front=False
+                            )
+                        coarse_tokens = api.generate_coarse(
+                            semantic_next_segment,
+                            history_prompt=chop_his,
+                            temp=0.7,
+                            silent=False,
+                            use_kv_caching=True,
+                        )
+
+                        fine_tokens = api.generate_fine(
+                            coarse_tokens,
+                            history_prompt=chop_his,
+                            temp=0.5,
+                        )
+
+                        full_generation = {
+                            "semantic_prompt": semantic_next_segment,
+                            "coarse_prompt": coarse_tokens,
+                            "fine_prompt": fine_tokens,
+                        }
+
+                        if api.history_prompt_is_valid(full_generation):
+                            base = os.path.basename(filepath)
+                            filename, extension = os.path.splitext(base)
+                            suffix = f"g2_{chop}_"
+                            new_filename = filename + suffix
+                            new_filepath = os.path.join(
+                                os.path.dirname(filepath), new_filename + extension
+                            )
+                            new_filepath = api.generate_unique_filepath(new_filepath)
+                            write_clone_npz(new_filepath, full_generation)
+
+                            # messy, really bark infinity should sample from different spaces in huge npz files, no reason to cut like this.
+                            suffix = f"g2f_{chop}_"
+                            full_generation = resize_history_prompt(
+                                full_generation, tokens=budget_prompt_width, from_front=True
+                            )
+                            new_filename = filename + suffix
+                            new_filepath = os.path.join(
+                                os.path.dirname(filepath), new_filename + extension
+                            )
+                            new_filepath = api.generate_unique_filepath(new_filepath)
+                            write_clone_npz(new_filepath, full_generation)
+
+                            tiny_history_addition = resize_history_prompt(
+                                full_generation, tokens=128, from_front=True
+                            )
+                            merged = merge_history_prompts(
+                                chop_his, tiny_history_addition, right_size=128
+                            )
+                            suffix = f"g2t_{chop}_"
+                            full_generation = resize_history_prompt(
+                                merged, tokens=budget_prompt_width, from_front=False
+                            )
+                            new_filename = filename + suffix
+                            new_filepath = os.path.join(
+                                os.path.dirname(filepath), new_filename + extension
+                            )
+                            new_filepath = api.generate_unique_filepath(new_filepath)
+                            write_clone_npz(new_filepath, full_generation)
+                        else:
+                            print(f"Full generation for {filepath} was invalid, skipping")
+                            print(api.history_prompt_detailed_report(full_generation))
                 else:
-                    semantic_next_segment = orig_semantic_prompt[
-                        -(orig_semantic_prompt_len - end_slice) :
-                    ]
+                    print(f"Clone {filepath} was invalid, skipping")
+                    print(api.history_prompt_detailed_report(clone_history))
 
-                prompts = []
-                if second_sample_prompt is not None:
-                    prompts.append(second_sample_prompt)
-
-                if even_more_clones:
-                    prompts.append(semantic_next_segment)
-
-                for semantic_next_segment in prompts:
-                    # print(f"Shape of semantic_next_segment: {semantic_next_segment.shape}")
-
-                    if len(semantic_next_segment) > 800:
-                        semantic_next_segment = semantic_next_segment[:800]
-
-                    chop1 = random.randint(32, 128)
-                    chop2 = random.randint(64, 192)
-                    chop3 = random.randint(128, 256)
-
-                    chop_sizes = [chop1, chop2, chop3]
-
-                    chop = random.choice(chop_sizes)
-
-                    if chop == 0:
-                        chop_his = None
-                    else:
-                        chop_his = resize_history_prompt(
-                            clone_history, tokens=chop, from_front=False
-                        )
-                    coarse_tokens = api.generate_coarse(
-                        semantic_next_segment,
-                        history_prompt=chop_his,
-                        temp=0.7,
-                        silent=False,
-                        use_kv_caching=True,
-                    )
-
-                    fine_tokens = api.generate_fine(
-                        coarse_tokens,
-                        history_prompt=chop_his,
-                        temp=0.5,
-                    )
-
-                    full_generation = {
-                        "semantic_prompt": semantic_next_segment,
-                        "coarse_prompt": coarse_tokens,
-                        "fine_prompt": fine_tokens,
-                    }
-
-                    if api.history_prompt_is_valid(full_generation):
-                        base = os.path.basename(filepath)
-                        filename, extension = os.path.splitext(base)
-                        suffix = f"g2_{chop}_"
-                        new_filename = filename + suffix
-                        new_filepath = os.path.join(
-                            os.path.dirname(filepath), new_filename + extension
-                        )
-                        new_filepath = api.generate_unique_filepath(new_filepath)
-                        write_clone_npz(new_filepath, full_generation)
-
-                        # messy, really bark infinity should sample from different spaces in huge npz files, no reason to cut like this.
-                        suffix = f"g2f_{chop}_"
-                        full_generation = resize_history_prompt(
-                            full_generation, tokens=budget_prompt_width, from_front=True
-                        )
-                        new_filename = filename + suffix
-                        new_filepath = os.path.join(
-                            os.path.dirname(filepath), new_filename + extension
-                        )
-                        new_filepath = api.generate_unique_filepath(new_filepath)
-                        write_clone_npz(new_filepath, full_generation)
-
-                        tiny_history_addition = resize_history_prompt(
-                            full_generation, tokens=128, from_front=True
-                        )
-                        merged = merge_history_prompts(
-                            chop_his, tiny_history_addition, right_size=128
-                        )
-                        suffix = f"g2t_{chop}_"
-                        full_generation = resize_history_prompt(
-                            merged, tokens=budget_prompt_width, from_front=False
-                        )
-                        new_filename = filename + suffix
-                        new_filepath = os.path.join(
-                            os.path.dirname(filepath), new_filename + extension
-                        )
-                        new_filepath = api.generate_unique_filepath(new_filepath)
-                        write_clone_npz(new_filepath, full_generation)
-                    else:
-                        print(f"Full generation for {filepath} was invalid, skipping")
-                        print(api.history_prompt_detailed_report(full_generation))
-            else:
-                print(f"Clone {filepath} was invalid, skipping")
-                print(api.history_prompt_detailed_report(clone_history))
-
-    print(f"Generation 0 clones completed. You'll find your clones at: {base_clone_subdir}")
+        print(f"Generation 0 clones completed. You'll find your clones at: {base_clone_subdir}")
 
     # restore previous CPU offload state
 
     generation.OFFLOAD_CPU = old
-
+    generation.clean_models()
     generation.preload_models()  # ?
     return f"{base_clone_subdir}"
 
@@ -650,9 +690,9 @@ def quick_codec_render(filepath):
 
             base = os.path.basename(filepath)
             filename, extension = os.path.splitext(base)
-            new_filepath = os.path.join(os.path.dirname(filepath), filename + "_f.mp3")
+            new_filepath = os.path.join(os.path.dirname(filepath), filename + "_f.mp4")
             new_filepath = api.generate_unique_filepath(new_filepath)
-            api.write_audiofile(new_filepath, audio_arr, output_format="mp3")
+            api.write_audiofile(new_filepath, audio_arr, output_format="mp4")
 
         else:
             print(f"Fine prompt was invalid, skipping")
@@ -668,9 +708,9 @@ def quick_codec_render(filepath):
                     audio_arr = generation.codec_decode(coarse_prompt)
                     base = os.path.basename(filepath)
                     filename, extension = os.path.splitext(base)
-                    new_filepath = os.path.join(os.path.dirname(filepath), filename + "_coar.mp3")
+                    new_filepath = os.path.join(os.path.dirname(filepath), filename + "_co.mp4")
                     new_filepath = api.generate_unique_filepath(new_filepath)
-                    api.write_audiofile(new_filepath, audio_arr, output_format="mp3")
+                    api.write_audiofile(new_filepath, audio_arr, output_format="mp4")
             else:
                 print(f"Coarse prompt was invalid, skipping")
                 print(show_history_prompt_size(reload))
@@ -718,7 +758,8 @@ def load_hubert(alt_model=None, force_reload=True):
 
     if "hubert" not in huberts:
         print(f"Loading HuBERT models {model} from {hubert_path}")
-        huberts["hubert"] = CustomHubert(hubert_path)
+        # huberts["hubert"] = CustomHubert(hubert_path)
+        huberts["hubert"] = CustomHubert(hubert_path, device=torch.device("cpu"))
     if "tokenizer" not in huberts or force_reload:
         # print('Loading Custom Tokenizer')
         # print(f'Loading tokenizer from {tokenizer_path}')
@@ -778,7 +819,17 @@ def wav_to_semantics(file, alt_model=None) -> torch.Tensor:
     else:
         load_hubert(alt_model=alt_model, force_reload=True)
 
+    # check file extension and set
+
+    # format = None
+    # audio_extension = os.path.splitext(file)[1]
+    # format = audio_extension
+
+    # print(f"Loading {file} as {format}")
     wav, sr = torchaudio.load(file)
+
+    # wav, sr = torchaudio.load(file, format=f"{format}")
+
     # sr, wav = wavfile.read(file)
     # wav = torch.tensor(wav, dtype=torch.float32)
 
