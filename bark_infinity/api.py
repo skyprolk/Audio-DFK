@@ -83,6 +83,19 @@ global done_cancelling
 
 gradio_try_to_cancel = False
 done_cancelling = False
+from devtools import debug
+
+
+def numpy_report():
+    os.environ["MKL_VERBOSE"] = "1"
+
+    import numpy as np
+    from time import time
+
+    status_report_string = np.show_config()
+    del os.environ["MKL_VERBOSE"]
+
+    return status_report_string
 
 
 def cuda_status_report():
@@ -463,12 +476,16 @@ def determine_output_filename(special_one_off_path=None, **kwargs):
 
     output_format = kwargs.get("output_format", None)
 
+    npz_only = kwargs.get("npz_only", False)
+
     # print(f"output_format is {output_format}")
-    if output_format is not None:
+    if output_format is not None and not npz_only:
         if output_format in ["ogg", "flac", "mp4", "wav"]:
             base_output_filename = f"{base_output_filename}.{output_format}"
         else:
             base_output_filename = f"{base_output_filename}.mp3"
+    elif npz_only:
+        base_output_filename = f"{base_output_filename}"
 
     output_filepath = os.path.join(output_dir, base_output_filename)
 
@@ -632,7 +649,7 @@ def parse_ffmpeg_parameters(parameters):
     parsed_parameters = [param.strip() for param in parsed_parameters]
 
     # Print debug information
-    print("Final command for ffmpeg (without QQQQQ, DDDDD replaced by -):")
+    # print("Final command for ffmpeg (without QQQQQ, DDDDD replaced by -):")
     print(" ".join(parsed_parameters))
 
     return parsed_parameters
@@ -749,6 +766,83 @@ def generate_audio_barki(
         else:
             print(f"That voice file does not have semantic tokens.")
 
+    semantic_use_mirostat_sampling = kwargs.get("semantic_use_mirostat_sampling", None)
+    semantic_mirostat_tau = kwargs.get("semantic_mirostat_tau", None)
+    semantic_mirostat_learning_rate = kwargs.get("semantic_mirostat_learning_rate", None)
+    semantic_token_repeat_penalty = kwargs.get("semantic_token_repeat_penalty", None)
+    semantic_inverted_p = kwargs.get("semantic_inverted_p", None)
+    semantic_bottom_k = kwargs.get("semantic_bottom_k", None)
+
+    negative_text_prompt = kwargs.get("negative_text_prompt", None)
+    specific_npz_file_negative_prompt = kwargs.get("specific_npz_file_negative_prompt", None)
+
+    semantic_tokens = None
+
+    negative_tokens = None
+    negative_logits = None
+    negative_text_prompt_logits_scale = None
+    negative_text_prompt_divergence_scale = None
+
+    negative_text_prompt = negative_text_prompt.strip()
+    
+    if negative_text_prompt is not None or specific_npz_file_negative_prompt is not None:
+        print(f"---->\nnegative_text_prompt: {negative_text_prompt}")
+        print(f"specific_npz_file_negative_prompt: {specific_npz_file_negative_prompt}")
+
+        negative_text_prompt_logits_scale = kwargs.get("negative_text_prompt_logits_scale", None)
+        negative_text_prompt_divergence_scale = kwargs.get(
+            "negative_text_prompt_divergence_scale", None
+        )
+
+        print(f"negative_text_prompt_logits_scale: {negative_text_prompt_logits_scale}")
+        print(f"negative_text_prompt_divergence_scale: {negative_text_prompt_divergence_scale}")
+
+        # negative_text_prompt_to_use = text
+        negative_text_prompt_to_use = ""
+        if (
+            negative_text_prompt is not None
+            and negative_text_prompt != ""
+            and len(negative_text_prompt) > 1
+        ):
+            negative_text_prompt_to_use = negative_text_prompt
+
+        # negative_history_prompt_to_use = history_prompt
+
+        negative_history_prompt_to_use = None
+
+        if (
+            specific_npz_file_negative_prompt is not None
+            and specific_npz_file_negative_prompt != ""
+            and len(specific_npz_file_negative_prompt) > 1
+        ):
+            negative_history_prompt_to_use = specific_npz_file_negative_prompt
+
+        negative_tokens, negative_logits = call_with_non_none_params(
+            generate_text_semantic,
+            text=negative_text_prompt_to_use,
+            history_prompt=negative_history_prompt_to_use,
+            temp=semantic_temp,
+            top_k=kwargs.get("semantic_top_k", None),
+            top_p=kwargs.get("semantic_top_p", None),
+            silent=silent,
+            min_eos_p=kwargs.get("semantic_min_eos_p", None),
+            max_gen_duration_s=kwargs.get("semantic_max_gen_duration_s", None),
+            allow_early_stop=kwargs.get("semantic_allow_early_stop", True),
+            # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+            use_kv_caching=True,
+            semantic_use_mirostat_sampling=semantic_use_mirostat_sampling,
+            semantic_mirostat_tau=semantic_mirostat_tau,
+            semantic_mirostat_learning_rate=semantic_mirostat_learning_rate,
+            semantic_token_repeat_penalty=semantic_token_repeat_penalty,
+            semantic_inverted_p=semantic_inverted_p,
+            semantic_bottom_k=semantic_bottom_k,
+            return_logits=True,
+        )
+        # debug(f"negative_tokens: {negative_tokens}")
+        # debug(f"negative_logits: {negative_logits}")
+    else:
+        print(f"Not using negative_text_prompt or specific_npz_file_negative_prompt.")
+
     if semantic_tokens is None:
         semantic_tokens = call_with_non_none_params(
             generate_text_semantic,
@@ -763,6 +857,17 @@ def generate_audio_barki(
             allow_early_stop=kwargs.get("semantic_allow_early_stop", True),
             # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
             use_kv_caching=True,
+            semantic_use_mirostat_sampling=semantic_use_mirostat_sampling,
+            semantic_mirostat_tau=semantic_mirostat_tau,
+            semantic_mirostat_learning_rate=semantic_mirostat_learning_rate,
+            semantic_token_repeat_penalty=semantic_token_repeat_penalty,
+            semantic_inverted_p=semantic_inverted_p,
+            semantic_bottom_k=semantic_bottom_k,
+            return_logits=False,
+            negative_tokens=negative_tokens,
+            negative_logits=negative_logits,
+            negative_text_prompt_logits_scale=negative_text_prompt_logits_scale,
+            negative_text_prompt_divergence_scale=negative_text_prompt_divergence_scale,
         )
 
     if generation.get_SUNO_USE_DIRECTML() is True:
@@ -927,6 +1032,103 @@ def generate_audio_sampling_mods_old(
         done_cancelling = True
         return None, None
 
+    negative_text_prompt = kwargs.get("negative_text_prompt", None)
+
+    negative_text_prompt = negative_text_prompt.strip()
+
+    specific_npz_file_negative_prompt = kwargs.get("specific_npz_file_negative_prompt", None)
+
+    semantic_tokens = None
+
+    return_logits = False
+    negative_tokens = None
+    negative_logits = None
+    negative_text_prompt_logits_scale = None
+    negative_text_prompt_divergence_scale = None
+
+    if negative_text_prompt is not None or specific_npz_file_negative_prompt is not None:
+        print(f"negative_text_prompt: {negative_text_prompt}")
+        print(f"specific_npz_file_negative_prompt: {specific_npz_file_negative_prompt}")
+
+        negative_text_prompt_logits_scale = kwargs.get("negative_text_prompt_logits_scale", None)
+        negative_text_prompt_divergence_scale = kwargs.get(
+            "negative_text_prompt_divergence_scale", None
+        )
+
+        print(f"negative_text_prompt_logits_scale: {negative_text_prompt_logits_scale}")
+        print(f"negative_text_prompt_divergence_scale: {negative_text_prompt_divergence_scale}")
+
+        negative_text_prompt_to_use = text
+        if (
+            negative_text_prompt is not None
+            and negative_text_prompt != ""
+            and len(negative_text_prompt) > 1
+        ):
+            negative_text_prompt_to_use = negative_text_prompt
+
+        negative_history_prompt_to_use = history_prompt
+
+        if (
+            specific_npz_file_negative_prompt is not None
+            and specific_npz_file_negative_prompt != ""
+            and len(specific_npz_file_negative_prompt) > 1
+        ):
+            negative_history_prompt_to_use = specific_npz_file_negative_prompt
+
+        negative_tokens, negative_logits = call_with_non_none_params(
+            generate_text_semantic,
+            text=negative_text_prompt_to_use,
+            history_prompt=negative_history_prompt_to_use,
+            temp=semantic_temp,
+            top_k=kwargs.get("semantic_top_k", None),
+            top_p=kwargs.get("semantic_top_p", None),
+            silent=silent,
+            min_eos_p=kwargs.get("semantic_min_eos_p", None),
+            max_gen_duration_s=kwargs.get("semantic_max_gen_duration_s", None),
+            # allow_early_stop=kwargs.get("semantic_allow_early_stop", True),
+            allow_early_stop=kwargs.get("semantic_allow_early_stop", True),
+            # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+            use_kv_caching=True,
+            banned_tokens=kwargs.get("semantic_banned_tokens", None),
+            absolute_banned_tokens=kwargs.get("semantic_absolute_banned_tokens", None),
+            outside_banned_penalty=kwargs.get("semantic_outside_banned_penalty", None),
+            target_distribution=kwargs.get("semantic_target_distribution", None),
+            target_k_smoothing_factor=kwargs.get("semantic_target_k_smoothing_factor", None),
+            target_scaling_factor=kwargs.get("semantic_target_scaling_factor", None),
+            history_prompt_distribution=kwargs.get("semantic_history_prompt_distribution", None),
+            history_prompt_k_smoothing_factor=kwargs.get(
+                "semantic_history_prompt_k_smoothing_factor", None
+            ),
+            history_prompt_scaling_factor=kwargs.get(
+                "semantic_history_prompt_scaling_factor", None
+            ),
+            history_prompt_average_distribution=kwargs.get(
+                "semantic_history_prompt_average_distribution", None
+            ),
+            history_prompt_average_k_smoothing_factor=kwargs.get(
+                "semantic_history_prompt_average_k_smoothing_factor", None
+            ),
+            history_prompt_average_scaling_factor=kwargs.get(
+                "semantic_history_prompt_average_scaling_factor", None
+            ),
+            target_outside_default_penalty=kwargs.get(
+                "semantic_target_outside_default_penalty", None
+            ),
+            target_outside_outlier_penalty=kwargs.get(
+                "semantic_target_outside_outlier_penalty", None
+            ),
+            history_prompt_unique_voice_penalty=kwargs.get(
+                "semantic_history_prompt_unique_voice_penalty", None
+            ),
+            consider_common_threshold=kwargs.get("semantic_consider_common_threshold", None),
+            history_prompt_unique_voice_threshold=kwargs.get(
+                "semantic_history_prompt_unique_voice_threshold", None
+            ),
+            return_logits=True,
+        )
+    else:
+        print(f"no negative_text_prompt or specific_npz_file_negative_prompt")
+
     semantic_tokens = call_with_non_none_params(
         generate_text_semantic,
         text=text,
@@ -969,6 +1171,11 @@ def generate_audio_sampling_mods_old(
         history_prompt_unique_voice_threshold=kwargs.get(
             "semantic_history_prompt_unique_voice_threshold", None
         ),
+        return_logits=False,
+        negative_tokens=negative_tokens,
+        negative_logits=negative_logits,
+        negative_text_prompt_logits_scale=negative_text_prompt_logits_scale,
+        negative_text_prompt_divergence_scale=negative_text_prompt_divergence_scale,
     )
 
     if gradio_try_to_cancel:
@@ -1079,15 +1286,26 @@ def generate_audio_sampling_mods_old(
 
 
 def generate_audio_long_from_gradio(**kwargs):
-    full_generation_segments, audio_arr_segments, final_filename_will_be = [], [], None
+    full_generation_segments, audio_arr_segments, final_filename_will_be, clone_created_filepath = (
+        [],
+        [],
+        None,
+        None,
+    )
 
     (
         full_generation_segments,
         audio_arr_segments,
         final_filename_will_be,
+        clone_created_filepath,
     ) = generate_audio_long(**kwargs)
 
-    return full_generation_segments, audio_arr_segments, final_filename_will_be
+    return (
+        full_generation_segments,
+        audio_arr_segments,
+        final_filename_will_be,
+        clone_created_filepath,
+    )
 
 
 def generate_audio_long(
@@ -1106,15 +1324,30 @@ def generate_audio_long(
     audio_file_as_history_prompt = None
     audio_file_as_history_prompt = kwargs.get("audio_file_as_history_prompt", None)
 
+    clone_created_filepaths = []
+
+    audio_file_as_history_prompt_clone_only = kwargs.get(
+        "audio_file_as_history_prompt_clone_only", None
+    )
+
+    if audio_file_as_history_prompt_clone_only is not None:
+        audio_file_as_history_prompt = audio_file_as_history_prompt_clone_only
+
     if audio_file_as_history_prompt is not None:
         print(f"Audio File as the history_prompt: {audio_file_as_history_prompt}")
         quick_voice_clone = quick_clone(audio_file_as_history_prompt)
         kwargs_clone = copy.deepcopy(kwargs)
-        kwargs_clone["output_filename"] = audio_file_as_history_prompt
-        clone_filepath = f"{determine_output_filename(**kwargs)}_audio"
+        kwargs_clone["output_filename"] = os.path.basename(audio_file_as_history_prompt)
+        kwargs_clone["npz_only"] = "True"
+        clone_filepath = f"{determine_output_filename(**kwargs_clone)}_quick_clone"
 
         quick_clone_filename = write_seg_npz(clone_filepath, quick_voice_clone, **kwargs_clone)
         history_prompt = f"{quick_clone_filename}.npz"
+        kwargs["history_prompt_string"] = history_prompt
+        clone_created_filepaths = [history_prompt]
+
+    if audio_file_as_history_prompt_clone_only is not None:
+        return [], [], None, clone_created_filepaths
 
     print(f"history_prompt: {history_prompt}")
 
@@ -1157,15 +1390,6 @@ def generate_audio_long(
     process_text_by_each = kwargs.get("process_text_by_each", None)
     group_text_by_counting = kwargs.get("group_text_by_counting", None)
 
-    if group_text_by_counting is not None and process_text_by_each is not None:
-        audio_segments = chunk_up_text_prev(**kwargs)
-    else:
-        audio_segments = chunk_up_text(**kwargs)
-
-    if text_splits_only:
-        print("Nothing was generated, this is just text the splits!")
-        return None, None, None
-
     history_prompt_for_next_segment = None
     base_history = None
     if history_prompt is not None:
@@ -1189,7 +1413,16 @@ def generate_audio_long(
             gradio_try_to_cancel = True
             done_cancelling = True
 
-            return None, None, None
+            return None, None, None, None
+
+    if group_text_by_counting is not None and process_text_by_each is not None:
+        audio_segments = chunk_up_text_prev(**kwargs)
+    else:
+        audio_segments = chunk_up_text(**kwargs)
+
+    if text_splits_only:
+        print("Nothing was generated, this is just text the splits!")
+        return None, None, None, None
 
     # way too many files, for hoarder_mode every sample is in own dir
     if hoarder_mode and len(audio_segments) > 1:
@@ -1291,7 +1524,7 @@ def generate_audio_long(
             if gradio_try_to_cancel:
                 done_cancelling = True
                 print(" <Cancelled.>")
-                return None, None, None
+                return None, None, None, None
 
             this_segment_start_time = time.time()
 
@@ -1306,7 +1539,7 @@ def generate_audio_long(
                 full_generation = None
                 done_cancelling = True
                 print(" -----Bark Infinity Cancelled.>")
-                return None, None, None
+                return None, None, None, None
 
             if show_generation_times:
                 this_segment_end_time = time.time()
@@ -1349,7 +1582,7 @@ def generate_audio_long(
                     f"stable_mode_interval is {stable_mode_interval} and something has gone wrong."
                 )
 
-                return None, None, None
+                return None, None, None, None
 
             full_generation_segments.append(full_generation)
             audio_arr_segments.append(audio_arr)
@@ -1373,7 +1606,7 @@ def generate_audio_long(
     if gradio_try_to_cancel:
         done_cancelling = True
         print("< Cancelled >")
-        return None, None, None
+        return None, None, None, None
 
     kwargs["segment_number"] = "final"
     final_filename_will_be = determine_output_filename(**kwargs)
@@ -1389,7 +1622,14 @@ def generate_audio_long(
             print("No audio to write. Something may have gone wrong.")
     print(f"Saved to {final_filename_will_be}")
 
-    return full_generation_segments, audio_arr_segments, final_filename_will_be
+    # generation.clean_models()
+
+    return (
+        full_generation_segments,
+        audio_arr_segments,
+        final_filename_will_be,
+        clone_created_filepaths,
+    )
 
 
 def play_superpack_track(superpack_filepath=None, one_random=True):
@@ -2118,6 +2358,16 @@ def startup_status_report(quick=True, gpu_no_details=False):
     status += f"\nOFFLOAD_CPU: {generation.OFFLOAD_CPU} (Default is True)"
     status += f"\nUSE_SMALL_MODELS: {generation.USE_SMALL_MODELS} (Default is False)"
     status += f"\nGLOBAL_ENABLE_MPS (Apple): {generation.GLOBAL_ENABLE_MPS} (Default is False)"
+
+    gpu_memory = gpu_max_memory()
+    status += f"\nGPU Memory: {gpu_memory} GB"
+
+    if gpu_memory < 4.1:
+        status += f"\n\nWARNING: GPU Memory is {gpu_memory} GB. Enabling SUNO_HALF_PRECISION to save memory."
+
+    status += f"\nSUNO_HALF_PRECISION: {generation.SUNO_HALF_PRECISION} (Default is False)"
+    status += f"\nSUNO_HALF_BFLOAT16: {generation.SUNO_HALF_BFLOAT16} (Default is False)"
+    status += f"\nSUNO_DISABLE_COMPILE: {generation.SUNO_DISABLE_COMPILE} (Default is False)"
 
     # generation.get_SUNO_USE_DIRECTML()
     status += f"\nSUNO_USE_DIRECTML (AMD): {generation.SUNO_USE_DIRECTML} (Default is False)"

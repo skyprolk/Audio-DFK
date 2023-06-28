@@ -199,7 +199,7 @@ DEFAULTS = {
     ],
     "bark_model_parameters": [
         ("text_temp", {"value": 0.7, "type": float, "help": "Text temperature. "}),
-        ("waveform_temp", {"value": 0.7, "type": float, "help": "Waveform temperature."}),
+        ("waveform_temp", {"value": 0.5, "type": float, "help": "Waveform temperature."}),
         ("confused_travolta_mode", {"value": False, "type": bool, "help": "Just for fun. Mostly."}),
         ("silent", {"value": False, "type": bool, "help": "Disable progress bar."}),
         (
@@ -350,6 +350,18 @@ DEFAULTS = {
         (
             "detailed_hugging_face_cache_report",
             {"value": False, "type": bool, "help": "Show detailed GPU details on startup."},
+        ),
+        (
+            "detailed_numpy_report",
+            {"value": False, "type": bool, "help": "Show details on Numpy and MKL config."},
+        ),
+        (
+            "run_numpy_benchmark",
+            {"value": False, "type": bool, "help": "Run CPU benchmark for Numpy and MKL."},
+        ),
+        (
+            "show_all_reports",
+            {"value": False, "type": bool, "help": "Show all reports on startup."},
         ),
         (
             "semantic_temp",

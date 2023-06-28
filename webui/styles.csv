@@ -1,11 +1,35 @@
 ﻿name,prompt,negative_prompt,long_description
-laughter,[laughter],negative_prompt,
+"A Bit Of Music",[music] Put Lyrics Here And Maybe It Works [music] ,,"Some Music, if you're lucky, works with text."
+"Mostly Music",[music][music][music] Put Lyrics Here And Maybe It Works [music][music][music] ,negative_prompt,,"MORE MUSIC."
+"Too Much Music",[music][music][music][music][music][music] Try Putting Lyrics Here And Maybe It Work But Probably Not ,negative_prompt,,"MUSIC MUSIC MUSIC MUSIC"
+laughter,[laughter],,
 laughs,[laughs],
 gasp,[gasp],
 ominous music,* ominous music *,
 music note,♪,
 clears throat,[clears throat],
 dubstep drop,* dubstep drop *,
-1960's breakbeat solo,* 1960's breakbeat solo *,
+"1960's breakbeat solo","* 1960's breakbeat solo *",
 sighs,[sighs],,
 hesitation,...,,
+shushes, [shushes],,"shhh"
+mumbles, [mumbles],,"by itself, speaker will mumble incoherently"
+moans, [moans],," ;) - you get some pretty funny ones out of this, and it modifies the sentence tone"
+scoff, [scoff],," heh"
+tongue clicks, [tongue clicks],," rarely works but got some success"
+whispers, [whispers],," put at start of sentence, occasional success"
+ding, [ding],," ow my ears"
+car horn, [car horn],," sounds pretty accurate"
+chirp, [chirp],," wow you get some really random sounds with this one"
+ouch, [ouch],," unexpected sounds"
+yipes, [yipes],," similar to moan"
+exclaim, [exclaim],," very sus ;)"
+giggling, [giggling],," shorter laughing"
+whimpering, [whimpering],," rare, loud and weird"
+scratching, [scratching],," rare, sounds more like alien clicking/scratching"
+smacking, [smacking],,"works nearly every time, sounds like slapping/clapping"
+screaming, [screaming],, 
+crying, [crying],,"sighing+laughing+weird sounds"
+gulping, [gulping],," got a bunch of boop boop boop"
+gun firing, [gun firing],," rare but distant shot/fireworks sounds"
+sneeze, [sneeze],," weird sounds, sometimes microphone bump/hit sounds"

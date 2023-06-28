@@ -69,14 +69,20 @@ def main(args):
         # print(f"GLOBAL_ENABLE_MPS is set to {generation.GLOBAL_ENABLE_MPS}")
 
     if not args.silent:
-        if args.detailed_gpu_report:
+        if args.detailed_gpu_report or args.show_all_reports:
             print(api.startup_status_report(quick=False))
         elif not args.text_prompt and not args.prompt_file:  # probably a test run, default to show
             print(api.startup_status_report(quick=True))
-        if args.detailed_hugging_face_cache_report:
+        if args.detailed_hugging_face_cache_report or args.show_all_reports:
             print(api.hugging_face_cache_report())
-        if args.detailed_cuda_report:
+        if args.detailed_cuda_report or args.show_all_reports:
             print(api.cuda_status_report())
+        if args.detailed_numpy_report:
+            print(api.numpy_report())
+        if args.run_numpy_benchmark or args.show_all_reports:
+            from bark_infinity.debug import numpy_benchmark
+
+            numpy_benchmark()
 
     if args.list_speakers:
         api.list_speakers()
@@ -98,7 +104,6 @@ def main(args):
             args.split_input_into_separate_prompts_by,
             args.split_input_into_separate_prompts_by_value,
         )
-
 
         print(f"\nProcessing file: {args.prompt_file}")
         print(f"  Looks like: {len(text_prompts_to_process)} prompt(s)")

@@ -11,7 +11,7 @@ from scipy.special import softmax
 import torch
 
 import math
-from scipy.spatial import distance
+
 
 import torch.distributions as torch_distributions
 
@@ -501,7 +501,7 @@ def mirostat_sampling_v1(
     max_surprise=None,
     vocab_size=SEMANTIC_VOCAB_SIZE,
     indices_surprise_history=[],
-    running_tot_surprise=0.0,
+    running_tot_surprise=0,
     generated=[],
 ):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
@@ -553,7 +553,7 @@ def mirostat_sampling_meh(
     max_surprise=None,
     vocab_size=SEMANTIC_VOCAB_SIZE,
     indices_surprise_history=[],
-    running_tot_surprise=0.0,
+    running_tot_surprise=0,
     generated=[],
 ):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
@@ -606,7 +606,7 @@ def mirostat_sampling_least(
     max_surprise=None,
     vocab_size=SEMANTIC_VOCAB_SIZE,
     indices_surprise_history=[],
-    running_tot_surprise=0.0,
+    running_tot_surprise=0,
     generated=[],
 ):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
@@ -735,17 +735,7 @@ def mirostat_sampling(
     )
 
 
-cdevice = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
 def compute_negative_influence(negative_logits, n, window_size, negative_scale):
-    # negative_logits is list of tensors
-    # we could calculate a local "negative influence" based on the tokens in negative_logits near position n.
-
-    # calculate the negative influence as a weighted average of the logits in negative_logits around position n, where the weights decrease the farther you get from n
-
-    # This code takes a window of logits around position n in negative_logits, weights them by their distance from n, and averages them to compute the negative influence.
-
     # Check if negative_logits is empty
     if len(negative_logits) == 0:
         return 0
@@ -760,63 +750,17 @@ def compute_negative_influence(negative_logits, n, window_size, negative_scale):
     start = max(0, n - window_size)
     end = min(len(negative_logits), n + window_size + 1)
 
-    # Move tensors to the specified device
-    negative_logits = [logit.to(cdevice) for logit in negative_logits]
-    n = torch.tensor(n).to(cdevice)
-    window_size = torch.tensor(window_size).to(cdevice)
-    negative_scale = torch.tensor(negative_scale).to(cdevice)
-
     # Generate a Gaussian distribution for the weights and normalize them
-    weights = torch.exp(
-        -((torch.arange(start, end).to(cdevice) - n) ** 2) / (2.0 * window_size**2)
-    )
+    weights = np.exp(-((np.arange(start, end) - n) ** 2) / (2.0 * window_size**2))
     weights /= weights.sum()
 
-    weights = weights.view(-1, 1)
-    negative_influence = torch.stack(negative_logits[start:end]).mul(weights).sum(0)
+    # Compute a weighted average of negative_logits within the window
+    negative_influence = np.average(negative_logits[start:end], weights=weights, axis=0)
 
     # Adjust the influence by the negative_scale
-    negative_scale = min(
-        max(negative_scale.item(), 0), 1
-    )  # Ensure negative_scale is between 0 and 1
-    negative_influence *= negative_scale
-
-    # print(f"Negative influence: {negative_influence}")
+    negative_influence *= min(max(negative_scale, 0), 1)  # Ensure negative_scale is between 0 and 1
 
     return negative_influence
-
-
-def fast_compute_negative_influence(negative_logits, window_size, negative_scale):
-    if len(negative_logits) == 0:
-        return 0
-
-    window_size = min(window_size, len(negative_logits))
-
-    negative_logits = torch.stack(negative_logits).unsqueeze(0).permute(0, 2, 1)
-
-    # Gaussian distribution for weights and norma
-    weights = torch.exp(
-        -((torch.arange(-window_size, window_size + 1).to(cdevice)) ** 2) / (2.0 * window_size**2)
-    )
-    weights /= weights.sum()
-
-    # Reshape weights tensor for convolution
-    # weights = weights.repeat(negative_logits.shape[1], 1).unsqueeze(1)
-    weights = weights.repeat(1, negative_logits.shape[1], 1)
-
-    # Compute cumulative sum of weighted logits
-    cum_logits = (
-        torch.nn.functional.conv1d(negative_logits, weights.flip(dims=[2]), padding=window_size)
-        .squeeze(0)
-        .permute(1, 0)
-    )
-
-    negative_scale = min(max(negative_scale, 0), 1)  # Ensure negative_scale is between 0 and 1
-    cum_logits *= negative_scale
-
-    # print(f"Cumulative negative influence: {cum_logits}")
-
-    return cum_logits
 
 
 def generate_text_semantic(
@@ -830,24 +774,22 @@ def generate_text_semantic(
     max_gen_duration_s=None,
     allow_early_stop=True,
     use_kv_caching=True,
-    semantic_use_mirostat_sampling=False,
-    # semantic_mirostat_tau = 31100.0,
-    semantic_mirostat_tau=5.0,
-    semantic_mirostat_learning_rate=1.0,
-    semantic_token_repeat_penalty=0.0,
-    semantic_inverted_p=None,
-    semantic_bottom_k=None,
+    use_mirostat_sampling=False,
+    # tau = 31100.0,
+    tau=5.0,
+    miro_learning_rate=1.0,
+    token_repeat_penalty=0.0,
+    inverted_p=None,
+    bottom_k=None,
     return_logits=False,
     negative_tokens=None,
     negative_logits=None,
     negative_text_prompt_logits_scale=None,
-    negative_text_prompt_logits_sliding_scale=None,
-    negative_text_prompt_logits_scale_window_size=164,
+    negative_text_prompt_logits_scale_window_size=64,
     negative_text_prompt_divergence_scale=None,
 ):
     """Generate semantic tokens from text."""
 
-    all_logits = None
     if return_logits:
         all_logits = []
 
@@ -855,7 +797,6 @@ def generate_text_semantic(
         temp = 0.001
     # debug(locals())
     logger.debug(locals())
-
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
     # assert len(text.strip()) > 0
@@ -937,24 +878,12 @@ def generate_text_semantic(
 
         # mirostat
         prev = None
-        max_surprise = 2 * semantic_mirostat_tau
+        max_surprise = 2 * tau
         indices_surprise_history = []
-        running_tot_surprise = 0.0
+        running_tot_surprise = 0
         miro_generated = []  # debug
 
         token_counts = defaultdict(int)
-
-        cum_negative_influence = None
-
-        if negative_logits is not None and negative_text_prompt_logits_sliding_scale is not None:
-            cum_negative_influence = fast_compute_negative_influence(
-                negative_logits,
-                negative_text_prompt_logits_scale_window_size,
-                negative_text_prompt_logits_scale,
-            )
-            # print(f"Shape of cum_negative_influence: {cum_negative_influence.shape}")
-            # Shape of cum_negative_influence: torch.Size([1, 10001])
-
         for n in range(n_tot_steps):
             # if use_kv_caching and kv_cache is not None:
             #    x_input = x[:, [-1]]
@@ -979,11 +908,11 @@ def generate_text_semantic(
             original_device = relevant_logits.device
             relevant_logits = relevant_logits.detach().cpu().type(torch.float32).numpy()
 
-            # Jon doing some silly here
-            if top_p is not None or semantic_inverted_p is not None:
-                if semantic_inverted_p is not None:
+            # Jon doing some silly ideas here, but inverted_p seems genuinely useful
+            if top_p is not None or inverted_p is not None:
+                if inverted_p is not None:
                     sorted_indices = np.argsort(relevant_logits)
-                    cumulative_limit = semantic_inverted_p
+                    cumulative_limit = inverted_p
                 elif top_p is not None:
                     sorted_indices = np.argsort(relevant_logits)[::-1]
                     cumulative_limit = top_p
@@ -997,19 +926,17 @@ def generate_text_semantic(
             relevant_logits = torch.from_numpy(relevant_logits)
             relevant_logits = relevant_logits.to(original_device)
 
-            if top_k is not None or semantic_bottom_k is not None:
-                if semantic_bottom_k is not None:
+            if top_k is not None or bottom_k is not None:
+                if bottom_k is not None:
                     v, _ = torch.topk(
-                        relevant_logits,
-                        max(semantic_bottom_k, relevant_logits.size(-1)),
-                        largest=False,
+                        relevant_logits, max(bottom_k, relevant_logits.size(-1)), largest=False
                     )
                     relevant_logits[relevant_logits > v[-1]] = -float("Inf")
                 elif top_k is not None:
                     v, _ = torch.topk(relevant_logits, min(top_k, relevant_logits.size(-1)))
                     relevant_logits[relevant_logits < v[-1]] = -float("Inf")
 
-            if semantic_use_mirostat_sampling:
+            if use_mirostat_sampling:
                 logits_for_miro = relevant_logits / temp
                 (
                     item_next,
@@ -1021,8 +948,8 @@ def generate_text_semantic(
                 ) = mirostat_sampling(
                     logits=logits_for_miro,
                     max_surprise=max_surprise,
-                    tau=semantic_mirostat_tau,
-                    learning_rate=semantic_mirostat_learning_rate,
+                    tau=tau,
+                    learning_rate=miro_learning_rate,
                     vocab_size=SEMANTIC_VOCAB_SIZE,
                     indices_surprise_history=indices_surprise_history,
                     running_tot_surprise=running_tot_surprise,
@@ -1032,61 +959,12 @@ def generate_text_semantic(
                 # item_next = item_next.to(torch.int32)
 
             else:
-                if semantic_token_repeat_penalty != 0.0 and semantic_token_repeat_penalty != 1.0:
+                if token_repeat_penalty != 0.0 and token_repeat_penalty != 1.0:
                     for token, count in token_counts.items():
-                        relevant_logits[token] += math.log(semantic_token_repeat_penalty) * count
+                        relevant_logits[token] += math.log(token_repeat_penalty) * count
 
                 if return_logits:
                     all_logits.append(relevant_logits)
-
-                if negative_logits is not None:
-                    # debug(negative_logits)
-
-                    # Compute the negative influence
-
-                    neg_n = n - 1
-                    if neg_n >= len(negative_logits):
-                        neg_n = -1
-
-                    if (
-                        cum_negative_influence is not None
-                        and negative_text_prompt_logits_sliding_scale is not None
-                        and negative_text_prompt_logits_sliding_scale > 0
-                    ):
-                        negative_influence_torch = cum_negative_influence[neg_n]
-
-                        negative_influence_torch = negative_influence_torch.squeeze()
-
-                        relevant_logits -= negative_influence_torch
-
-                    elif (
-                        negative_text_prompt_divergence_scale is not None
-                        and negative_text_prompt_divergence_scale > 0
-                    ):
-                        negative_probs = (
-                            F.softmax(negative_logits[neg_n], dim=-1).cpu().detach().numpy()
-                        )
-                        positive_probs = F.softmax(relevant_logits, dim=-1).cpu().detach().numpy()
-                        divergence = negative_text_prompt_divergence_scale * distance.jensenshannon(
-                            negative_probs, positive_probs
-                        )
-                        relevant_logits -= (
-                            torch.tensor(divergence).to(device) * negative_logits[neg_n]
-                        )
-
-                    elif (
-                        negative_text_prompt_logits_scale is not None
-                        and negative_text_prompt_logits_scale > 0
-                    ):
-                        relevant_logits -= (
-                            negative_text_prompt_logits_scale * negative_logits[neg_n]
-                        )
-
-                    relevant_logits = torch.where(
-                        torch.isfinite(relevant_logits),
-                        relevant_logits,
-                        torch.tensor(-1e10).to(device),
-                    )
 
                 probs = F.softmax(relevant_logits / temp, dim=-1)
                 item_next = torch.multinomial(probs, num_samples=1).to(torch.int32)
@@ -1102,7 +980,7 @@ def generate_text_semantic(
 
                 break
             # x = torch.cat((x, item_next[None]), dim=1)
-            if semantic_token_repeat_penalty != 0.0 and semantic_token_repeat_penalty != 1.0:
+            if token_repeat_penalty != 0.0 and token_repeat_penalty != 1.0:
                 token_counts[int(item_next)] += 1
 
             x[0][x_initial + n] = item_next
@@ -1127,8 +1005,8 @@ def generate_text_semantic(
         pbar.close()
         # out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
         out = x.detach().cpu().numpy().squeeze()[x_initial : x_initial + n + 1]
-        if semantic_use_mirostat_sampling and False:
-            print(f"Target tau: {semantic_mirostat_tau}")
+        if use_mirostat_sampling and False:
+            print(f"Target tau: {tau}")
             print("Total surprise value:", sum(indices_surprise_history))
             print("Average surprise value:", sum(indices_surprise_history) / len(out))
             print(f"Generated Miro: {miro_generated}")

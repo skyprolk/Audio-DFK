@@ -12,6 +12,7 @@ from tqdm import tqdm
 os.environ["TERM"] = "dumb"
 import io
 from bark_infinity import config
+from bark_infinity import debug
 
 logger = config.logger
 logger.setLevel("INFO")
@@ -309,6 +310,8 @@ def clone_voice_gradio(
     dest_filename,
     extra_blurry_clones,
     even_more_clones,
+    audio_filepath_directory,
+    simple_clones_only,
 ):
     if not generation.get_SUNO_USE_DIRECTML() or ENABLE_DIRECTML_CLONE != "0":
         clone_dir = clone_voice(
@@ -320,6 +323,8 @@ def clone_voice_gradio(
             max_retries=2,
             even_more_clones=even_more_clones,
             extra_blurry_clones=extra_blurry_clones,
+            audio_filepath_directory=audio_filepath_directory,
+            simple_clones_only=simple_clones_only,
         )
         return clone_dir
     else:
@@ -348,7 +353,6 @@ def bot(history):
 
 
 def validate_and_update(prompt, kwargs, min_length=6, barkdebug=False):
-    barkdebug = True
     try:
         if not prompt:  # Checks if the prompt is not None and not an empty string
             if barkdebug:
@@ -421,6 +425,16 @@ def generate_audio_long_gradio(
     audio_file_as_history_prompt,
     specific_npz_folder,
     split_character_jitter,
+    semantic_token_repeat_penalty,
+    semantic_inverted_p,
+    semantic_bottom_k,
+    semantic_use_mirostat_sampling,
+    semantic_mirostat_tau,
+    semantic_mirostat_learning_rate,
+    negative_text_prompt,
+    specific_npz_file_negative_prompt,
+    negative_text_prompt_logits_scale,
+    negative_text_prompt_divergence_scale,
     extra_args_str,
     progress=gr.Progress(track_tqdm=True),
 ):
@@ -470,6 +484,8 @@ def generate_audio_long_gradio(
     kwargs = {}
     kwargs["text_prompt"] = input
 
+    kwargs["negative_text_prompt"] = negative_text_prompt
+
     # Validate and update prompts
     kwargs = validate_and_update(npz_dropdown, kwargs, barkdebug=barkdebug)
     kwargs = validate_and_update(bark_infinity_voices, kwargs, barkdebug=barkdebug)
@@ -477,7 +493,12 @@ def generate_audio_long_gradio(
     kwargs = validate_and_update(cloned_voices, kwargs, barkdebug=barkdebug)
     kwargs = validate_and_update(specific_npz_file, kwargs, barkdebug=barkdebug)
 
-    #
+    # specific_npz_file_negative_prompt with specific_npz_file_negative_prompt.name
+
+    if specific_npz_file_negative_prompt != "" and specific_npz_file_negative_prompt is not None:
+        specific_npz_file_negative_prompt_name = specific_npz_file_negative_prompt.name
+        kwargs["specific_npz_file_negative_prompt"] = specific_npz_file_negative_prompt_name
+
     if audio_file_as_history_prompt != "" and audio_file_as_history_prompt is not None:
         # audio_file_as_history_prompt_name = audio_file_as_history_prompt.name
         kwargs["audio_file_as_history_prompt"] = audio_file_as_history_prompt
@@ -555,7 +576,7 @@ def generate_audio_long_gradio(
     if confused_travolta_mode != "" and confused_travolta_mode is not None:
         kwargs["confused_travolta_mode"] = confused_travolta_mode
 
-    # I didn't fix all the code
+    # I didn't dml all the code yet
     if generation.get_SUNO_USE_DIRECTML() is True:
         semantic_top_k = None
         semantic_top_p = None
@@ -573,6 +594,44 @@ def generate_audio_long_gradio(
 
     if coarse_top_p is not None and coarse_top_p != "" and coarse_top_p > 0:
         kwargs["coarse_top_p"] = float(coarse_top_p)
+
+    if (
+        negative_text_prompt_logits_scale is not None
+        and negative_text_prompt_logits_scale != ""
+        and negative_text_prompt_logits_scale > 0
+    ):
+        kwargs["negative_text_prompt_logits_scale"] = float(negative_text_prompt_logits_scale)
+
+    if (
+        negative_text_prompt_divergence_scale is not None
+        and negative_text_prompt_divergence_scale != ""
+        and negative_text_prompt_divergence_scale > 0
+    ):
+        kwargs["negative_text_prompt_divergence_scale"] = float(
+            negative_text_prompt_divergence_scale
+        )
+
+    if (
+        semantic_token_repeat_penalty is not None
+        and semantic_token_repeat_penalty != ""
+        and semantic_token_repeat_penalty > 0
+    ):
+        kwargs["semantic_token_repeat_penalty"] = float(semantic_token_repeat_penalty)
+
+    if semantic_inverted_p is not None and semantic_inverted_p != "" and semantic_inverted_p > 0:
+        kwargs["semantic_inverted_p"] = float(semantic_inverted_p)
+
+    if semantic_bottom_k is not None and semantic_bottom_k != "" and semantic_bottom_k > 0:
+        kwargs["semantic_bottom_k"] = int(semantic_bottom_k)
+
+    if semantic_use_mirostat_sampling is not None and semantic_use_mirostat_sampling != "":
+        kwargs["semantic_use_mirostat_sampling"] = semantic_use_mirostat_sampling
+
+    if semantic_mirostat_tau is not None and semantic_mirostat_tau != "":
+        kwargs["semantic_mirostat_tau"] = float(semantic_mirostat_tau)
+
+    if semantic_mirostat_learning_rate is not None and semantic_mirostat_learning_rate != "":
+        kwargs["semantic_mirostat_learning_rate"] = float(semantic_mirostat_learning_rate)
 
     if output_dir is not None and output_dir != "":
         kwargs["output_dir"] = output_dir
@@ -608,10 +667,16 @@ def generate_audio_long_gradio(
 
     if text_splits_only:
         output_iterations = 1
-    full_generation_segments, audio_arr_segments, final_filename_will_be = (
+    (
+        full_generation_segments,
+        audio_arr_segments,
+        final_filename_will_be,
+        clone_created_filepaths,
+    ) = (
         None,
         None,
         None,
+        [],
     )
 
     kwargs["output_iterations"] = output_iterations
@@ -630,7 +695,7 @@ def generate_audio_long_gradio(
                 f"Found {len(npz_files)} npz files in {specific_npz_folder} so will generate {total_iterations} total outputs"
             )
 
-    print(f"kargs: {kwargs}")
+    # print(f"kwargs: {kwargs}")
     if npz_files is not None and len(npz_files) > 0:
         for i, npz_file in enumerate(npz_files):
             print(f"Using npz file {i+1} of {len(npz_files)}: {npz_file}")
@@ -653,6 +718,7 @@ def generate_audio_long_gradio(
                     full_generation_segments,
                     audio_arr_segments,
                     final_filename_will_be,
+                    clone_created_filepaths,
                 ) = api.generate_audio_long_from_gradio(**kwargs)
                 last_audio_samples.append(final_filename_will_be)
 
@@ -679,6 +745,7 @@ def generate_audio_long_gradio(
                 full_generation_segments,
                 audio_arr_segments,
                 final_filename_will_be,
+                clone_created_filepaths,
             ) = api.generate_audio_long_from_gradio(**kwargs)
             last_audio_samples.append(final_filename_will_be)
 
@@ -733,6 +800,16 @@ def generate_audio_long_gradio_clones(
     audio_file_as_history_prompt,
     specific_npz_folder,
     split_character_jitter,
+    semantic_token_repeat_penalty,
+    semantic_inverted_p,
+    semantic_bottom_k,
+    semantic_use_mirostat_sampling,
+    semantic_mirostat_tau,
+    semantic_mirostat_learning_rate,
+    negative_text_prompt,
+    specific_npz_file_negative_prompt,
+    negative_text_prompt_logits_scale,
+    negative_text_prompt_divergence_scale,
     extra_args_str,
     progress=gr.Progress(track_tqdm=True),
 ):
@@ -786,6 +863,16 @@ def generate_audio_long_gradio_clones(
         audio_file_as_history_prompt,
         specific_npz_folder,
         split_character_jitter,
+        semantic_token_repeat_penalty,
+        semantic_inverted_p,
+        semantic_bottom_k,
+        semantic_use_mirostat_sampling,
+        semantic_mirostat_tau,
+        semantic_mirostat_learning_rate,
+        negative_text_prompt,
+        specific_npz_file_negative_prompt,
+        negative_text_prompt_logits_scale,
+        negative_text_prompt_divergence_scale,
         extra_args_str,
         progress=gr.Progress(track_tqdm=True),
     )
@@ -1068,6 +1155,17 @@ def generate_speaker_variations(variation_path, variation_count):
     return
 
 
+def soundboard_directory_download(
+    soundboard_url="https://www.101soundboards.com/boards/27047-bob-ross-soundboard",
+    soundboard_directory="downloaded_sounds",
+):
+    from bark_infinity import data_utils
+
+    data_utils.fetch_and_convert_sounds(soundboard_directory, soundboard_url)
+
+    return
+
+
 def generate_sample_audio(sample_gen_path):
     print("Generating sample audio...")
     api.render_npz_samples(npz_directory=sample_gen_path)
@@ -1096,6 +1194,11 @@ def set_XDG_CACHE_HOME(XDG_CACHE_HOME_textbox):
             os.getenv("XDG_CACHE_HOME", default_cache_dir), "suno", "bark_v0"
         )
         print(f"Setting cache dir to {generation.CACHE_DIR}")
+
+
+def clean_models_button_click():
+    generation.clean_models()
+    return
 
 
 def sent_bark_envs(
@@ -1300,11 +1403,24 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                         elem_id="main_text_prompt",
                                     )
 
+                                with gr.Column():
+                                    allow_blank = gr.Checkbox(
+                                        label="Allow Blank Text Prompts",
+                                        info="Typically you want Always Maximum Length as well.",
+                                        value=False,
+                                    )
+
+                                    confused_travolta_mode = gr.Checkbox(
+                                        label="Always Generate Maximum Length.",
+                                        info="(Formerly 🕺🕺 Confused Mode) Speakers will keep talking even when they should be done. Try continuing music as well.",
+                                        value=False,
+                                    )
+
                                 with gr.Row(elem_id=f"styles_row"):
                                     with gr.Column(variant="panel", scale=0.5):
                                         prompt_styles_dropdown = gr.Dropdown(
-                                            label=f"Insert A Text Snippet",
-                                            info=f"Add your commonly used text to {user_style_csv}",
+                                            label=f"Insert A Text Snippet: {user_style_csv}",
+                                            info=f"([bracket] words are very hit or miss, and .npz dependent.)",
                                             elem_id=f"styles",
                                             choices=[k for k, v in prompt_styles.styles.items()],
                                             value=[],
@@ -1369,18 +1485,51 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                             file_types=["npz"],
                                             elem_classes="bark_upload_file",
                                         )
-                                        with gr.Column():
-                                            allow_blank = gr.Checkbox(
-                                                label="Allow Blank Text Prompts",
-                                                info="Typically you want Always Maximum Length as well.",
-                                                value=False,
-                                            )
 
-                                            confused_travolta_mode = gr.Checkbox(
-                                                label="Always Generate Maximum Length.",
-                                                info="(Formerly 🕺🕺 Confused Mode) Speakers will keep talking even when they should be done. Try continuing music as well.",
-                                                value=False,
-                                            )
+                            with gr.Tab('"Negative Prompt" (Experimental)'):
+                                with gr.Row(elem_id=f"text_row"):
+                                    with gr.Column(variant="panel", scale=1):
+                                        gr.Markdown(
+                                            """## Negative Prompts and Anti Speakers are Work in Progress, currently not operational**. """
+                                        )
+                                        gr.Markdown(
+                                            "(These settings will do something, but not what you or anyone wants.)"
+                                        )
+
+                                        gr.Markdown(
+                                            """ (Try Semantic Inverted-P under Experimental Sampling, that works and is pretty fun.)"""
+                                        )
+
+                                        negative_text_prompt = gr.TextArea(
+                                            placeholder="Negative Text Prompt",
+                                            label="Negative Main Text Prompt",
+                                            info='I\'m not sure a "negative" prompt even makes sense in this model. But it sounds fun.',
+                                            elem_id="negative_text_prompt",
+                                        )
+                                        negative_text_prompt_divergence_scale = gr.Slider(
+                                            label="Negative Text Prompt Divergence Scale",
+                                            info="0 means the negative prompt divergence no impact, while a value of 1 would allow full impact.",
+                                            minimum=0.0,
+                                            maximum=2.0,
+                                            value=0.0,
+                                            interactive=True,
+                                        )
+                                        negative_text_prompt_logits_scale = gr.Slider(
+                                            label="Negative Text Prompt Scale",
+                                            info="0 means the negative prompt has no influence, 1 means the negative prompt has maximum influence.",
+                                            minimum=0.0,
+                                            maximum=2.0,
+                                            value=0.0,
+                                            interactive=True,
+                                        )
+
+                                        gr.Markdown(
+                                            """Experimental doesn't really cover it -- what does 'working correctly' look like for negative text prompt in a text to speech model? Anyone have suggestions? I'm thinking something like: a negative prompt \"I'm screaming and I hate you!!!\" makes Bark more inclined to generate quieter, friendly speech."""
+                                        )
+
+                                        gr.Markdown(
+                                            """I've been noodling with the idea of allowing the text prompt (or the voice prompt) to change mid generation. So partway through the audio file being generated, Bark clones off the current state and rewrites a designed part of the model context. It would probably be a bit in the past so the audio wouldn't clip, for example, maybe just the audio segment between 2 and 4 seconds previously. I'm not sure this enables anything useful, but a similar concept is very powerful in Stable Diffusion prompts so it may be worth exploring. At the very least it should let you use multiple .npz files in a prompt, switching as needed, and generate audio clips that are at least sound connected, even if not very coherent."""
+                                        )
 
                         with gr.Column(scale=1, variant="panel"):
                             m("## 🧑‍🎤 Bark Speaker.npz - Who Says It")
@@ -1458,6 +1607,24 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                             value="",
                                             placeholder=f"Directory name or path.",
                                         )
+
+                            with gr.Tab("Anti-Speaker (Experimental)"):
+                                with gr.Row():
+                                    gr.Markdown(
+                                        "Anti Speaker. Use a voice the least like this one? Another concept I'm no sure even makes sense in this model. What is the opposite of a voice? I just did the simplest possible version for now."
+                                    )
+
+                                    specific_npz_file_negative_prompt = gr.File(
+                                        label="Any .NPZ File, Negative Speaker",
+                                        file_types=["npz"],
+                                        elem_classes="bark_upload_file",
+                                        show_label=True,
+                                        elem_id="specific_npz_file_negative_prompt",
+                                    )
+
+                                    gr.Markdown(
+                                        """Similar questions as the negative text prompt. If you have a nice clear voice with no background as the anti-speaker get a noisy voice with background sounds in your final output audio? That's logical, but probably annoying right? Ideally this is more about higher level features?"""
+                                    )
 
                             with gr.Row():
                                 with gr.Column(scale=3, elem_classes="tiny_column"):
@@ -1724,7 +1891,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                         info="'wave' is about detailed sound",
                                         minimum=0.000,
                                         maximum=2.0,
-                                        value=0.70,
+                                        value=0.50,
                                         interactive=True,
                                     )
 
@@ -1752,7 +1919,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                     )
                                     coarse_top_k = gr.Slider(
                                         label="coarse_top_k",
-                                        value=50,
+                                        value=100,
                                         minimum=0,
                                         maximum=1000,
                                         step=1,
@@ -1762,6 +1929,70 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                         value=0.95,
                                         minimum=0.0,
                                         maximum=1.0,
+                                    )
+
+                                with gr.Tab("Experimental"):
+                                    m(
+                                        """***Token Repetition Penalty*** tends to make speakers talk faster. If you set it just a little bit over 1.0, it may slow them down. """
+                                    )
+                                    semantic_token_repeat_penalty = gr.Slider(
+                                        label="Token Repetition Penalty",
+                                        info="Every time a token is generated, make the token this many times likely to appear again. So 0.5 is half as likely every time. 1.1 is 10% more likely. Set to 0 to disable.",
+                                        minimum=0.000,
+                                        maximum=2.0,
+                                        value=0.0,
+                                        interactive=True,
+                                    )
+                                    m(
+                                        """***Semantic Inverted-P*** has a narrow and fiddly range, but it makes very interesting speech patterns and samples within the useful range. It's very speaker dependent, could be as low as 0.25, as high as 0.80 or more."""
+                                    )
+                                    semantic_inverted_p = gr.Slider(
+                                        label="Semantic Inverted-P",
+                                        info="Inverted Sampling: With negative top-p, instead of selecting from the *top* tokens until we reach a cumulative probability of top_p, select from the *least* probable tokens, until a cumulative probability of inverted_p. Set to 0 to disable.",
+                                        value=0.0,
+                                        minimum=0.0,
+                                        maximum=1.0,
+                                        interactive=True,
+                                    )
+
+                                    semantic_bottom_k = gr.Slider(
+                                        label="Semantic Bottom K",
+                                        info="Set to 0 to disable.",
+                                        value=0,
+                                        minimum=0,
+                                        maximum=1000,
+                                        step=1,
+                                    )
+
+                                    m(
+                                        """Inverted-P overrides top_p, and bottom_k overrides top_k. But you can use inverted p and regular k together, or vice versa."""
+                                    )
+                                    m(
+                                        """I'm not sure I left Mirostat in a working state. The effect of Mirostat, if it was ever working, is supposed to be fairly subtle despite the term 'surprise factor' it really just means perplexity and it is trying to have higher quality output, not 'shocking' or 'surprising'.  These settings still change the output so they are doing *something*. With mirostat you can try temperatures above 1.0, it should bring the output back into normal range. Surprise should not be at 40 so it's not right, but lower values were getting a lot of silence. """
+                                    )
+                                    semantic_use_mirostat_sampling = gr.Checkbox(
+                                        label="Use Semantic Mirostat Sampling",
+                                        info="",
+                                        value=False,
+                                    )
+
+                                    semantic_mirostat_tau = gr.Slider(
+                                        label="Semantic Surprise Factor (Mirostat Tau)",
+                                        info="",
+                                        minimum=0.000,
+                                        maximum=100,
+                                        value=40.0,
+                                        step=0.1,
+                                        interactive=True,
+                                    )
+
+                                    semantic_mirostat_learning_rate = gr.Slider(
+                                        label="Semantic Mirostat Learning Rate",
+                                        info="",
+                                        minimum=0.000,
+                                        maximum=2.0,
+                                        value=0.75,
+                                        interactive=True,
                                     )
 
                             with gr.Column(variant="panel", scale=1):
@@ -1885,7 +2116,8 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                             1. Create voice clones from your audio original sample.
                             2. For each clone, use Bark to have the clone speak a text sample. (Choose something in the style of the clone.)
                             3. Save the clone again after that sample. While this changes the voice, it can also improve the voice, so you typically need to get a lucky generation that improves the clone without changing it for a really good clone.
-                            4. *Text can matter a lot*. Try to find a few decent clones set those aside. Those are the ones you are going try lots of text and try to get a really good clone. """
+                            4. *Text can matter a lot*. Try to find a few decent clones set those aside. Those are the ones you are going try lots of text and try to get a really good clone. 
+                            5. It may be worth trying very different sampling parameters. In particular, try zeroing out all the top_k and top_p values if you aren't getting good results."""
                         )
 
                         gr.Markdown(
@@ -1913,7 +2145,22 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                             """I pulled the weirder stuff for now - everyone was confused on just using the UI. We'll get starter clones going for everyone first, maybe add complexity later if it can't be easily automated"""
                         )
 
-                        gr.Markdown("""#### 🐶🌫️🐕‍🦺 Create Extra Blurry Clones. """)
+                        gr.Markdown("Directory of wav files to use as inputs.")
+                        audio_filepath_directory = gr.Textbox(
+                            label="Voice Clone Directory",
+                            lines=1,
+                            placeholder="",
+                            value="",
+                            info=f"Relative to: {where_am_i} or absolute path.",
+                        )
+
+                        simple_clones_only = gr.Checkbox(
+                            label="Just use the end of the audio clip (or clips) as the voice clone.",
+                            info="You will get one clone per audio file with this option",
+                            value=False,
+                        )
+
+                        gr.Markdown("""#### 🐶🌫️🐕‍🦺 Create Extra Blurry Clones.""")
                         extra_blurry_clones = gr.Checkbox(
                             label="🐶🌫️🐕‍🦺 Extra Blurry Clones. Not so useful for accuracy but often creates nice new voices.",
                             info="(This clone is only passed the coarse model, not the fine model.)",
@@ -2046,6 +2293,11 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                                 "Hugging Face Model Cache Info Dump",
                                 elem_id="refresh_hugging_face_cache_report",
                             )
+
+                            run_numpy_benchmark = gr.Button(
+                                "Run Numpy and MKL CPU Benchmark",
+                                elem_id="run_numpy_benchmark",
+                            )
                             refresh_gpu_report.click(
                                 get_refresh_gpu_report,
                                 inputs=None,
@@ -2054,6 +2306,12 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                             )
                             refresh_hugging_face_cache_report.click(
                                 api.hugging_face_cache_report,
+                                inputs=None,
+                                outputs=[gpu_report],
+                                queue=None,
+                            )
+                            run_numpy_benchmark.click(
+                                debug.numpy_benchmark,
                                 inputs=None,
                                 outputs=[gpu_report],
                                 queue=None,
@@ -2079,6 +2337,14 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                         elem_classes="secondary_button",
                         elem_id="env_button_apply",
                     )
+
+                    clean_models_button = gr.Button(
+                        "Clean Models (Clear GPU Memory)",
+                        variant="secondary",
+                        elem_classes="secondary_button",
+                        elem_id="env_button_apply",
+                    )
+
                     env_input_list = (
                         [env_config_group]
                         + [loglevel, save_log_lines_number, XDG_CACHE_HOME_textbox]
@@ -2088,6 +2354,8 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                     env_button.click(
                         sent_bark_envs, inputs=env_input_list, outputs=[model_dir_text]
                     )
+
+                    clean_models_button.click(clean_models_button_click, inputs=[], outputs=[])
 
                     with gr.Row():
                         with gr.Column():
@@ -2244,6 +2512,32 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
 
                                 with gr.Tab("### Sampling and Sets"):
                                     gr.Markdown("""### Placeholder Placeholder.""")
+
+                    with gr.Tab("Utilities"):
+                        with gr.Row():
+                            with gr.Column(scale=1, variant="panel"):
+                                m("# Utilities")
+
+                                m("# 101soundboards")
+
+                                soundboard_url = gr.Textbox(
+                                    label="Soundboard URL",
+                                    value="https://www.101soundboards.com/boards/27047-bob-ross-soundboard",
+                                )
+
+                                soundboard_directory = gr.Textbox(
+                                    label="Soundboard Local Directory",
+                                    value="downloaded_sounds",
+                                )
+
+                                soundboard_directory_button = gr.Button(
+                                    "Download Sounds", variant="primary"
+                                )
+
+                                soundboard_directory_button.click(
+                                    soundboard_directory_download,
+                                    inputs=[soundboard_url, soundboard_directory],
+                                )
 
                     with gr.Tab("More Options"):
                         with gr.Row():
@@ -2482,6 +2776,16 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
             audio_file_as_history_prompt,
             specific_npz_folder,
             split_character_jitter,
+            semantic_token_repeat_penalty,
+            semantic_inverted_p,
+            semantic_bottom_k,
+            semantic_use_mirostat_sampling,
+            semantic_mirostat_tau,
+            semantic_mirostat_learning_rate,
+            negative_text_prompt,
+            specific_npz_file_negative_prompt,
+            negative_text_prompt_logits_scale,
+            negative_text_prompt_divergence_scale,
             extra_args_input,
         ],
         outputs=[audio_output],
@@ -2496,6 +2800,8 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
             output_voice,
             extra_blurry_clones,
             even_more_clones,
+            audio_filepath_directory,
+            simple_clones_only,
         ],
         outputs=dummy,
     )
@@ -2542,6 +2848,16 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
             audio_file_as_history_prompt,
             dummy,
             split_character_jitter,
+            semantic_token_repeat_penalty,
+            semantic_inverted_p,
+            semantic_bottom_k,
+            semantic_use_mirostat_sampling,
+            semantic_mirostat_tau,
+            semantic_mirostat_learning_rate,
+            negative_text_prompt,
+            specific_npz_file_negative_prompt,
+            negative_text_prompt_logits_scale,
+            negative_text_prompt_divergence_scale,
             extra_args_input,
         ],
         outputs=[audio_output],
