@@ -2362,7 +2362,7 @@ def startup_status_report(quick=True, gpu_no_details=False):
     gpu_memory = gpu_max_memory()
     status += f"\nGPU Memory: {gpu_memory} GB"
 
-    if gpu_memory < 4.1:
+    if gpu_memory is not None and gpu_memory < 4.1:
         status += f"\n\nWARNING: GPU Memory is {gpu_memory} GB. Enabling SUNO_HALF_PRECISION to save memory."
 
     status += f"\nSUNO_HALF_PRECISION: {generation.SUNO_HALF_PRECISION} (Default is False)"
