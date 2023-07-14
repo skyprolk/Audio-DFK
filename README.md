@@ -1,15 +1,19 @@
-`# 🚀 BARK INFINITY, Voices are Just Sounds. 🎶 🌈✨🚀 
+# 🚀 BARK INFINITY, Voices are Just Sounds. 🎶 🌈✨🚀 
 
-[![Open Gradio In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1t84qbluQSg7V-YzKit8cD3btmgysT_8V?usp=sharing) Barebone Gradio Running in Google Colab
+#### Why this fork ? 
 
+I do not have a GPU so I need Google Colab for running the python code, as there are notebooks available in this project my focus is here.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Lebdbbq7xOvl9Q430ly6sYrmYoDvlglM?usp=sharing) Basic Colab Notebook
+[![Open In Colab](https://tinyurl.com/3m5bcd9h)](https://colab.research.google.com/github/steinhaug/bark-infinity/blob/main/notebooks/Bark-Infinity.ipynb)
+[![Open In Colab](https://tinyurl.com/jjbfsbk2)](https://colab.research.google.com/github/steinhaug/bark-infinity/blob/main/notebooks/Bark_Infinity_Long_Form_Audio_Colab.ipynb)
+
+<br><br><br><br>
+
 
 # 🎉 Bark INFINITY Automatic Windows Installer, NVIDIA (CPU update soon) 🎉  
 
 
 ### ⚠️ Note: make sure you fully extract the .zip file before running the .bat files. Check this image if you aren't sure: [install_help.PNG](https://raw.githubusercontent.com/JonathanFly/bark/main/one-click-bark-installer/install_help.PNG)
-
 
 ## Install Prerequisites: 
 
