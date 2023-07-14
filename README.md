@@ -4,11 +4,11 @@
 
 I do not have a GPU so I need Google Colab for running the python code, as there are notebooks available in this project my focus is here.
 
-[![Open Gradio In Colab](https://tinyurl.com/23ucap4x)](https://colab.research.google.com/github/steinhaug/bark-infinity/blob/main/notebooks/Bark_Infinity_Long_Form_Audio_Colab.ipynb) Basic Colab Notebook
+[![Open In Colab](https://tinyurl.com/3m5bcd9h)](https://colab.research.google.com/github/steinhaug/bark-infinity/blob/main/notebooks/Bark-Infinity.ipynb)
+[![Open In Colab](https://tinyurl.com/jjbfsbk2)](https://colab.research.google.com/github/steinhaug/bark-infinity/blob/main/notebooks/Bark_Infinity_Long_Form_Audio_Colab.ipynb)
 
 <br><br><br><br>
 
-[![Open Gradio In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1t84qbluQSg7V-YzKit8cD3btmgysT_8V?usp=sharing) Barebone Gradio Running in Google Colab
 
 # 🎉 Bark INFINITY Automatic Windows Installer, NVIDIA (CPU update soon) 🎉  
 
