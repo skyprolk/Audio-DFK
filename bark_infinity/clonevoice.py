@@ -320,7 +320,7 @@ def clone_voice(
 
     audio_filepath_files = []
 
-    if audio_filepath_directory is not None:
+    if audio_filepath_directory is not None and audio_filepath_directory.strip() != "":
         audio_filepath_files = os.listdir(audio_filepath_directory)
         audio_filepath_files = [file for file in audio_filepath_files if file.endswith(".wav")]
 

@@ -783,9 +783,8 @@ def generate_audio_barki(
     negative_text_prompt_logits_scale = None
     negative_text_prompt_divergence_scale = None
 
-    negative_text_prompt = negative_text_prompt.strip()
-    
     if negative_text_prompt is not None or specific_npz_file_negative_prompt is not None:
+        negative_text_prompt = negative_text_prompt.strip()
         print(f"---->\nnegative_text_prompt: {negative_text_prompt}")
         print(f"specific_npz_file_negative_prompt: {specific_npz_file_negative_prompt}")
 
