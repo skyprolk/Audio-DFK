@@ -1,4 +1,4 @@
-#🎵 Audio-DFK 🎧🎤🐶
+# 🎵 Audio-DFK 🎧🎤🐶
 
 #### Why this fork ? 
 
@@ -6,7 +6,7 @@ Since I lack a CUDA GPU, my primary focus is on running the Python code in an In
 
 
 
-# 🚀 Bark Infinity Original Readme 🎶 🌈✨🚀 
+# 🚀 Bark Infinity Original Readme 🚀 
 
 #### Why this fork ? 
 
