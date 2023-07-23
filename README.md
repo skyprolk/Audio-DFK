@@ -1,4 +1,4 @@
-# 🚀 BARK INFINITY, Voices are Just Sounds. 🎶 🌈✨🚀 
+# 🚀 BARK INFINITY Original Readme 🎶 🌈✨🚀 
 
 #### Why this fork ? 
 
