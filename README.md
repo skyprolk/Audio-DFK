@@ -1,4 +1,4 @@
-# 🚀 BARK INFINITY Original Readme 🎶 🌈✨🚀 
+# 🚀 Bark Infinity Original Readme 🎶 🌈✨🚀 
 
 #### Why this fork ? 
 
