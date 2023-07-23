@@ -1378,7 +1378,7 @@ def get_refresh_gpu_report():
 with gr.Blocks(theme=default_theme, css=bark_console_style, title="Audio-DFK") as demo:
     gr.Markdown(
         """
-    # 🎵 Audio-DFK 🎧🎤🐶
+    # 🎵 Audio-DFK 🎧🎤🐶 #BY_SKY_PRODUCTION
     """
     )
 
