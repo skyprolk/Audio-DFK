@@ -2,7 +2,7 @@
 
 #### Why this fork ? 
 
-Since I lack a CUDA GPU, my primary focus is on running the Python code in an Intel integrated GPU, particularly utilizing the notebooks available in this project.
+Since I do not have a CUDA device, my primary focus is on running the Python code on a non-CUDA device, especially utilizing the available notebooks in this project.
 
 
 
