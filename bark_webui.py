@@ -1375,10 +1375,10 @@ def get_refresh_gpu_report():
     return full_gpu_report
 
 
-with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity") as demo:
+with gr.Blocks(theme=default_theme, css=bark_console_style, title="Audio-DFK") as demo:
     gr.Markdown(
         """
-    # 🐶 Bark Infinity 👨‍🔬🧬🔁👯‍♂️🌌 </a><a href="https://github.com/JonathanFly/bark">https://github.com/JonathanFly/bark</a>
+    # 🎵 Audio-DFK 🎧🎤🐶
     """
     )
 
@@ -2252,7 +2252,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                     # model_button.click(preload_models_gradio, inputs=model_checkboxes)
 
                 with gr.Column(scale=3, variant="panel"):
-                    gr.Markdown("## Bark Infinity Options")
+                    gr.Markdown("## Audio-DFK Options")
                     with gr.Row():
                         with gr.Column(scale=4):
                             gr.Markdown(
@@ -2321,7 +2321,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                         with gr.Column(scale=1):
                             loglevel = gr.Dropdown(
                                 ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                                label="Bark Infinity Log Level",
+                                label="Audio-DFK Log Level",
                                 value="WARNING",
                             )
 
@@ -2970,7 +2970,7 @@ server_name = "0.0.0.0" if args.listen else "127.0.0.1"
 
 print(api.startup_status_report(True))
 
-print(f"\n\nYou should see Bark Infinity in your web browser now.")
+print(f"\n\nYou should see Audio-DFK in your web browser now.")
 print(f"If not go the the website you see below as 'Running on local URL:'")
 print(f"python bark_webui.py --help for specific Gradio options.\n\n")
 # demo.queue(concurrency_count=2, max_size=2)
