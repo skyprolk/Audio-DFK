@@ -1,3 +1,11 @@
+#🎵 Audio-DFK 🎧🎤🐶
+
+#### Why this fork ? 
+
+Since I lack a CUDA GPU, my primary focus is on running the Python code in an Intel integrated GPU, particularly utilizing the notebooks available in this project.
+
+
+
 # 🚀 Bark Infinity Original Readme 🎶 🌈✨🚀 
 
 #### Why this fork ? 
