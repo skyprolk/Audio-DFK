@@ -22,7 +22,7 @@ Since I do not have a CUDA device, my primary focus is on running the Python cod
 5. Click `start.bat`
 6. Click on `update_and_install_packages.bat` if you need to update Audio-DFK.
    
-![LAUNCH_already_installed_audio-dfk](https://github.com/JonathanFly/bark/assets/163408/fcd91d15-6bee-44c7-8c99-95ca48fbc1d5)
+![LAUNCH_already_installed_audio-dfk](https://github.com/skyprolk/Audio-DFK/blob/main/one-click-audio-dfk-installer/Launch%20Screenshot.jpeg)
 
 
 # 🚀 Bark Infinity Original Readme 🚀 
