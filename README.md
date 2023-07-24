@@ -13,6 +13,17 @@ Since I do not have a CUDA device, my primary focus is on running the Python cod
 
 ### ⚠️ Note: make sure you fully extract the .zip file before running the .bat files. Check this image if you aren't sure: [install_help.png](https://raw.githubusercontent.com/skyprolk/Audio-DFK/main/one-click-audio-dfk-installer/install_help.png)
 
+## Install Steps
+
+1. Download the latest zip file from the releases page: https://github.com/skyprolk/Audio-DFK/releases
+2. Extract the zip file into a directory. Choose a place where Audio-DFK will be installed. You will unzip about three small files.
+3. Click on `install_packages.bat` (you should not need to be administrator)
+4. If the install finished with no errors, close that terminal window. Close any other open command line windows as well. 
+5. Click `start.bat`
+6. Click on `update_and_install_packages.bat` if you need to update Audio-DFK.
+   
+![LAUNCH_already_installed_audio-dfk](https://github.com/JonathanFly/bark/assets/163408/fcd91d15-6bee-44c7-8c99-95ca48fbc1d5)
+
 
 # 🚀 Bark Infinity Original Readme 🚀 
 
