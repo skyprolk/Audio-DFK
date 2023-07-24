@@ -4,6 +4,14 @@
 
 Since I do not have a CUDA device, my primary focus is on running the Python code on a non-CUDA device, especially utilizing the available notebooks in this project.
 
+[![Open In Colab](https://tinyurl.com/2wznybx3)](https://colab.research.google.com/github/skyprolk/Audio-DFK/blob/main/notebooks/Audio-DFK.ipynb)
+
+<br><br><br><br>
+
+# 🎉 Audio-DFK Automatic Windows Installer 🎉  
+
+
+### ⚠️ Note: make sure you fully extract the .zip file before running the .bat files. Check this image if you aren't sure: [install_help.png](https://raw.githubusercontent.com/skyprolk/Audio-DFK/main/one-click-audio-dfk-installer/install_help.png)
 
 
 # 🚀 Bark Infinity Original Readme 🚀 
