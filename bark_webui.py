@@ -2125,7 +2125,7 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Audio-DFK") a
                         )
 
                         gr.Markdown(
-                            """Presently, longer audio is not being used to train a model or referenced as a whole. Instead you will get a speaker created every every few seconds in that audio. Effectively this is what you would have gotten if had cut up a long clip pieces. (It is a little better, the clips overlap instead of simply split.) (*Update*: It's quite a bit better now. Try 3 to 6 minutes of clear voice samples.)"""
+                            """Presently, longer audio is not being used to train a model or referenced as a whole. Instead you will get a speaker created every every few seconds in that audio. Effectively this is what you would have gotten if had cut up a long clip pieces. (It is a little better, the clips overlap instead of simply split.) (*Update*: It's quite a bit better now. Try 1 to 6 minutes of clear voice samples.)"""
                         )
 
                         gr.Markdown(
